@@ -200,7 +200,7 @@ export default function StrictTesseract() {
         display: "grid",
         placeItems: "center",
         overflow: "hidden",
-        background: "#000000",
+        background: "transparent",
       }}
     >
       <svg
