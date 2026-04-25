@@ -15,7 +15,13 @@ export default function Page() {
         <Tesseract />
       </div>
 
-      <h1 className="home-title">Shanzhy</h1>
+      <h1 className="home-title" aria-label="Shanzhy">
+        {"Shanzhy".split("").map((letter, index) => (
+          <span className="title-letter-mask" aria-hidden="true" key={index}>
+            <span className="title-letter">{letter}</span>
+          </span>
+        ))}
+      </h1>
 
       <button className="home-start" type="button">
         Click here to start

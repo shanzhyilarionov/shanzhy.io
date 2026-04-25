@@ -30,6 +30,29 @@ body {
   font-family: "Acumin", Arial, sans-serif;
   font-size: clamp(5rem, 6vw, 10rem);
   letter-spacing: -0.02em;
+  display: flex;
+}
+
+.title-letter-mask {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.title-letter {
+  display: inline-block;
+  transform: translateX(-110%);
+  animation: letter-slide-in-x 0.5s ease-out 1s both;
+  will-change: transform;
+}
+
+@keyframes letter-slide-in-x {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 .home-start {
@@ -41,10 +64,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
   cursor: pointer;
+  transition: filter 0.3s ease;
 }
 
 .home-start:hover {
-  opacity: 0.5;
+  filter: brightness(50%);
 }
 
 @media (max-width: 768px) {
@@ -76,6 +100,7 @@ body {
   z-index: 20;
   pointer-events: none;
   background: transparent;
+  animation: tesseract-enter 1s ease-out both;
 }
 
 .home-top-text, .home-bottom-text {
@@ -93,4 +118,30 @@ body {
 
 .home-bottom-text {
   bottom: 2vh;
+}
+
+.home-top-text, .home-start, .home-bottom-text {
+  animation: home-text-fade-in 0.5s ease-out 1s both;
+}
+
+@keyframes tesseract-enter {
+  from {
+    transform: translateY(20vh);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes home-text-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
