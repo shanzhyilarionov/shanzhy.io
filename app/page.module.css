@@ -1,0 +1,179 @@
+.home {
+  position: relative;
+  width: 100vw;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.homeTitle {
+  position: absolute;
+  left: 2vw;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  font-family: "Acumin", Arial, sans-serif;
+  font-size: clamp(5rem, 6vw, 10rem);
+  letter-spacing: -0.02em;
+}
+
+.titleLetterMask {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.titleLetter {
+  display: inline-block;
+  transform: translateX(-110%);
+  animation: letterSlideInX 0.5s ease-out 1s both;
+  will-change: transform;
+}
+
+.homeStart {
+  position: absolute;
+  right: 2vw;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  line-height: 1.15;
+  cursor: pointer;
+  animation: homeTextFadeIn 0.5s ease-out 1s both;
+}
+
+.homeStartMask {
+  display: block;
+  height: 1.15em;
+  overflow: hidden;
+}
+
+.homeStartTrack {
+  display: flex;
+  flex-direction: column;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.homeStartLine {
+  display: block;
+  height: 1.15em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.homeStartEnter .homeStartTrack {
+  animation: homeStartRollIn 0.3s ease-out both;
+}
+
+.homeStartLeave .homeStartTrack {
+  animation: homeStartRollOut 0.3s ease-out both;
+}
+
+.tesseractLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: transparent;
+  animation: tesseractEnter 1s ease-out both;
+}
+
+.homeTopText,
+.homeBottomText {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  animation: homeTextFadeIn 0.5s ease-out 1s both;
+}
+
+.homeTopText {
+  top: 2vh;
+}
+
+.homeBottomText {
+  bottom: 2vh;
+}
+
+@media (max-width: 768px) {
+  .homeTopText,
+  .homeBottomText {
+    display: none;
+  }
+
+  .homeTitle {
+    left: 50%;
+    top: 7vh;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: clamp(5rem, 70vw, 7rem);
+  }
+
+  .homeStart {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: 10vh;
+    transform: translateX(-50%);
+    font-size: 1rem;
+  }
+}
+
+@keyframes letterSlideInX {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes homeStartRollIn {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -33.333%, 0);
+  }
+}
+
+@keyframes homeStartRollOut {
+  from {
+    transform: translate3d(0, -33.333%, 0);
+  }
+
+  to {
+    transform: translate3d(0, -66.666%, 0);
+  }
+}
+
+@keyframes tesseractEnter {
+  from {
+    transform: translateY(20vh);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes homeTextFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
