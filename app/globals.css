@@ -4,6 +4,10 @@
   font-family: "Acumin";
   src: url("/fonts/acumin-pro-extra-condensed-extra-light.woff2") format("woff2");
 }
+@font-face {
+  font-family: "Futura";
+  src: url("/fonts/futura-light.woff") format("woff");
+}
 
 html,
 body {
