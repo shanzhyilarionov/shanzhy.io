@@ -16,3 +16,11 @@ body {
   background: #000000;
   color: #FFFFFF;
 }
+
+.blankPage {
+  width: 100vw;
+  min-height: 100svh;
+  background: #000000;
+  color: #FFFFFF;
+  overflow: hidden;
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import styles from "./navigation.module.css";
 
 const links = [
@@ -12,6 +13,7 @@ const links = [
 ];
 
 export default function Navigation({ open, onClose }) {
+  const pathname = usePathname();
   const [closing, setClosing] = useState(false);
   const [closeMotion, setCloseMotion] = useState("");
 
@@ -25,8 +27,15 @@ export default function Navigation({ open, onClose }) {
     if (!open || closing) {
       return;
     }
-
+    setCloseMotion("");
     setClosing(true);
+  };
+
+  const handleLinkClick = (event, href) => {
+    if (href === "/" && pathname === "/") {
+      event.preventDefault();
+      handleClose();
+    }
   };
 
   const closeClassName = [
@@ -95,7 +104,12 @@ export default function Navigation({ open, onClose }) {
       <nav className={styles.navigationList} aria-label="Main navigation">
         {links.map((link) => (
           <div className={styles.navigationItem} key={link.href}>
-            <Link href={link.href}>
+            <Link
+              href={link.href}
+              onClick={() => {
+                handleLinkClick(event, link.href);
+              }}
+            >
               <span>{link.label}</span>
             </Link>
           </div>
