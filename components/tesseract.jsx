@@ -118,6 +118,47 @@ export default function StrictTesseract() {
     return () => cancelAnimationFrame(frameId);
   }, []);
 
+  useEffect(() => {
+    const updatePointer = (clientX, clientY) => {
+      const w = window.innerWidth || 1;
+      const h = window.innerHeight || 1;
+
+      setMouse({
+        x: (clientX / w - 0.5) * 2,
+        y: (clientY / h - 0.5) * 2,
+      });
+    };
+
+    const handlePointerMove = (e) => {
+      updatePointer(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e) => {
+      if (!e.touches.length) return;
+
+      updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const handleDeviceOrientation = (e) => {
+      if (typeof e.gamma !== "number" || typeof e.beta !== "number") return;
+
+      setMouse({
+        x: Math.max(-1, Math.min(1, e.gamma / 30)),
+        y: Math.max(-1, Math.min(1, e.beta / 45)),
+      });
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("deviceorientation", handleDeviceOrientation);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("deviceorientation", handleDeviceOrientation);
+    };
+  }, []);
+
   const scene = useMemo(() => {
     const width = viewport.width;
     const height = viewport.height;
@@ -180,20 +221,8 @@ export default function StrictTesseract() {
     };
   }, [viewport, time, mouse, vertices4D]);
 
-  const handlePointerMove = (e) => {
-    const w = viewport.width || 1;
-    const h = viewport.height || 1;
-    const nx = e.clientX / w;
-    const ny = e.clientY / h;
-    setMouse({
-      x: (nx - 0.5) * 2,
-      y: (ny - 0.5) * 2,
-    });
-  };
-
   return (
     <div
-      onPointerMove={handlePointerMove}
       style={{
         width: "100%",
         minHeight: "100vh",
