@@ -3,6 +3,7 @@
   width: 100vw;
   height: 100svh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .homeTitle {
@@ -77,8 +78,9 @@
 .tesseractLayer {
   position: absolute;
   inset: 0;
-  z-index: 20;
-  pointer-events: none;
+  z-index: 5;
+  pointer-events: auto;
+  touch-action: none;
   background: transparent;
   animation: tesseractEnter 1s ease-out both;
 }

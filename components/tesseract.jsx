@@ -135,27 +135,16 @@ export default function StrictTesseract() {
 
     const handleTouchMove = (e) => {
       if (!e.touches.length) return;
-
+      e.preventDefault();
       updatePointer(e.touches[0].clientX, e.touches[0].clientY);
     };
 
-    const handleDeviceOrientation = (e) => {
-      if (typeof e.gamma !== "number" || typeof e.beta !== "number") return;
-
-      setMouse({
-        x: Math.max(-1, Math.min(1, e.gamma / 30)),
-        y: Math.max(-1, Math.min(1, e.beta / 45)),
-      });
-    };
-
     window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("deviceorientation", handleDeviceOrientation);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("deviceorientation", handleDeviceOrientation);
     };
   }, []);
 
@@ -173,9 +162,11 @@ export default function StrictTesseract() {
     const angleXZ = time * 0.15;
     const angleYZ = time * 0.1;
 
-    const angleXW = time * 0.5 + mouse.x * 0.3;
-    const angleYW = time * 0.5 + mouse.y * 0.3;
-    const angleZW = time * 0.3;
+    const dragStrength = viewport.width <= 768 ? 1.2 : 0.75;
+
+    const angleXW = time * 0.5 + mouse.x * dragStrength;
+    const angleYW = time * 0.5 + mouse.y * dragStrength;
+    const angleZW = time * 0.3 + (mouse.x - mouse.y) * dragStrength * 0.35;
 
     const points2D = vertices4D.map((p) => {
       let q = [...p];
