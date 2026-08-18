@@ -16,7 +16,6 @@ export default function Page() {
   const buttonClassName = [
     styles.homeStart,
     buttonMotion === "enter" ? styles.homeStartEnter : "",
-    buttonMotion === "leave" ? styles.homeStartLeave : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -54,17 +53,12 @@ export default function Page() {
               setButtonMotion("enter");
             }
           }}
-          onPointerLeave={(event) => {
-            if (event.pointerType === "mouse") {
-              setButtonMotion("leave");
-            }
-          }}
         >
           <span className={styles.homeStartMask} aria-hidden="true">
             <span
               className={styles.homeStartTrack}
               onAnimationEnd={() => {
-                if (buttonMotion === "leave") {
+                if (buttonMotion === "enter") {
                   setButtonMotion("");
                 }
               }}

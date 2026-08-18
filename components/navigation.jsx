@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import styles from "./navigation.module.css";
 
 const links = [
@@ -12,15 +12,16 @@ const links = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function Navigation({ open, onClose }) {
+export default function Navigation({ open, onClose, onNavigate }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [closing, setClosing] = useState(false);
   const [closeMotion, setCloseMotion] = useState("");
+  const [pendingHref, setPendingHref] = useState(null);
 
   useEffect(() => {
-    if (open) {
-      setClosing(false);
-    }
+    setClosing(false);
+    setPendingHref(null);
   }, [open]);
 
   const handleClose = () => {
@@ -32,16 +33,39 @@ export default function Navigation({ open, onClose }) {
   };
 
   const handleLinkClick = (event, href) => {
-    if (href === "/" && pathname === "/") {
-      event.preventDefault();
-      handleClose();
+    event.preventDefault();
+    if (!open || closing) {
+      return;
     }
+    setPendingHref(href === pathname ? null : href);
+    handleClose();
+  };
+
+  const finishClose = () => {
+    if (!closing) {
+      return;
+    }
+
+    const href = pendingHref;
+
+    if (href && onNavigate) {
+      onNavigate(href);
+      return;
+    }
+
+    if (href && href !== pathname) {
+      router.push(href);
+      return;
+    }
+
+    setPendingHref(null);
+    setClosing(false);
+    onClose();
   };
 
   const closeClassName = [
     styles.closeButton,
     closeMotion === "enter" ? styles.closeEnter : "",
-    closeMotion === "leave" ? styles.closeLeave : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -50,6 +74,7 @@ export default function Navigation({ open, onClose }) {
     styles.navigation,
     open ? styles.open : "",
     closing ? styles.closing : "",
+    pendingHref ? styles.navigating : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -62,10 +87,10 @@ export default function Navigation({ open, onClose }) {
         if (
           event.target === event.currentTarget &&
           event.propertyName === "transform" &&
-          closing
+          closing &&
+          !pendingHref
         ) {
-          onClose();
-          setClosing(false);
+          finishClose();
         }
       }}
     >
@@ -79,17 +104,12 @@ export default function Navigation({ open, onClose }) {
             setCloseMotion("enter");
           }
         }}
-        onPointerLeave={(event) => {
-          if (event.pointerType === "mouse") {
-            setCloseMotion("leave");
-          }
-        }}
       >
         <span className={styles.closeMask} aria-hidden="true">
           <span
             className={styles.closeTrack}
             onAnimationEnd={() => {
-              if (closeMotion === "leave") {
+              if (closeMotion === "enter") {
                 setCloseMotion("");
               }
             }}
@@ -102,15 +122,30 @@ export default function Navigation({ open, onClose }) {
       </button>
 
       <nav className={styles.navigationList} aria-label="Main navigation">
-        {links.map((link) => (
+        {links.map((link, index) => (
           <div className={styles.navigationItem} key={link.href}>
             <Link
               href={link.href}
-              onClick={() => {
+              onClick={(event) => {
                 handleLinkClick(event, link.href);
               }}
             >
-              <span>{link.label}</span>
+              <span
+                onTransitionEnd={
+                  index === links.length - 1
+                    ? (event) => {
+                        if (
+                          event.propertyName === "transform" &&
+                          pendingHref
+                        ) {
+                          finishClose();
+                        }
+                      }
+                    : undefined
+                }
+              >
+                {link.label}
+              </span>
             </Link>
           </div>
         ))}

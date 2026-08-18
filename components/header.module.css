@@ -1,0 +1,152 @@
+.header {
+  position: fixed;
+  top: 3vh;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerEntering {
+  animation: headerEnter 0.5s ease-out both;
+}
+
+.headerExiting {
+  animation: headerExit 0.5s ease-in both;
+  pointer-events: none;
+}
+
+.headerHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.content {
+  width: 100%;
+  min-height: 100svh;
+}
+
+.contentEntering {
+  animation: contentEnter 0.5s ease-out both;
+}
+
+.contentExiting {
+  animation: contentExit 0.5s ease-in both;
+  pointer-events: none;
+}
+
+.desktopNavigation {
+  display: flex;
+  align-items: center;
+  gap: clamp(2.5rem, 6vw, 8rem);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.headerLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.menuButton {
+  display: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.labelMask {
+  display: block;
+  height: 1em;
+  overflow: hidden;
+}
+
+.labelTrack {
+  display: flex;
+  flex-direction: column;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.labelLine {
+  display: block;
+  height: 1em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rollEnter .labelTrack {
+  animation: labelRollIn 0.2s ease-out both;
+}
+
+@media (max-width: 480px) {
+  .desktopNavigation {
+    display: none;
+  }
+
+  .menuButton {
+    display: block;
+  }
+}
+
+@keyframes headerEnter {
+  from {
+    transform: translateY(-20vh);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes headerExit {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(-20vh);
+    opacity: 0;
+  }
+}
+
+@keyframes contentEnter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contentExit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes labelRollIn {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -33.333%, 0);
+  }
+}
