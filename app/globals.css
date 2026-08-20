@@ -9,6 +9,18 @@
   src: url("/fonts/futura-light.woff") format("woff");
 }
 
+:root {
+  --page-edge: clamp(1.5rem, 2.2vw, 3rem);
+  --header-top: clamp(1rem, 1.5vw, 2rem);
+  --mobile-header-edge: clamp(0.75rem, 2.5vw, 1rem);
+  --mobile-logo-size: clamp(2.5rem, 10.5vw, 3.5rem);
+  --mobile-menu-offset: clamp(
+    0.75rem,
+    calc(5.25vw - 0.5rem),
+    1.25rem
+  );
+}
+
 html,
 body {
   width: 100%;
@@ -25,4 +37,11 @@ body {
   background: #000000;
   color: #FFFFFF;
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-edge: clamp(1.5rem, 4.5vw, 2.75rem);
+    --header-top: clamp(1rem, 3vw, 1.5rem);
+  }
 }

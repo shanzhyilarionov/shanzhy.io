@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Navigation from "./navigation";
@@ -12,6 +12,8 @@ const links = [
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
+
+const contentTransitionDuration = 500;
 
 function RollingLabel({ label, onAnimationEnd }) {
   return (
@@ -67,8 +69,17 @@ export default function Header({ children }) {
   const [headerMotion, setHeaderMotion] = useState("enter");
   const [contentMotion, setContentMotion] = useState("enter");
   const [pendingTransition, setPendingTransition] = useState(null);
+  const transitionTimer = useRef(null);
 
   useEffect(() => {
+    return () => {
+      if (transitionTimer.current !== null) {
+        window.clearTimeout(transitionTimer.current);
+      }
+    };
+  }, []);
+
+  useLayoutEffect(() => {
     if (!pendingTransition || pathname !== pendingTransition.href) {
       return;
     }
@@ -85,15 +96,23 @@ export default function Header({ children }) {
     }
   }, [pathname, pendingTransition]);
 
-  const handleHeaderNavigation = (event, href) => {
-    event.preventDefault();
+  const startHeaderNavigation = (href) => {
     if (href === pathname || pendingTransition) {
       return;
     }
 
     setPendingTransition({ href, source: "header" });
     setContentMotion("exit");
-    setHeaderMotion(href === "/" ? "exit" : "idle");
+    setHeaderMotion("idle");
+    transitionTimer.current = window.setTimeout(() => {
+      transitionTimer.current = null;
+      router.push(href);
+    }, contentTransitionDuration);
+  };
+
+  const handleHeaderNavigation = (event, href) => {
+    event.preventDefault();
+    startHeaderNavigation(href);
   };
 
   const menuClassName = [
@@ -106,7 +125,11 @@ export default function Header({ children }) {
   const headerClassName = [
     styles.header,
     navOpen ? styles.headerHidden : "",
-    !navOpen && headerMotion === "enter" ? styles.headerEntering : "",
+    !navOpen && headerMotion === "enter"
+      ? pathname === "/"
+        ? styles.homeHeaderEntering
+        : styles.headerEntering
+      : "",
     !navOpen && headerMotion === "exit" ? styles.headerExiting : "",
   ]
     .filter(Boolean)
@@ -114,8 +137,14 @@ export default function Header({ children }) {
 
   const contentClassName = [
     styles.content,
-    contentMotion === "enter" ? styles.contentEntering : "",
-    contentMotion === "exit" ? styles.contentExiting : "",
+    contentMotion === "enter" && pathname !== "/"
+      ? styles.contentEntering
+      : "",
+    contentMotion === "exit"
+      ? pathname === "/"
+        ? styles.homeContentExiting
+        : styles.contentExiting
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -133,6 +162,17 @@ export default function Header({ children }) {
           }
         }}
       >
+        <button
+          className={styles.mobileBrand}
+          type="button"
+          aria-label="Shanzhy home"
+          onClick={() => {
+            startHeaderNavigation("/");
+          }}
+        >
+          Shanzhy
+        </button>
+
         <nav className={styles.desktopNavigation} aria-label="Main navigation">
           {links.map((link) => (
             <HeaderLink
@@ -151,6 +191,9 @@ export default function Header({ children }) {
           type="button"
           aria-label="Open navigation"
           onClick={() => {
+            if (pendingTransition) {
+              return;
+            }
             setPendingTransition(null);
             setHeaderMotion("idle");
             setContentMotion("idle");
@@ -175,6 +218,7 @@ export default function Header({ children }) {
 
       <div
         className={contentClassName}
+        data-content-motion={contentMotion}
         onAnimationEnd={(event) => {
           if (event.target !== event.currentTarget) {
             return;
@@ -182,13 +226,6 @@ export default function Header({ children }) {
 
           if (contentMotion === "enter") {
             setContentMotion("idle");
-          }
-
-          if (
-            contentMotion === "exit" &&
-            pendingTransition?.source === "header"
-          ) {
-            router.push(pendingTransition.href);
           }
         }}
       >

@@ -32,6 +32,9 @@
   top: 3vh;
   right: 2vw;
   z-index: 110;
+  border: 0;
+  padding: 0;
+  margin: 0;
   background: transparent;
   color: inherit;
   font-family: Arial, Helvetica, sans-serif;
@@ -140,19 +143,12 @@
 
 @media (max-width: 768px) {
   .closeButton {
-    top: 3vh;
-    right: 3vw;
+    top: calc(var(--header-top) + var(--mobile-menu-offset));
+    right: var(--mobile-header-edge);
   }
+
   .navigationList {
     left: 10vw;
-  }
-}
-
-@media (max-width: 480px) {
-  .closeButton {
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
   }
 }
 

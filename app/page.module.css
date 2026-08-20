@@ -9,7 +9,7 @@
 
 .homeTitle {
   position: absolute;
-  left: 2vw;
+  left: var(--page-edge);
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
@@ -31,45 +31,16 @@
   will-change: transform;
 }
 
-.homeStart {
+.homeRole {
   position: absolute;
-  right: 2vw;
+  right: var(--page-edge);
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
-  line-height: 1.15;
-  cursor: pointer;
+  line-height: 1;
   animation: homeTextFadeIn 0.5s ease-out 1s both;
-}
-
-.homeStartMask {
-  display: block;
-  height: 1.15em;
-  overflow: hidden;
-}
-
-.homeStartTrack {
-  display: flex;
-  flex-direction: column;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
-}
-
-.homeStartLine {
-  display: block;
-  height: 1.15em;
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.homeStartEnter .homeStartTrack {
-  animation: homeStartRollIn 0.3s ease-out both;
 }
 
 .tesseractLayer {
@@ -82,46 +53,30 @@
   animation: tesseractEnter 1s ease-out both;
 }
 
-.homeTopText,
-.homeBottomText {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  animation: homeTextFadeIn 0.5s ease-out 1s both;
+:global([data-content-motion="exit"]) .titleLetter {
+  animation: letterSlideOutX 0.5s ease-in both;
 }
 
-.homeTopText {
-  top: 2vh;
+:global([data-content-motion="exit"]) .homeRole {
+  animation: homeTextFadeOut 0.5s ease-in both;
 }
 
-.homeBottomText {
-  bottom: 2vh;
+:global([data-content-motion="exit"]) .tesseractLayer {
+  animation: tesseractExit 0.5s ease-in both;
 }
 
 @media (max-width: 768px) {
-  .homeTopText,
-  .homeBottomText {
+  .homeTitle {
     display: none;
   }
 
-  .homeTitle {
-    left: 50%;
-    top: 7vh;
-    transform: translateX(-50%);
-    text-align: center;
-    font-size: clamp(5rem, 70vw, 7rem);
-  }
-
-  .homeStart {
+  .homeRole {
     left: 50%;
     right: auto;
-    top: auto;
-    bottom: 10vh;
-    transform: translateX(-50%);
+    top: calc(50% - clamp(8rem, 34vw, 11rem));
+    transform: translate(-50%, -50%);
     font-size: 1rem;
+    white-space: nowrap;
   }
 }
 
@@ -135,6 +90,16 @@
   }
 }
 
+@keyframes letterSlideOutX {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-110%);
+  }
+}
+
 @keyframes pageFadeIn {
   from {
     opacity: 0;
@@ -142,16 +107,6 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes homeStartRollIn {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, -33.333%, 0);
   }
 }
 
@@ -167,6 +122,18 @@
   }
 }
 
+@keyframes tesseractExit {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(20vh);
+    opacity: 0;
+  }
+}
+
 @keyframes homeTextFadeIn {
   from {
     opacity: 0;
@@ -174,5 +141,15 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes homeTextFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }

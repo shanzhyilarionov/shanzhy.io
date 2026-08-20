@@ -1,16 +1,20 @@
 .header {
   position: fixed;
-  top: 3vh;
-  left: 0;
+  top: var(--header-top);
+  left: var(--page-edge);
+  right: var(--page-edge);
   z-index: 50;
   display: flex;
-  width: 100%;
   align-items: center;
   justify-content: center;
 }
 
 .headerEntering {
   animation: headerEnter 0.5s ease-out both;
+}
+
+.homeHeaderEntering {
+  animation: headerEnter 0.58s ease-out 0.92s both;
 }
 
 .headerExiting {
@@ -37,10 +41,16 @@
   pointer-events: none;
 }
 
+.homeContentExiting {
+  animation: homeContentExit 0.5s linear both;
+  pointer-events: none;
+}
+
 .desktopNavigation {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: clamp(2.5rem, 6vw, 8rem);
+  justify-content: space-between;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
   line-height: 1;
@@ -51,10 +61,21 @@
   text-decoration: none;
 }
 
+.mobileBrand {
+  display: none;
+  border: 0;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
 .menuButton {
   display: none;
   border: 0;
   padding: 0;
+  margin: 0;
   background: transparent;
   color: inherit;
   font-family: Arial, Helvetica, sans-serif;
@@ -87,9 +108,24 @@
   animation: labelRollIn 0.2s ease-out both;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .header {
+    left: var(--mobile-header-edge);
+    right: var(--mobile-header-edge);
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .desktopNavigation {
     display: none;
+  }
+
+  .mobileBrand {
+    display: block;
+    font-family: "Acumin", Arial, sans-serif;
+    font-size: var(--mobile-logo-size);
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 
   .menuButton {
@@ -99,7 +135,7 @@
 
 @keyframes headerEnter {
   from {
-    transform: translateY(-20vh);
+    transform: translateY(-2rem);
     opacity: 0;
   }
 
@@ -116,7 +152,7 @@
   }
 
   to {
-    transform: translateY(-20vh);
+    transform: translateY(-2rem);
     opacity: 0;
   }
 }
@@ -138,6 +174,13 @@
 
   to {
     opacity: 0;
+  }
+}
+
+@keyframes homeContentExit {
+  from,
+  to {
+    opacity: 1;
   }
 }
 

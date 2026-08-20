@@ -154,7 +154,15 @@ export default function StrictTesseract() {
     const cx = width / 2;
     const cy = height / 2;
 
-    const scale2D = Math.min(width, height) * 0.1;
+    const compactProgress = Math.max(
+      0,
+      Math.min(1, (900 - width) / (900 - 600)),
+    );
+    const compactScale = 1 - compactProgress * 0.22;
+    const scale2D = Math.max(
+      36,
+      Math.min(width, height) * 0.1 * compactScale,
+    );
     const distance4 = 3;
     const distance3 = 5;
 
