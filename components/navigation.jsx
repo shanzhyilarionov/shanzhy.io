@@ -12,7 +12,13 @@ const links = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function Navigation({ open, onClose, onNavigate }) {
+export default function Navigation({
+  open,
+  onClose,
+  onNavigate,
+  onCovered,
+  onReveal,
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [closing, setClosing] = useState(false);
@@ -28,6 +34,7 @@ export default function Navigation({ open, onClose, onNavigate }) {
     if (!open || closing) {
       return;
     }
+    onReveal?.();
     setCloseMotion("");
     setClosing(true);
   };
@@ -85,11 +92,18 @@ export default function Navigation({ open, onClose, onNavigate }) {
       aria-hidden={!open}
       onTransitionEnd={(event) => {
         if (
-          event.target === event.currentTarget &&
-          event.propertyName === "transform" &&
-          closing &&
-          !pendingHref
+          event.target !== event.currentTarget ||
+          event.propertyName !== "transform"
         ) {
+          return;
+        }
+
+        if (open && !closing) {
+          onCovered?.();
+          return;
+        }
+
+        if (closing && !pendingHref) {
           finishClose();
         }
       }}

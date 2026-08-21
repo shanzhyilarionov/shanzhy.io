@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Navigation from "./navigation";
+import { SceneAnimationPauseProvider } from "./scene-animation-context";
 import styles from "./header.module.css";
 
 const links = [
@@ -69,6 +70,7 @@ export default function Header({ children }) {
   const [headerMotion, setHeaderMotion] = useState("enter");
   const [contentMotion, setContentMotion] = useState("enter");
   const [pendingTransition, setPendingTransition] = useState(null);
+  const [sceneAnimationPaused, setSceneAnimationPaused] = useState(false);
   const transitionTimer = useRef(null);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function Header({ children }) {
 
     if (source === "navigation") {
       setNavOpen(false);
+      setSceneAnimationPaused(false);
       setHeaderMotion("enter");
     } else {
       setHeaderMotion("idle");
@@ -130,7 +133,6 @@ export default function Header({ children }) {
         ? styles.homeHeaderEntering
         : styles.headerEntering
       : "",
-    !navOpen && headerMotion === "exit" ? styles.headerExiting : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -150,7 +152,7 @@ export default function Header({ children }) {
     .join(" ");
 
   return (
-    <>
+    <SceneAnimationPauseProvider paused={sceneAnimationPaused}>
       <header
         className={headerClassName}
         onAnimationEnd={(event) => {
@@ -195,6 +197,7 @@ export default function Header({ children }) {
               return;
             }
             setPendingTransition(null);
+            setSceneAnimationPaused(false);
             setHeaderMotion("idle");
             setContentMotion("idle");
             setNavOpen(true);
@@ -236,15 +239,23 @@ export default function Header({ children }) {
         open={navOpen}
         onClose={() => {
           setPendingTransition(null);
+          setSceneAnimationPaused(false);
           setNavOpen(false);
           setHeaderMotion("idle");
           setContentMotion("idle");
         }}
         onNavigate={(href) => {
+          setSceneAnimationPaused(false);
           setPendingTransition({ href, source: "navigation" });
           router.push(href);
         }}
+        onCovered={() => {
+          setSceneAnimationPaused(true);
+        }}
+        onReveal={() => {
+          setSceneAnimationPaused(false);
+        }}
       />
-    </>
+    </SceneAnimationPauseProvider>
   );
 }

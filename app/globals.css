@@ -13,7 +13,7 @@
   --page-edge: clamp(1.5rem, 2.2vw, 3rem);
   --header-top: clamp(1rem, 1.5vw, 2rem);
   --mobile-header-edge: clamp(0.75rem, 2.5vw, 1rem);
-  --mobile-logo-size: clamp(2.15rem, 9vw, 3rem);
+  --mobile-logo-size: clamp(2.25rem, 9.4vw, 3.1rem);
 }
 
 html,

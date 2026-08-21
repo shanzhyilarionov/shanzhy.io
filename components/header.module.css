@@ -14,12 +14,7 @@
 }
 
 .homeHeaderEntering {
-  animation: headerEnter 0.58s ease-out 0.92s both;
-}
-
-.headerExiting {
-  animation: headerExit 0.5s ease-in both;
-  pointer-events: none;
+  animation: headerEnter 0.5s ease-out 1s both;
 }
 
 .headerHidden {
@@ -142,18 +137,6 @@
   to {
     transform: translateY(0);
     opacity: 1;
-  }
-}
-
-@keyframes headerExit {
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  to {
-    transform: translateY(-2rem);
-    opacity: 0;
   }
 }
 
