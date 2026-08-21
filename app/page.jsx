@@ -14,19 +14,21 @@ export default function Page() {
         <Tesseract />
       </div>
 
-      <h1 className={styles.homeTitle} aria-label="Shanzhy">
-        {"Shanzhy".split("").map((letter, index) => (
-          <span
-            className={styles.titleLetterMask}
-            aria-hidden="true"
-            key={index}
-          >
-            <span className={styles.titleLetter}>{letter}</span>
-          </span>
-        ))}
-      </h1>
+      <div className={styles.homeIdentity}>
+        <h1 className={styles.homeTitle} aria-label="Shanzhy">
+          {"Shanzhy".split("").map((letter, index) => (
+            <span
+              className={styles.titleLetterMask}
+              aria-hidden="true"
+              key={index}
+            >
+              <span className={styles.titleLetter}>{letter}</span>
+            </span>
+          ))}
+        </h1>
 
-      <p className={styles.homeRole}>Independent Developer</p>
+        <p className={styles.homeRole}>Independent Developer</p>
+      </div>
     </main>
   );
 }

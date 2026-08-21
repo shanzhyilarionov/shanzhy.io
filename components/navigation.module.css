@@ -143,8 +143,11 @@
 
 @media (max-width: 768px) {
   .closeButton {
-    top: calc(var(--header-top) + var(--mobile-menu-offset));
+    top: var(--header-top);
     right: var(--mobile-header-edge);
+    display: flex;
+    height: var(--mobile-logo-size);
+    align-items: center;
   }
 
   .navigationList {
