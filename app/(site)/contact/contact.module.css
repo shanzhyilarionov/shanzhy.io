@@ -1,0 +1,166 @@
+.contactPage {
+  position: relative;
+  width: 100vw;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #000000;
+  color: #FFFFFF;
+}
+
+.contactContent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: translateY(-50%);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sectionTitle {
+  margin: 0;
+  font: inherit;
+  line-height: 1.15;
+}
+
+.revealLine {
+  position: relative;
+  width: max-content;
+}
+
+.revealClip {
+  overflow: hidden;
+}
+
+.revealContent {
+  animation: lineEnter 0.4s ease-out both;
+  animation-delay: calc(var(--line-index) * 0.08s);
+  will-change: transform;
+}
+
+:global([data-content-motion="exit"]) .revealContent {
+  animation: lineExit 0.5s ease-in both;
+  animation-delay: 0s;
+}
+
+.inquiriesLink {
+  margin-top: 0.625rem;
+}
+
+.socialTitle {
+  margin-top: 2rem;
+  margin-bottom: 0.625rem;
+}
+
+.contactLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.emailButton {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.copiedMessage {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.copiedMessageVisible {
+  opacity: 1;
+}
+
+:global([data-content-motion="exit"]) .copiedMessage {
+  opacity: 0;
+}
+
+.labelMask {
+  display: block;
+  height: 1.15em;
+  overflow: hidden;
+}
+
+.labelTrack {
+  display: flex;
+  flex-direction: column;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.labelLine {
+  display: block;
+  height: 1.15em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.rollEnter .labelTrack {
+  animation: labelRollIn 0.2s ease-out both;
+}
+
+@media (max-width: 768px) {
+  .contactContent {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revealContent,
+  :global([data-content-motion="exit"]) .revealContent,
+  .rollEnter .labelTrack {
+    animation: none;
+  }
+
+  .copiedMessage {
+    transition: none;
+  }
+}
+
+@keyframes lineEnter {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes lineExit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes labelRollIn {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -33.333%, 0);
+  }
+}
