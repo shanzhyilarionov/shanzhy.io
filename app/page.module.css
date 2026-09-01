@@ -63,6 +63,7 @@
   touch-action: none;
   background: transparent;
   animation: tesseractEnter 1s ease-out both;
+  will-change: transform, opacity;
 }
 
 :global([data-content-motion="exit"]) .titleLetter {

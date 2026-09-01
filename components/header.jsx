@@ -139,13 +139,15 @@ export default function Header({ children }) {
 
   const contentClassName = [
     styles.content,
-    contentMotion === "enter" && pathname !== "/"
+    contentMotion === "enter" && pathname !== "/" && pathname !== "/contact"
       ? styles.contentEntering
       : "",
     contentMotion === "exit"
       ? pathname === "/"
         ? styles.homeContentExiting
-        : styles.contentExiting
+        : pathname === "/contact"
+          ? styles.contactContentExiting
+          : styles.contentExiting
       : "",
   ]
     .filter(Boolean)

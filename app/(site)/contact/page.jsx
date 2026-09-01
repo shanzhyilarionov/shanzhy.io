@@ -102,11 +102,17 @@ function CopyEmailButton({ copied, onCopy }) {
   );
 }
 
-function RevealLine({ children, index, className = "", feedback = null }) {
+function RevealItem({ children, index, feedback = null }) {
+  const duration = (socialLinks.length + 2 - index) * 100;
+  const enterDelay = 500 - duration;
+
   return (
     <div
-      className={[styles.revealLine, className].filter(Boolean).join(" ")}
-      style={{ "--line-index": index }}
+      className={styles.contactItem}
+      style={{
+        "--item-duration": `${duration}ms`,
+        "--enter-delay": `${enterDelay}ms`,
+      }}
     >
       <div className={styles.revealClip}>
         <div className={styles.revealContent}>{children}</div>
@@ -169,13 +175,8 @@ export default function Contact() {
   return (
     <main className={styles.contactPage}>
       <section className={styles.contactContent} aria-label="Contact information">
-        <RevealLine index={0}>
-          <h1 className={styles.sectionTitle}>Inquiries</h1>
-        </RevealLine>
-
-        <RevealLine
-          index={1}
-          className={styles.inquiriesLink}
+        <RevealItem
+          index={0}
           feedback={
             <span
               className={[
@@ -191,16 +192,12 @@ export default function Contact() {
           }
         >
           <CopyEmailButton copied={copied} onCopy={copyEmail} />
-        </RevealLine>
-
-        <RevealLine index={2} className={styles.socialTitle}>
-          <h2 className={styles.sectionTitle}>Social</h2>
-        </RevealLine>
+        </RevealItem>
 
         {socialLinks.map((link, index) => (
-          <RevealLine index={index + 3} key={link.label}>
+          <RevealItem index={index + 1} key={link.label}>
             <RollingLink {...link} />
-          </RevealLine>
+          </RevealItem>
         ))}
       </section>
     </main>

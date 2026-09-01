@@ -36,6 +36,10 @@
   pointer-events: none;
 }
 
+.contactContentExiting {
+  pointer-events: none;
+}
+
 .homeContentExiting {
   animation: homeContentExit 0.5s linear both;
   pointer-events: none;
