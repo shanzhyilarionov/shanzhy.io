@@ -26,65 +26,85 @@ const EDGE_SPECTRAL_HUES = [
 
 // Exactly two global color-bearing layers.
 const GLOBAL_LAYER_SCHEME_MAP = [
-  // Cool layer: mostly deep blue / cyan / green / black
-  [0, 1, 0, 1, 2, 0],
-  // Warm layer: mostly magenta / red / orange / black
-  [3, 4, 3, 4, 3, 4],
+  [0, 1, 2, 3, 4, 5],
+  [2, 3, 6, 7, 0, 1],
 ];
 
 const FACE_SPECTRAL_SCHEMES = [
-  // 0 — cool main: deep blue with a cyan edge, ending in black.
+  // Strong outer-face families: keep the short ramps, but bias them more
+  // strongly toward deep blue, deep green, deep orange and black.
   {
-    axis: [0.12, 1],
-    position: 0.64,
-    stops: [
-      { kind: "spectral", hue: 190, saturation: 86, lightness: 32 },
-      { kind: "spectral", hue: 228, saturation: 98, lightness: 28 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 1 — cool alternate: electric blue dominant with a darker cyan transition.
-  {
-    axis: [0.94, 0.12],
-    position: 0.6,
-    stops: [
-      { kind: "spectral", hue: 226, saturation: 98, lightness: 30 },
-      { kind: "spectral", hue: 198, saturation: 84, lightness: 24 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 2 — green accent: deep green into cyan, then black.
-  {
-    axis: [0.32, 0.9],
-    position: 0.56,
-    stops: [
-      { kind: "spectral", hue: 128, saturation: 74, lightness: 20 },
-      { kind: "spectral", hue: 182, saturation: 78, lightness: 26 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 3 — warm main: magenta into red into orange.
-  {
-    axis: [-0.16, 1],
+    axis: [-0.18, 1],
     position: 0.62,
     stops: [
-      { kind: "spectral", hue: 318, saturation: 92, lightness: 48 },
-      { kind: "spectral", hue: 350, saturation: 96, lightness: 38 },
-      { kind: "spectral", hue: 28, saturation: 90, lightness: 26 },
+      { kind: "spectral", hue: 322, saturation: 94, lightness: 50 },
+      { kind: "spectral", hue: 350, saturation: 96, lightness: 40 },
+      { kind: "spectral", hue: 30, saturation: 92, lightness: 28 },
+    ],
+  },
+  {
+    axis: [0.08, 1],
+    position: 0.7,
+    stops: [
+      { kind: "spectral", hue: 228, saturation: 98, lightness: 31 },
+      { kind: "black", lightness: 2 },
+      { kind: "spectral", hue: 28, saturation: 92, lightness: 26 },
+    ],
+  },
+  {
+    axis: [0.94, 0.1],
+    position: 0.58,
+    stops: [
+      { kind: "spectral", hue: 304, saturation: 92, lightness: 43 },
+      { kind: "spectral", hue: 234, saturation: 98, lightness: 30 },
+      { kind: "spectral", hue: 198, saturation: 90, lightness: 34 },
+    ],
+  },
+  {
+    axis: [0.1, 1],
+    position: 0.66,
+    stops: [
+      { kind: "spectral", hue: 222, saturation: 98, lightness: 29 },
+      { kind: "black", lightness: 2 },
+      { kind: "spectral", hue: 32, saturation: 92, lightness: 27 },
     ],
   },
 
-  // 4 — warm alternate: red/orange against black for darker regions.
+  // Supporting faces: darker transmission with more black and deeper hues.
   {
-    axis: [0.08, 1],
-    position: 0.68,
+    axis: [0.84, -0.38],
+    position: 0.56,
     stops: [
-      { kind: "spectral", hue: 352, saturation: 90, lightness: 32 },
+      { kind: "spectral", hue: 350, saturation: 88, lightness: 28 },
+      { kind: "spectral", hue: 292, saturation: 88, lightness: 24 },
       { kind: "black", lightness: 2 },
-      { kind: "spectral", hue: 30, saturation: 88, lightness: 24 },
+    ],
+  },
+  {
+    axis: [-0.7, 0.46],
+    position: 0.5,
+    stops: [
+      { kind: "spectral", hue: 176, saturation: 82, lightness: 24 },
+      { kind: "spectral", hue: 224, saturation: 96, lightness: 24 },
+      { kind: "black", lightness: 2 },
+    ],
+  },
+  {
+    axis: [0.34, 0.92],
+    position: 0.54,
+    stops: [
+      { kind: "spectral", hue: 126, saturation: 78, lightness: 19 },
+      { kind: "black", lightness: 2 },
+      { kind: "spectral", hue: 28, saturation: 86, lightness: 22 },
+    ],
+  },
+  {
+    axis: [0.92, 0.26],
+    position: 0.6,
+    stops: [
+      { kind: "spectral", hue: 232, saturation: 96, lightness: 26 },
+      { kind: "spectral", hue: 214, saturation: 90, lightness: 22 },
+      { kind: "black", lightness: 2 },
     ],
   },
 ];
@@ -92,17 +112,17 @@ const FACE_SPECTRAL_SCHEMES = [
 const COLOR_LAYER_PROFILES = [
   {
     fill: 0.94,
-    absorption: 0.074,
-    edgeLift: 0.135,
-    white: 0.22,
-    rim: 0.76,
+    absorption: 0.072,
+    edgeLift: 0.14,
+    white: 0.25,
+    rim: 0.78,
   },
   {
     fill: 0.84,
-    absorption: 0.056,
-    edgeLift: 0.092,
-    white: 0.12,
-    rim: 0.5,
+    absorption: 0.054,
+    edgeLift: 0.095,
+    white: 0.14,
+    rim: 0.52,
   },
 ];
 
