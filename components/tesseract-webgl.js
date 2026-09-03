@@ -5,7 +5,6 @@ function clampValue(value, minimum, maximum) {
 }
 
 const SHELL_COLOR = [0.97, 0.99, 1];
-const CORE_COLOR = [1, 1, 1];
 const ABSORPTION_COLOR = [2 / 255, 3 / 255, 5 / 255];
 const WHITE = [1, 1, 1];
 const EFFECT_PADDING = 88;
@@ -81,8 +80,6 @@ varying vec4 v_color;
 uniform float u_mode;
 uniform vec3 u_stop_color_0;
 uniform vec3 u_stop_color_1;
-uniform vec3 u_stop_color_2;
-uniform float u_stop_position;
 uniform vec2 u_gradient_axis;
 uniform float u_prism_opacity;
 uniform float u_white_strength;
@@ -94,13 +91,7 @@ uniform float u_oit_mode;
 uniform float u_oit_weight;
 
 vec3 rampColor(float t) {
-  if (t <= u_stop_position) {
-    float localT = smoothstep(0.0, u_stop_position, t);
-    return mix(u_stop_color_0, u_stop_color_1, localT);
-  }
-
-  float localT = smoothstep(u_stop_position, 1.0, t);
-  return mix(u_stop_color_1, u_stop_color_2, localT);
+  return mix(u_stop_color_0, u_stop_color_1, t);
 }
 
 void main() {
@@ -141,7 +132,7 @@ void main() {
 
   // High density does not mean high luminance: keep the polygon nearly opaque,
   // but push RGB toward deep saturated glass instead of white/pastel emission.
-  prismColor *= (0.58 + edgeGlow * u_edge_lift) * subtleTexture;
+  prismColor *= (0.68 + edgeGlow * u_edge_lift) * subtleTexture;
 
   float colorAlpha = u_prism_opacity * (0.985 + edgeGlow * 0.015);
   float alpha = clamp(colorAlpha + whiteLight * 0.18, 0.0, 0.985);
@@ -194,12 +185,12 @@ void main() {
   float antialias = max(0.8 / max(v_radius * u_pixel_ratio, 1.0), 0.02);
   float coverage = 1.0 - smoothstep(1.0 - antialias, 1.0, distanceFromCenter);
 
-  vec3 cyan = vec3(0.0, 0.88, 1.0);
-  vec3 magenta = vec3(1.0, 0.0, 0.72);
-  vec3 amber = vec3(1.0, 0.34, 0.02);
+  vec3 blue = vec3(0.0, 0.22, 1.0);
+  vec3 pink = vec3(1.0, 0.0, 0.52);
+  vec3 yellow = vec3(1.0, 0.88, 0.0);
   float side = clamp(v_local.x * 0.5 + 0.5, 0.0, 1.0);
-  vec3 chroma = mix(cyan, magenta, side);
-  chroma = mix(chroma, amber, smoothstep(0.58, 1.0, distanceFromCenter));
+  vec3 chroma = mix(blue, pink, side);
+  chroma = mix(chroma, yellow, smoothstep(0.58, 1.0, distanceFromCenter));
   vec3 color = mix(vec3(1.0), chroma, smoothstep(0.08, 0.78, distanceFromCenter));
 
   float stopAlpha;
@@ -254,6 +245,8 @@ void main() {
   }
 
   vec3 color = accumulated.rgb / weight;
+  float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  color = clamp(mix(vec3(luminance), color, 1.24) * 1.06, 0.0, 1.0);
   float alpha = clamp(1.0 - exp(-weight * 2.25), 0.0, 0.992);
 
   // Preserve dense opacity without artificial luminance normalization.
@@ -738,8 +731,6 @@ export function createWebGLRenderer(canvas) {
     mode: gl.getUniformLocation(faceProgram, "u_mode"),
     stopColor0: gl.getUniformLocation(faceProgram, "u_stop_color_0"),
     stopColor1: gl.getUniformLocation(faceProgram, "u_stop_color_1"),
-    stopColor2: gl.getUniformLocation(faceProgram, "u_stop_color_2"),
-    stopPosition: gl.getUniformLocation(faceProgram, "u_stop_position"),
     gradientAxis: gl.getUniformLocation(faceProgram, "u_gradient_axis"),
     prismOpacity: gl.getUniformLocation(faceProgram, "u_prism_opacity"),
     whiteStrength: gl.getUniformLocation(faceProgram, "u_white_strength"),
@@ -1007,8 +998,6 @@ export function createWebGLRenderer(canvas) {
     gl.uniform1f(faceLocations.mode, 1);
     setVec3(faceLocations.stopColor0, face.rampColors[0]);
     setVec3(faceLocations.stopColor1, face.rampColors[1]);
-    setVec3(faceLocations.stopColor2, face.rampColors[2]);
-    gl.uniform1f(faceLocations.stopPosition, face.rampPosition);
     gl.uniform2f(
       faceLocations.gradientAxis,
       face.gradientAxis[0],

@@ -10,82 +10,56 @@ const KEY_LIGHT_A = [-3.8, -3.1, 4.6];
 const KEY_LIGHT_B = [3.6, 2.8, -3.4];
 const CAMERA = [0, 0, 5];
 
-// Curated from the reference image: hot pink / red / amber / lime / cyan /
-// electric blue / violet. The important part is that every hue assignment is
-// tied to a stable face/edge index, never to time or a view-dependent branch.
-const EDGE_SPECTRAL_HUES = [
-  [232, 304],
-  [346, 232],
-  [18, 230],
-  [228, 186],
-  [286, 336],
-  [214, 352],
-  [42, 228],
-  [192, 324],
+// Every color comes from these five primaries. Depth only changes luminance,
+// so it cannot introduce cyan, orange, violet, or any other base hue.
+const PRIMARY_COLORS = {
+  pink: [1, 0, 0.52],
+  red: [1, 0.015, 0.025],
+  yellow: [1, 0.88, 0],
+  blue: [0, 0.22, 1],
+  green: [0, 0.88, 0.24],
+};
+
+const EDGE_COLOR_PAIRS = [
+  ["blue", "pink"],
+  ["red", "blue"],
+  ["yellow", "blue"],
+  ["blue", "green"],
+  ["pink", "red"],
+  ["green", "pink"],
+  ["yellow", "red"],
+  ["green", "yellow"],
 ];
 
 // Exactly two global color-bearing layers.
 const GLOBAL_LAYER_SCHEME_MAP = [
-  // Cool layer: mostly deep blue / cyan / green / black
+  // Cool layer: blue / green / yellow
   [0, 1, 0, 1, 2, 0],
-  // Warm layer: mostly magenta / red / orange / black
+  // Warm layer: pink / red / yellow
   [3, 4, 3, 4, 3, 4],
 ];
 
-const FACE_SPECTRAL_SCHEMES = [
-  // 0 — cool main: deep blue with a cyan edge, ending in black.
+const FACE_COLOR_SCHEMES = [
+  // Each face uses a direct, two-primary linear gradient.
   {
     axis: [0.12, 1],
-    position: 0.64,
-    stops: [
-      { kind: "spectral", hue: 190, saturation: 86, lightness: 32 },
-      { kind: "spectral", hue: 228, saturation: 98, lightness: 28 },
-      { kind: "black", lightness: 2 },
-    ],
+    colors: ["green", "blue"],
   },
-
-  // 1 — cool alternate: electric blue dominant with a darker cyan transition.
   {
     axis: [0.94, 0.12],
-    position: 0.6,
-    stops: [
-      { kind: "spectral", hue: 226, saturation: 98, lightness: 30 },
-      { kind: "spectral", hue: 198, saturation: 84, lightness: 24 },
-      { kind: "black", lightness: 2 },
-    ],
+    colors: ["blue", "green"],
   },
-
-  // 2 — green accent: deep green into cyan, then black.
   {
     axis: [0.32, 0.9],
-    position: 0.56,
-    stops: [
-      { kind: "spectral", hue: 128, saturation: 74, lightness: 20 },
-      { kind: "spectral", hue: 182, saturation: 78, lightness: 26 },
-      { kind: "black", lightness: 2 },
-    ],
+    colors: ["green", "yellow"],
   },
-
-  // 3 — warm main: magenta into red into orange.
   {
     axis: [-0.16, 1],
-    position: 0.62,
-    stops: [
-      { kind: "spectral", hue: 318, saturation: 92, lightness: 48 },
-      { kind: "spectral", hue: 350, saturation: 96, lightness: 38 },
-      { kind: "spectral", hue: 28, saturation: 90, lightness: 26 },
-    ],
+    colors: ["pink", "red"],
   },
-
-  // 4 — warm alternate: red/orange against black for darker regions.
   {
     axis: [0.08, 1],
-    position: 0.68,
-    stops: [
-      { kind: "spectral", hue: 352, saturation: 90, lightness: 32 },
-      { kind: "black", lightness: 2 },
-      { kind: "spectral", hue: 30, saturation: 88, lightness: 24 },
-    ],
+    colors: ["red", "yellow"],
   },
 ];
 
@@ -382,87 +356,31 @@ function polygonArea(points) {
   return Math.abs(area) / 2;
 }
 
-function hueToRgb(first, second, hue) {
-  let normalizedHue = hue;
-  if (normalizedHue < 0) normalizedHue += 1;
-  if (normalizedHue > 1) normalizedHue -= 1;
-  if (normalizedHue < 1 / 6) {
-    return first + (second - first) * 6 * normalizedHue;
-  }
-  if (normalizedHue < 1 / 2) return second;
-  if (normalizedHue < 2 / 3) {
-    return first + (second - first) * (2 / 3 - normalizedHue) * 6;
-  }
-
-  return first;
-}
-
-function hslToRgb(hue, saturation, lightness) {
-  const wrappedHue = ((hue % 360) + 360) % 360;
-  const normalizedHue = wrappedHue / 360;
-  const normalizedSaturation = saturation / 100;
-  const normalizedLightness = lightness / 100;
-
-  if (normalizedSaturation === 0) {
-    return [normalizedLightness, normalizedLightness, normalizedLightness];
-  }
-
-  const second =
-    normalizedLightness < 0.5
-      ? normalizedLightness * (1 + normalizedSaturation)
-      : normalizedLightness +
-        normalizedSaturation -
-        normalizedLightness * normalizedSaturation;
-  const first = 2 * normalizedLightness - second;
-
-  return [
-    hueToRgb(first, second, normalizedHue + 1 / 3),
-    hueToRgb(first, second, normalizedHue),
-    hueToRgb(first, second, normalizedHue - 1 / 3),
-  ];
-}
-
-function spectralColor(hue, frontness, lift = 0, saturation = 94, lightness = 36) {
-  const depthCurve = Math.pow(frontness, 1.35);
-  const finalLightness = lightness + depthCurve * 11 + lift;
-  const finalSaturation = saturation + depthCurve * 2;
-  return hslToRgb(hue, clamp(finalSaturation, 0, 100), clamp(finalLightness, 0, 72));
-}
-
-function stopColor(stop, frontness, lift = 0) {
-  if (stop.kind === "black") {
-    const depthCurve = Math.pow(frontness, 1.25);
-    const lightness = stop.lightness + depthCurve * 2 + lift * 0.15;
-    return hslToRgb(230, 18, clamp(lightness, 0, 11));
-  }
-
-  return spectralColor(
-    stop.hue,
-    frontness,
-    lift,
-    stop.saturation,
-    stop.lightness,
+function primaryColor(name, frontness, lift = 0) {
+  const depthCurve = Math.pow(frontness, 1.28);
+  const intensity = 0.76 + depthCurve * 0.29 + lift * 0.01;
+  return PRIMARY_COLORS[name].map((channel) =>
+    clamp(channel * intensity, 0, 1),
   );
 }
 
 function faceRamp(index, frontness) {
-  const scheme = FACE_SPECTRAL_SCHEMES[index % FACE_SPECTRAL_SCHEMES.length];
+  const scheme = FACE_COLOR_SCHEMES[index % FACE_COLOR_SCHEMES.length];
   return {
     gradientAxis: scheme.axis,
-    rampPosition: scheme.position,
-    rampColors: scheme.stops.map((stop, stopIndex) =>
-      stopColor(stop, frontness, stopIndex === 0 ? 1.5 : 0),
+    rampColors: scheme.colors.map((colorName, colorIndex) =>
+      primaryColor(colorName, frontness, colorIndex === 0 ? 1.5 : 0),
     ),
   };
 }
 
 function edgePalette(index, frontness) {
-  const [firstHue, secondHue] =
-    EDGE_SPECTRAL_HUES[index % EDGE_SPECTRAL_HUES.length];
+  const [firstColor, secondColor] =
+    EDGE_COLOR_PAIRS[index % EDGE_COLOR_PAIRS.length];
 
   return [
-    spectralColor(firstHue, frontness, 2, 96, 34),
-    spectralColor(secondHue, frontness, 0, 94, 30),
+    primaryColor(firstColor, frontness, 2),
+    primaryColor(secondColor, frontness),
   ];
 }
 
@@ -615,7 +533,7 @@ function createScene(
           ? GLOBAL_LAYER_SCHEME_MAP[face.colorLayer][orientationIndex]
           : orientationIndex;
       const paletteFrontness =
-        face.colorLayer === 0 ? 0.82 : face.colorLayer === 1 ? 0.7 : 0.42;
+        0.58 + (face.stableFrontness ?? face.frontness) * 0.34;
       const ramp = faceRamp(schemeIndex, paletteFrontness);
       const colorVisibility =
         0.985 + face.areaRatio * 0.01 + face.lightResponse * 0.005;
@@ -627,7 +545,6 @@ function createScene(
         stableFrontness: face.stableFrontness ?? face.frontness,
         colorLayer: face.colorLayer,
         rampColors: ramp.rampColors,
-        rampPosition: ramp.rampPosition,
         gradientAxis: ramp.gradientAxis,
         prismOpacity: profile.fill * colorVisibility,
         oitWeight:
@@ -703,12 +620,14 @@ function createScene(
       const firstOffsetY = normalY * split * firstSide;
       const secondOffsetX = normalX * split * secondSide;
       const secondOffsetY = normalY * split * secondSide;
-      const [firstColor, secondColor] = edgePalette(index, 0.72);
+      const [firstColor, secondColor] = edgePalette(index, frontness);
       const dominantFirst = firstSpecular + firstLight >= secondSpecular + secondLight;
       const dominantOffsetX = dominantFirst ? firstOffsetX : secondOffsetX;
       const dominantOffsetY = dominantFirst ? firstOffsetY : secondOffsetY;
       const depthLighting = 0.2 + depthCurve * 0.8;
-      const coreWidth = 3.25 + depthCurve * 0.2;
+      // Every projected edge keeps a real CSS-pixel width. Perspective only
+      // scales it between a thin rear edge and a strong foreground edge.
+      const coreWidth = 1.55 + depthCurve * 2.25;
       const coreColor = [
         (firstColor[0] + secondColor[0]) * 0.5,
         (firstColor[1] + secondColor[1]) * 0.5,
@@ -737,7 +656,10 @@ function createScene(
         (0.095 + strongestSpecular * 0.34 + lightStrength * 0.08) *
         (0.27 + depthCurve * 0.47);
       const glintSpan = 0.13 + strongestSpecular * 0.045;
-      const frontPassOpacity = smoothstep(0.34, 0.69, frontness);
+      // A minimum front pass keeps rear edges legible through the glass instead
+      // of letting the face pass erase their apparent width completely.
+      const frontPassOpacity =
+        0.32 + smoothstep(0.25, 0.76, frontness) * 0.68;
 
       return {
         index,
@@ -761,17 +683,17 @@ function createScene(
         coreWidth,
         coreColor,
         coreOpacity:
-          0.15 + depthCurve * 0.72 + strongestSpecular * 0.09,
-        shellWidth: coreWidth + 0.72,
+          0.34 + depthCurve * 0.58 + strongestSpecular * 0.08,
+        shellWidth: coreWidth + 0.82,
         shellOpacity:
-          0.032 + depthCurve * 0.135 + strongestSpecular * 0.055,
+          0.055 + depthCurve * 0.15 + strongestSpecular * 0.06,
         firstOpacity:
-          0.03 +
+          0.08 +
           (0.24 + firstLight * 0.5 + firstSpecular * 0.82) *
             depthLighting *
             (0.78 + depthCurve * 0.62),
         secondOpacity:
-          0.03 +
+          0.08 +
           (0.24 + secondLight * 0.5 + secondSpecular * 0.82) *
             depthLighting *
             (0.78 + depthCurve * 0.62),
