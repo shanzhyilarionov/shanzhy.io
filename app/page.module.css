@@ -7,6 +7,25 @@
   animation: pageFadeIn 0.5s ease-out both;
 }
 
+/*
+ * A barely-there pool of light behind the tesseract. On pure #000 the bloom
+ * has nothing to sit against and the object reads as floating; two stops of
+ * lift are enough to seat it in space without becoming a visible gradient.
+ */
+.home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 58% at 50% 50%,
+    #07080d 0%,
+    #030407 45%,
+    #000000 100%
+  );
+}
+
 .homeIdentity {
   display: contents;
 }
