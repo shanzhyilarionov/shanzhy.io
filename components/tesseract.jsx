@@ -22,6 +22,11 @@ const PRIMARY_COLORS = {
   green: [0, 0.56, 0.12],
 };
 const BLACK_GLASS = [0.002, 0.004, 0.009];
+const STRUCTURAL_GLASS_RAMP = [
+  [0.025, 0.034, 0.05],
+  [0.06, 0.078, 0.105],
+];
+const STRUCTURAL_GLASS_SCATTER = 0.035;
 
 const EDGE_COLOR_PAIRS = [
   ["blue", "red"],
@@ -62,12 +67,13 @@ const COLOR_LAYER_PROFILES = [
   },
 ];
 
-const UNFILLED_PROFILE = {
-  fill: 0,
-  absorption: 0.012,
-  edgeLift: 0.025,
-  white: 0.08,
-  rim: 0.16,
+const STRUCTURAL_GLASS_PROFILE = {
+  fill: 0.22,
+  oitWeight: 0.44,
+  absorption: 0.018,
+  edgeLift: 0.072,
+  white: 0.22,
+  rim: 0.52,
 };
 
 function clamp(value, minimum, maximum) {
@@ -357,6 +363,22 @@ function faceRamp(schemeIndex, frontness, illumination) {
   };
 }
 
+function structuralGlassRamp(frontness, illumination) {
+  const response = 0.72 + frontness * 0.16 + illumination * 0.12;
+  return {
+    rampColors: STRUCTURAL_GLASS_RAMP.map((color) => {
+      const scaledColor = color.map((channel) =>
+        clamp(channel * response, 0, 1),
+      );
+      return mixColor(
+        scaledColor,
+        [1, 1, 1],
+        STRUCTURAL_GLASS_SCATTER,
+      );
+    }),
+  };
+}
+
 function edgePalette(index, frontness) {
   const [firstName, secondName] =
     EDGE_COLOR_PAIRS[index % EDGE_COLOR_PAIRS.length];
@@ -451,132 +473,142 @@ function createScene(
   }
 
   const faceDetails = sourceFaces.map((face, index) => {
-      const points = face.corners.map(
-        (vertexIndex) => projectedVertices[vertexIndex],
-      );
-      const points3D = points.map((point) => point.point3D);
-      const center3D = average3D(points3D);
-      const firstSide = subtract3D(points3D[1], points3D[0]);
-      const secondSide = subtract3D(points3D[3], points3D[0]);
-      const viewDirection = normalize3D(subtract3D(CAMERA, center3D));
-      const geometricNormal = normalize3D(cross3D(firstSide, secondSide));
-      const normal =
-        dot3D(geometricNormal, viewDirection) >= 0
-          ? geometricNormal
-          : geometricNormal.map((value) => -value);
-      const fresnel = Math.pow(
-        1 - clamp(dot3D(normal, viewDirection), 0, 1),
-        2.2,
-      );
-      const firstLight = faceLight(normal, center3D, KEY_LIGHT_A);
-      const secondLight = faceLight(normal, center3D, KEY_LIGHT_B);
-      const firstSpecular = faceSpecular(normal, center3D, KEY_LIGHT_A);
-      const secondSpecular = faceSpecular(normal, center3D, KEY_LIGHT_B);
-      const strongestSpecular = Math.max(firstSpecular, secondSpecular);
-      const lightResponse = Math.max(firstLight, secondLight);
-      const firstTangent = normalize3D(firstSide);
-      const secondTangent = normalize3D(secondSide);
-      const firstLightDirection = normalize3D(
-        subtract3D(KEY_LIGHT_A, center3D),
-      );
-      const secondLightDirection = normalize3D(
-        subtract3D(KEY_LIGHT_B, center3D),
-      );
-      const firstHalfVector = normalize3D(
-        add3D(firstLightDirection, viewDirection),
-      );
-      const secondHalfVector = normalize3D(
-        add3D(secondLightDirection, viewDirection),
-      );
-      const firstInfluence = firstLight * 0.72 + firstSpecular * 0.28;
-      const secondInfluence = secondLight * 0.72 + secondSpecular * 0.28;
-      const gradientAxisTarget = [
-        -(
-          dot3D(firstTangent, firstLightDirection) * firstInfluence +
-          dot3D(firstTangent, secondLightDirection) * secondInfluence
-        ),
-        -(
-          dot3D(secondTangent, firstLightDirection) * firstInfluence +
-          dot3D(secondTangent, secondLightDirection) * secondInfluence
-        ),
-      ];
-      const highlightVector = add3D(
-        firstHalfVector.map(
-          (value) => value * (0.08 + firstSpecular * 0.92),
-        ),
-        secondHalfVector.map(
-          (value) => value * (0.08 + secondSpecular * 0.92),
-        ),
-      );
-      const highlightAxis = [
-        dot3D(firstTangent, highlightVector),
-        dot3D(secondTangent, highlightVector),
-      ];
-      const gradientOffsetTarget = clamp(
-        (firstLight - secondLight) * 0.2 + center3D[2] * 0.025,
-        -0.17,
-        0.17,
-      );
-      const gradientSpanTarget =
-        1.02 + fresnel * 0.42 + strongestSpecular * 0.32;
-      const illuminationTarget = clamp(
-        0.28 + lightResponse * 0.72 + strongestSpecular * 0.18,
-        0,
-        1,
-      );
-      const depth =
-        points.reduce((sum, point) => sum + point.z, 0) / points.length;
-      const projectedArea = polygonArea(points);
-      const areaRatio = clamp(projectedArea / (scale * scale * 2.4), 0, 1);
-      const frontness = depthRatio(depth);
-      const depthCurve = Math.pow(frontness, 1.55);
-      const depthVisibility = 0.24 + depthCurve * 0.76;
+    const points = face.corners.map(
+      (vertexIndex) => projectedVertices[vertexIndex],
+    );
+    const points3D = points.map((point) => point.point3D);
+    const center3D = average3D(points3D);
+    const firstSide = subtract3D(points3D[1], points3D[0]);
+    const secondSide = subtract3D(points3D[3], points3D[0]);
+    const viewDirection = normalize3D(subtract3D(CAMERA, center3D));
+    const geometricNormal = normalize3D(cross3D(firstSide, secondSide));
+    const normal =
+      dot3D(geometricNormal, viewDirection) >= 0
+        ? geometricNormal
+        : geometricNormal.map((value) => -value);
+    const fresnel = Math.pow(
+      1 - clamp(dot3D(normal, viewDirection), 0, 1),
+      2.2,
+    );
+    const firstLight = faceLight(normal, center3D, KEY_LIGHT_A);
+    const secondLight = faceLight(normal, center3D, KEY_LIGHT_B);
+    const firstSpecular = faceSpecular(normal, center3D, KEY_LIGHT_A);
+    const secondSpecular = faceSpecular(normal, center3D, KEY_LIGHT_B);
+    const strongestSpecular = Math.max(firstSpecular, secondSpecular);
+    const lightResponse = Math.max(firstLight, secondLight);
+    const firstTangent = normalize3D(firstSide);
+    const secondTangent = normalize3D(secondSide);
+    const firstLightDirection = normalize3D(
+      subtract3D(KEY_LIGHT_A, center3D),
+    );
+    const secondLightDirection = normalize3D(
+      subtract3D(KEY_LIGHT_B, center3D),
+    );
+    const firstHalfVector = normalize3D(
+      add3D(firstLightDirection, viewDirection),
+    );
+    const secondHalfVector = normalize3D(
+      add3D(secondLightDirection, viewDirection),
+    );
+    const firstInfluence = firstLight * 0.72 + firstSpecular * 0.28;
+    const secondInfluence = secondLight * 0.72 + secondSpecular * 0.28;
+    const gradientAxisTarget = [
+      -(
+        dot3D(firstTangent, firstLightDirection) * firstInfluence +
+        dot3D(firstTangent, secondLightDirection) * secondInfluence
+      ),
+      -(
+        dot3D(secondTangent, firstLightDirection) * firstInfluence +
+        dot3D(secondTangent, secondLightDirection) * secondInfluence
+      ),
+    ];
+    const highlightVector = add3D(
+      firstHalfVector.map(
+        (value) => value * (0.08 + firstSpecular * 0.92),
+      ),
+      secondHalfVector.map(
+        (value) => value * (0.08 + secondSpecular * 0.92),
+      ),
+    );
+    const highlightAxis = [
+      dot3D(firstTangent, highlightVector),
+      dot3D(secondTangent, highlightVector),
+    ];
+    const gradientOffsetTarget = clamp(
+      (firstLight - secondLight) * 0.2 + center3D[2] * 0.025,
+      -0.17,
+      0.17,
+    );
+    const gradientSpanTarget =
+      1.02 + fresnel * 0.42 + strongestSpecular * 0.32;
+    const illuminationTarget = clamp(
+      0.28 + lightResponse * 0.72 + strongestSpecular * 0.18,
+      0,
+      1,
+    );
+    const depth =
+      points.reduce((sum, point) => sum + point.z, 0) / points.length;
+    const projectedArea = polygonArea(points);
+    const areaRatio = clamp(projectedArea / (scale * scale * 2.4), 0, 1);
+    const frontness = depthRatio(depth);
+    const depthCurve = Math.pow(frontness, 1.55);
+    const depthVisibility = 0.24 + depthCurve * 0.76;
 
-      return {
-        index,
-        sourceFace: face,
-        points,
-        depth,
-        frontness,
-        depthCurve,
-        depthVisibility,
-        areaRatio,
-        fresnel,
-        strongestSpecular,
-        lightResponse,
-        gradientAxisTarget,
-        gradientOffsetTarget,
-        gradientSpanTarget,
-        illuminationTarget,
-        highlightAxis,
-        highlightOffset: clamp(
-          (firstSpecular - secondSpecular) * 0.18,
-          -0.16,
-          0.16,
-        ),
-        colorLayer: face.globalColorLayer,
-      };
-    });
+    return {
+      index,
+      sourceFace: face,
+      points,
+      depth,
+      frontness,
+      depthCurve,
+      depthVisibility,
+      areaRatio,
+      fresnel,
+      strongestSpecular,
+      lightResponse,
+      gradientAxisTarget,
+      gradientOffsetTarget,
+      gradientSpanTarget,
+      illuminationTarget,
+      highlightAxis,
+      highlightOffset: clamp(
+        (firstSpecular - secondSpecular) * 0.18,
+        -0.16,
+        0.16,
+      ),
+      colorLayer: face.globalColorLayer,
+    };
+  });
 
   const renderedFaces = faceDetails
     .map((face) => {
-      const profile =
-        face.colorLayer >= 0
-          ? COLOR_LAYER_PROFILES[face.colorLayer]
-          : UNFILLED_PROFILE;
+      const isColorFace = face.colorLayer >= 0;
+      const profile = isColorFace
+        ? COLOR_LAYER_PROFILES[face.colorLayer]
+        : STRUCTURAL_GLASS_PROFILE;
       const orientationIndex = face.sourceFace.orientationIndex;
-      const schemeIndex =
-        face.colorLayer >= 0
-          ? GLOBAL_LAYER_SCHEME_MAP[face.colorLayer][orientationIndex]
-          : orientationIndex;
+      const schemeIndex = isColorFace
+        ? GLOBAL_LAYER_SCHEME_MAP[face.colorLayer][orientationIndex]
+        : orientationIndex;
       const paletteFrontness = 0.58 + face.frontness * 0.34;
-      const ramp = faceRamp(
-        schemeIndex,
-        paletteFrontness,
-        face.illuminationTarget,
-      );
+      const ramp = isColorFace
+        ? faceRamp(
+            schemeIndex,
+            paletteFrontness,
+            face.illuminationTarget,
+          )
+        : structuralGlassRamp(
+            paletteFrontness,
+            face.illuminationTarget,
+          );
       const colorVisibility =
         0.985 + face.areaRatio * 0.01 + face.lightResponse * 0.005;
+      const structuralHaloStrength = isColorFace
+        ? 0
+        : 0.09 +
+          face.fresnel * 0.18 +
+          face.strongestSpecular * 0.24 +
+          face.depthVisibility * 0.05;
 
       return {
         index: face.index,
@@ -589,29 +621,50 @@ function createScene(
         gradientSpan: face.gradientSpanTarget,
         highlightAxis: face.highlightAxis,
         highlightOffset: face.highlightOffset,
-        prismOpacity: profile.fill * colorVisibility,
-        oitWeight:
-          face.colorLayer >= 0
-            ? 0.72 + Math.pow(face.frontness, 2.6) * 1.28
-            : 0,
+        prismOpacity: isColorFace
+          ? profile.fill * colorVisibility
+          : profile.fill *
+            (0.98 + face.areaRatio * 0.025 + structuralHaloStrength * 0.42),
+        oitWeight: isColorFace
+          ? 0.72 + Math.pow(face.frontness, 2.6) * 1.28
+          : profile.oitWeight * (0.82 + face.frontness * 0.38),
         absorptionOpacity:
           profile.absorption +
-          face.areaRatio * (face.colorLayer >= 0 ? 0.018 : 0.004) +
-          (1 - face.depthCurve) * (face.colorLayer >= 0 ? 0.035 : 0.006),
-        whiteStrength:
-          profile.white *
-          (0.08 + face.fresnel * 0.34 + face.strongestSpecular * 0.82) *
-          (0.42 + face.depthVisibility * 0.58),
-        edgeLift:
-          profile.edgeLift +
-          face.fresnel * 0.18 +
-          face.strongestSpecular * 0.16,
-        rimOpacity:
-          profile.rim *
-          ((0.035 + face.fresnel * 0.15 + face.strongestSpecular * 0.16) *
-            face.depthVisibility +
-            face.depthCurve * 0.065),
-        rimWidth: 0.62 + face.depthCurve * 0.42,
+          face.areaRatio * (isColorFace ? 0.018 : 0.005) +
+          (1 - face.depthCurve) * (isColorFace ? 0.035 : 0.008),
+        whiteStrength: isColorFace
+          ? profile.white *
+            (0.08 + face.fresnel * 0.34 + face.strongestSpecular * 0.82) *
+            (0.42 + face.depthVisibility * 0.58)
+          : profile.white *
+            (0.42 +
+              face.fresnel * 0.62 +
+              face.strongestSpecular * 1.08 +
+              structuralHaloStrength * 1.25) *
+            (0.58 + face.depthVisibility * 0.42),
+        edgeLift: isColorFace
+          ? profile.edgeLift +
+            face.fresnel * 0.18 +
+            face.strongestSpecular * 0.16
+          : profile.edgeLift +
+            face.fresnel * 0.14 +
+            face.strongestSpecular * 0.12 +
+            structuralHaloStrength * 0.18,
+        rimOpacity: isColorFace
+          ? profile.rim *
+            ((0.035 + face.fresnel * 0.15 + face.strongestSpecular * 0.16) *
+              face.depthVisibility +
+              face.depthCurve * 0.065)
+          : profile.rim *
+            ((0.12 +
+              face.fresnel * 0.34 +
+              face.strongestSpecular * 0.3 +
+              structuralHaloStrength * 0.7) *
+              (0.52 + face.depthVisibility * 0.48) +
+              face.depthCurve * 0.055),
+        rimWidth: isColorFace
+          ? 0.62 + face.depthCurve * 0.42
+          : 0.92 + face.depthCurve * 0.58,
       };
     })
     .sort((first, second) => {
