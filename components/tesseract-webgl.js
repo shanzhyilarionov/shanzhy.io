@@ -5,7 +5,6 @@ function clampValue(value, minimum, maximum) {
 }
 
 const SHELL_COLOR = [0.97, 0.99, 1];
-const CORE_COLOR = [1, 1, 1];
 const ABSORPTION_COLOR = [2 / 255, 3 / 255, 5 / 255];
 const WHITE = [1, 1, 1];
 const EFFECT_PADDING = 88;
@@ -32,7 +31,11 @@ void main() {
 `;
 
 const capsuleFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_local;
 varying vec2 v_half_size;
 varying vec4 v_color;
@@ -75,32 +78,29 @@ void main() {
 `;
 
 const faceFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_uv;
 varying vec4 v_color;
 uniform float u_mode;
 uniform vec3 u_stop_color_0;
 uniform vec3 u_stop_color_1;
-uniform vec3 u_stop_color_2;
-uniform float u_stop_position;
 uniform vec2 u_gradient_axis;
+uniform float u_gradient_offset;
+uniform float u_gradient_span;
 uniform float u_prism_opacity;
 uniform float u_white_strength;
-uniform float u_white_direction;
-uniform float u_white_reverse;
+uniform vec2 u_highlight_axis;
+uniform float u_highlight_offset;
 uniform float u_edge_lift;
-uniform float u_phase;
 uniform float u_oit_mode;
 uniform float u_oit_weight;
 
 vec3 rampColor(float t) {
-  if (t <= u_stop_position) {
-    float localT = smoothstep(0.0, u_stop_position, t);
-    return mix(u_stop_color_0, u_stop_color_1, localT);
-  }
-
-  float localT = smoothstep(u_stop_position, 1.0, t);
-  return mix(u_stop_color_1, u_stop_color_2, localT);
+  return mix(u_stop_color_0, u_stop_color_1, t);
 }
 
 void main() {
@@ -110,10 +110,19 @@ void main() {
     return;
   }
 
-  float axisLength = max(length(u_gradient_axis), 0.0001);
-  vec2 axis = u_gradient_axis / axisLength;
+  float axisLength = length(u_gradient_axis);
+  vec2 axis = axisLength > 0.0001
+    ? u_gradient_axis / axisLength
+    : vec2(0.0);
+  float directionalStrength = smoothstep(0.035, 0.32, axisLength);
   vec2 centeredUv = v_uv - vec2(0.5);
-  float t = clamp(dot(centeredUv, axis) * 1.16 + 0.5, 0.0, 1.0);
+  float t = clamp(
+    dot(centeredUv, axis) * u_gradient_span * directionalStrength +
+      0.5 +
+      u_gradient_offset,
+    0.0,
+    1.0
+  );
   vec3 prismColor = rampColor(t);
 
   float edgeDistance = min(
@@ -122,26 +131,25 @@ void main() {
   );
   float edgeGlow = 1.0 - smoothstep(0.0, 0.22, edgeDistance);
 
-  float diagonal = u_white_direction < 0.5
-    ? (v_uv.x + v_uv.y) * 0.5
-    : (v_uv.x + (1.0 - v_uv.y)) * 0.5;
-  if (u_white_reverse > 0.5) {
-    diagonal = 1.0 - diagonal;
-  }
-
-  float oneSidedWhite = pow(clamp(1.0 - diagonal, 0.0, 1.0), 3.2);
-  float diagonalStreak = 1.0 - smoothstep(0.0, 0.055, abs(diagonal - 0.11));
-  float whiteLight = u_white_strength *
-    (oneSidedWhite * 0.52 + diagonalStreak * 0.48) *
-    (0.34 + edgeGlow * 0.66);
+  float highlightLength = length(u_highlight_axis);
+  vec2 highlightAxis = highlightLength > 0.0001
+    ? u_highlight_axis / highlightLength
+    : vec2(0.7071, 0.7071);
+  float highlightCoordinate =
+    dot(centeredUv, highlightAxis) - u_highlight_offset;
+  float highlightLobe = exp(
+    -highlightCoordinate * highlightCoordinate / 0.018
+  );
+  float whiteLight = u_white_strength * highlightLobe *
+    (0.3 + edgeGlow * 0.7);
 
   // The color exists across the whole face. Edge lift only adds glass thickness;
   // it no longer determines whether the face is colored at all.
-  float subtleTexture = 0.97 + 0.03 * cos((t + u_phase * 0.35) * 7.0);
+  float subtleTexture = 0.985 + 0.015 * cos(t * 7.0);
 
   // High density does not mean high luminance: keep the polygon nearly opaque,
   // but push RGB toward deep saturated glass instead of white/pastel emission.
-  prismColor *= (0.58 + edgeGlow * u_edge_lift) * subtleTexture;
+  prismColor *= (0.68 + edgeGlow * u_edge_lift) * subtleTexture;
 
   float colorAlpha = u_prism_opacity * (0.985 + edgeGlow * 0.015);
   float alpha = clamp(colorAlpha + whiteLight * 0.18, 0.0, 0.985);
@@ -183,7 +191,11 @@ void main() {
 `;
 
 const radialFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_local;
 varying float v_opacity;
 varying float v_radius;
@@ -194,13 +206,17 @@ void main() {
   float antialias = max(0.8 / max(v_radius * u_pixel_ratio, 1.0), 0.02);
   float coverage = 1.0 - smoothstep(1.0 - antialias, 1.0, distanceFromCenter);
 
-  vec3 cyan = vec3(0.0, 0.88, 1.0);
-  vec3 magenta = vec3(1.0, 0.0, 0.72);
-  vec3 amber = vec3(1.0, 0.34, 0.02);
+  vec3 blue = vec3(0.0, 0.09, 0.74);
+  vec3 red = vec3(0.82, 0.008, 0.018);
+  vec3 green = vec3(0.0, 0.56, 0.12);
   float side = clamp(v_local.x * 0.5 + 0.5, 0.0, 1.0);
-  vec3 chroma = mix(cyan, magenta, side);
-  chroma = mix(chroma, amber, smoothstep(0.58, 1.0, distanceFromCenter));
-  vec3 color = mix(vec3(1.0), chroma, smoothstep(0.08, 0.78, distanceFromCenter));
+  vec3 chroma = mix(blue, red, side);
+  chroma = mix(chroma, green, smoothstep(0.58, 1.0, distanceFromCenter));
+  vec3 color = mix(
+    vec3(1.0),
+    chroma,
+    smoothstep(0.08, 0.78, distanceFromCenter)
+  );
 
   float stopAlpha;
   if (distanceFromCenter < 0.24) {
@@ -231,7 +247,11 @@ void main() {
 `;
 
 const textureFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_uv;
 uniform sampler2D u_texture;
 
@@ -241,7 +261,11 @@ void main() {
 `;
 
 const oitCompositeFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_uv;
 uniform sampler2D u_texture;
 
@@ -254,15 +278,20 @@ void main() {
   }
 
   vec3 color = accumulated.rgb / weight;
+  float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  color = clamp(mix(vec3(luminance), color, 1.24) * 1.06, 0.0, 1.0);
   float alpha = clamp(1.0 - exp(-weight * 2.25), 0.0, 0.992);
 
-  // Preserve dense opacity without artificial luminance normalization.
   gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
 
 const blurFragmentShader = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 varying vec2 v_uv;
 uniform sampler2D u_texture;
 uniform vec2 u_step;
@@ -336,6 +365,7 @@ function createRenderTarget(gl) {
 }
 
 function resizeRenderTarget(gl, target, width, height) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
   gl.bindTexture(gl.TEXTURE_2D, target.texture);
   gl.texImage2D(
     gl.TEXTURE_2D,
@@ -348,6 +378,12 @@ function resizeRenderTarget(gl, target, width, height) {
     gl.UNSIGNED_BYTE,
     null,
   );
+
+  if (
+    gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE
+  ) {
+    throw new Error("Unable to create a complete WebGL render target.");
+  }
 }
 
 function setNormalBlend(gl) {
@@ -471,20 +507,6 @@ function edgeLine(edge, offsetX, offsetY, width, color, opacity) {
   };
 }
 
-function edgeSegmentLine(edge, start, end, width, color, opacity) {
-  const clampedStart = clampValue(start, 0, 1);
-  const clampedEnd = clampValue(end, clampedStart, 1);
-  return {
-    x1: edge.first.x + (edge.second.x - edge.first.x) * clampedStart,
-    y1: edge.first.y + (edge.second.y - edge.first.y) * clampedStart,
-    x2: edge.first.x + (edge.second.x - edge.first.x) * clampedEnd,
-    y2: edge.first.y + (edge.second.y - edge.first.y) * clampedEnd,
-    width,
-    color,
-    opacity,
-  };
-}
-
 function bloomLines(edges) {
   const lines = [];
 
@@ -586,44 +608,6 @@ function coreLines(edges, opacityKey) {
       edge.coreOpacity * edge[opacityKey],
     ),
   );
-}
-
-function glintLines(edges, opacityKey, bloom = false) {
-  const lines = [];
-  const sampleCount = 9;
-
-  for (const edge of edges) {
-    const halfSpan = edge.glintSpan * 0.5;
-    const start = edge.glintCenter - halfSpan;
-    const step = edge.glintSpan / sampleCount;
-
-    for (let sample = 0; sample < sampleCount; sample++) {
-      const localStart = start + step * sample;
-      const localEnd = localStart + step * 1.18;
-      const normalized = (sample + 0.5) / sampleCount;
-      const distance = Math.abs(normalized - 0.5) / 0.5;
-      const envelope = Math.pow(Math.max(1 - distance * distance, 0), 2.2);
-      const opacity =
-        edge.glintStrength *
-        envelope *
-        edge[opacityKey] *
-        (bloom ? 0.08 : 0.52);
-
-      if (opacity <= 0.001) continue;
-      lines.push(
-        edgeSegmentLine(
-          edge,
-          localStart,
-          localEnd,
-          edge.glintWidth,
-          WHITE,
-          opacity,
-        ),
-      );
-    }
-  }
-
-  return lines;
 }
 
 function rimLines(face) {
@@ -738,15 +722,17 @@ export function createWebGLRenderer(canvas) {
     mode: gl.getUniformLocation(faceProgram, "u_mode"),
     stopColor0: gl.getUniformLocation(faceProgram, "u_stop_color_0"),
     stopColor1: gl.getUniformLocation(faceProgram, "u_stop_color_1"),
-    stopColor2: gl.getUniformLocation(faceProgram, "u_stop_color_2"),
-    stopPosition: gl.getUniformLocation(faceProgram, "u_stop_position"),
     gradientAxis: gl.getUniformLocation(faceProgram, "u_gradient_axis"),
+    gradientOffset: gl.getUniformLocation(faceProgram, "u_gradient_offset"),
+    gradientSpan: gl.getUniformLocation(faceProgram, "u_gradient_span"),
     prismOpacity: gl.getUniformLocation(faceProgram, "u_prism_opacity"),
     whiteStrength: gl.getUniformLocation(faceProgram, "u_white_strength"),
-    whiteDirection: gl.getUniformLocation(faceProgram, "u_white_direction"),
-    whiteReverse: gl.getUniformLocation(faceProgram, "u_white_reverse"),
+    highlightAxis: gl.getUniformLocation(faceProgram, "u_highlight_axis"),
+    highlightOffset: gl.getUniformLocation(
+      faceProgram,
+      "u_highlight_offset",
+    ),
     edgeLift: gl.getUniformLocation(faceProgram, "u_edge_lift"),
-    phase: gl.getUniformLocation(faceProgram, "u_phase"),
     oitMode: gl.getUniformLocation(faceProgram, "u_oit_mode"),
     oitWeight: gl.getUniformLocation(faceProgram, "u_oit_weight"),
   };
@@ -791,7 +777,7 @@ export function createWebGLRenderer(canvas) {
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 
   function resizeCanvas(width, height) {
-    const pixelRatio = Math.max(window.devicePixelRatio || 1, 1);
+    const pixelRatio = clampValue(window.devicePixelRatio || 1, 1, 1.75);
     const pixelWidth = Math.max(Math.round(width * pixelRatio), 1);
     const pixelHeight = Math.max(Math.round(height * pixelRatio), 1);
 
@@ -810,8 +796,6 @@ export function createWebGLRenderer(canvas) {
     canvasPixelRatio = pixelRatio;
     canvas.width = pixelWidth;
     canvas.height = pixelHeight;
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
     resizeRenderTarget(gl, faceAccumTarget, pixelWidth, pixelHeight);
     viewportWidth = 0;
     viewportHeight = 0;
@@ -1002,25 +986,28 @@ export function createWebGLRenderer(canvas) {
     gl.uniform3f(location, color[0], color[1], color[2]);
   }
 
-  function drawPrismFace(face, target, oitMode = false) {
+  function drawPrismFace(face, target, oitMode = 0) {
     prepareFace(face, WHITE, 1, target);
     gl.uniform1f(faceLocations.mode, 1);
     setVec3(faceLocations.stopColor0, face.rampColors[0]);
     setVec3(faceLocations.stopColor1, face.rampColors[1]);
-    setVec3(faceLocations.stopColor2, face.rampColors[2]);
-    gl.uniform1f(faceLocations.stopPosition, face.rampPosition);
     gl.uniform2f(
       faceLocations.gradientAxis,
       face.gradientAxis[0],
       face.gradientAxis[1],
     );
+    gl.uniform1f(faceLocations.gradientOffset, face.gradientOffset);
+    gl.uniform1f(faceLocations.gradientSpan, face.gradientSpan);
     gl.uniform1f(faceLocations.prismOpacity, face.prismOpacity);
     gl.uniform1f(faceLocations.whiteStrength, face.whiteStrength);
-    gl.uniform1f(faceLocations.whiteDirection, face.whiteDirection);
-    gl.uniform1f(faceLocations.whiteReverse, face.whiteReverse);
+    gl.uniform2f(
+      faceLocations.highlightAxis,
+      face.highlightAxis[0],
+      face.highlightAxis[1],
+    );
+    gl.uniform1f(faceLocations.highlightOffset, face.highlightOffset);
     gl.uniform1f(faceLocations.edgeLift, face.edgeLift);
-    gl.uniform1f(faceLocations.phase, face.phase);
-    gl.uniform1f(faceLocations.oitMode, oitMode ? 1 : 0);
+    gl.uniform1f(faceLocations.oitMode, oitMode);
     gl.uniform1f(faceLocations.oitWeight, face.oitWeight ?? 0.15);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -1150,7 +1137,12 @@ export function createWebGLRenderer(canvas) {
   function compositeOitTexture(texture, scene) {
     const target = bindMain(scene);
     const vertices = textureVertices(0, 0, scene.width, scene.height);
-    prepareTextureProgram(oitCompositeProgram, oitCompositeLocations, vertices, target);
+    prepareTextureProgram(
+      oitCompositeProgram,
+      oitCompositeLocations,
+      vertices,
+      target,
+    );
     gl.bindTexture(gl.TEXTURE_2D, texture);
     setNormalBlend(gl);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -1199,17 +1191,6 @@ export function createWebGLRenderer(canvas) {
       region,
       scene,
     );
-
-    drawBlurred(
-      glintLines(scene.edges, opacityKey, true),
-      1.35,
-      false,
-      region,
-      scene,
-    );
-    bindMain(scene);
-    setScreenBlend(gl);
-    drawCapsules(glintLines(scene.edges, opacityKey, false), mainTarget);
   }
 
   function renderFaces(scene) {
@@ -1228,16 +1209,14 @@ export function createWebGLRenderer(canvas) {
       );
     }
 
-    // Exactly two fixed global color layers feed this weighted,
-    // order-independent accumulation. Painter order cannot introduce a color
-    // pop, while smoothed depth weights hand off projected block dominance
-    // continuously over roughly 0.5 s.
+    // The dense weighted accumulation intentionally preserves the original
+    // saturated glass look while remaining independent of painter order.
     const accumulationTarget = bindFullTarget(faceAccumTarget, scene, true);
     setAdditiveBlend(gl);
 
     for (const face of scene.faces) {
       if (face.prismOpacity <= 0.001) continue;
-      drawPrismFace(face, accumulationTarget, true);
+      drawPrismFace(face, accumulationTarget, 1);
     }
 
     compositeOitTexture(faceAccumTarget.texture, scene);

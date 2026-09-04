@@ -9,84 +9,40 @@ const SIGNS = [-1, 1];
 const KEY_LIGHT_A = [-3.8, -3.1, 4.6];
 const KEY_LIGHT_B = [3.6, 2.8, -3.4];
 const CAMERA = [0, 0, 5];
+const FOUR_D_PROJECTION_DISTANCE = 3;
+const THREE_D_PROJECTION_DISTANCE = 5;
+// A radius-2 tesseract projected from w=3 reaches at most 6/sqrt(5) in 3D.
+// Using this fixed bound keeps depth-dependent styling stable while rotating.
+const PROJECTED_RADIUS_3D = 6 / Math.sqrt(5);
+const POINTER_RESPONSE = 7.5;
 
-// Curated from the reference image: hot pink / red / amber / lime / cyan /
-// electric blue / violet. The important part is that every hue assignment is
-// tied to a stable face/edge index, never to time or a view-dependent branch.
-const EDGE_SPECTRAL_HUES = [
-  [232, 304],
-  [346, 232],
-  [18, 230],
-  [228, 186],
-  [286, 336],
-  [214, 352],
-  [42, 228],
-  [192, 324],
+const PRIMARY_COLORS = {
+  red: [0.82, 0.008, 0.018],
+  blue: [0, 0.09, 0.74],
+  green: [0, 0.56, 0.12],
+};
+const BLACK_GLASS = [0.002, 0.004, 0.009];
+
+const EDGE_COLOR_PAIRS = [
+  ["blue", "red"],
+  ["red", "blue"],
+  ["green", "blue"],
+  ["blue", "green"],
+  ["red", "green"],
+  ["green", "red"],
 ];
 
-// Exactly two global color-bearing layers.
 const GLOBAL_LAYER_SCHEME_MAP = [
-  // Cool layer: mostly deep blue / cyan / green / black
   [0, 1, 0, 1, 2, 0],
-  // Warm layer: mostly magenta / red / orange / black
   [3, 4, 3, 4, 3, 4],
 ];
 
-const FACE_SPECTRAL_SCHEMES = [
-  // 0 — cool main: deep blue with a cyan edge, ending in black.
-  {
-    axis: [0.12, 1],
-    position: 0.64,
-    stops: [
-      { kind: "spectral", hue: 190, saturation: 86, lightness: 32 },
-      { kind: "spectral", hue: 228, saturation: 98, lightness: 28 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 1 — cool alternate: electric blue dominant with a darker cyan transition.
-  {
-    axis: [0.94, 0.12],
-    position: 0.6,
-    stops: [
-      { kind: "spectral", hue: 226, saturation: 98, lightness: 30 },
-      { kind: "spectral", hue: 198, saturation: 84, lightness: 24 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 2 — green accent: deep green into cyan, then black.
-  {
-    axis: [0.32, 0.9],
-    position: 0.56,
-    stops: [
-      { kind: "spectral", hue: 128, saturation: 74, lightness: 20 },
-      { kind: "spectral", hue: 182, saturation: 78, lightness: 26 },
-      { kind: "black", lightness: 2 },
-    ],
-  },
-
-  // 3 — warm main: magenta into red into orange.
-  {
-    axis: [-0.16, 1],
-    position: 0.62,
-    stops: [
-      { kind: "spectral", hue: 318, saturation: 92, lightness: 48 },
-      { kind: "spectral", hue: 350, saturation: 96, lightness: 38 },
-      { kind: "spectral", hue: 28, saturation: 90, lightness: 26 },
-    ],
-  },
-
-  // 4 — warm alternate: red/orange against black for darker regions.
-  {
-    axis: [0.08, 1],
-    position: 0.68,
-    stops: [
-      { kind: "spectral", hue: 352, saturation: 90, lightness: 32 },
-      { kind: "black", lightness: 2 },
-      { kind: "spectral", hue: 30, saturation: 88, lightness: 24 },
-    ],
-  },
+const FACE_COLOR_SCHEMES = [
+  ["green", "blue"],
+  ["blue", "black"],
+  ["green", "black"],
+  ["red", "blue"],
+  ["red", "black"],
 ];
 
 const COLOR_LAYER_PROFILES = [
@@ -114,11 +70,6 @@ const UNFILLED_PROFILE = {
   rim: 0.16,
 };
 
-const WHITE_FACE_PATTERN = [1, 0.18, 0, 0.72, 0, 0.45, 0.9, 0.12];
-const EDGE_GLINT_RESPONSE = 14.0;
-const BLOCK_COLOR_RESPONSE = 4.6; // ~0.5 s projected color dominance transition
-
-
 function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value));
 }
@@ -138,12 +89,6 @@ function mixColor(first, second, amount) {
     mixScalar(first[1], second[1], amount),
     mixScalar(first[2], second[2], amount),
   ];
-}
-
-function normalize2D(vector) {
-  const length = Math.hypot(vector[0], vector[1]);
-  if (length <= 0.00001) return [0, 0];
-  return [vector[0] / length, vector[1] / length];
 }
 
 function add3D(first, second) {
@@ -199,10 +144,15 @@ function average3D(points) {
 function faceLight(normal, center, lightPosition) {
   const toLight = subtract3D(lightPosition, center);
   const lightDirection = normalize3D(toLight);
-  const incidence = Math.abs(dot3D(normal, lightDirection));
+  const alignment = dot3D(normal, lightDirection);
+  const reflection = Math.max(alignment, 0);
+  const transmission = Math.max(-alignment, 0) * 0.28;
   const distance = length3D(toLight);
   const attenuation = 1 / (1 + distance * distance * 0.025);
-  return (0.22 + Math.pow(incidence, 1.45) * 0.78) * attenuation;
+  return (
+    (0.16 + Math.pow(reflection, 1.45) * 0.72 + transmission) *
+    attenuation
+  );
 }
 
 function edgeLight(direction, center, lightPosition) {
@@ -218,7 +168,7 @@ function faceSpecular(normal, center, lightPosition) {
   const lightDirection = normalize3D(subtract3D(lightPosition, center));
   const viewDirection = normalize3D(subtract3D(CAMERA, center));
   const halfVector = normalize3D(add3D(lightDirection, viewDirection));
-  return Math.pow(Math.abs(dot3D(normal, halfVector)), 20);
+  return Math.pow(Math.max(dot3D(normal, halfVector), 0), 24);
 }
 
 function edgeSpecular(direction, center, lightPosition) {
@@ -290,10 +240,6 @@ function buildFaces4D(vertices) {
             return indexByVertex.get(vertex.join(","));
           });
 
-          let cubeLayer = null;
-          if (fixedAxes[0] === 3) cubeLayer = firstFixedSign;
-          if (fixedAxes[1] === 3) cubeLayer = secondFixedSign;
-
           const globalColorLayer =
             firstFixedSign === -1 && secondFixedSign === -1
               ? 0
@@ -303,13 +249,10 @@ function buildFaces4D(vertices) {
 
           faces.push({
             corners,
-            cubeLayer,
-            isConnector: cubeLayer === null,
             globalColorLayer,
             orientationIndex,
             firstAxis,
             secondAxis,
-            fixedSigns: [firstFixedSign, secondFixedSign],
           });
         }
       }
@@ -366,6 +309,7 @@ function project3Dto2D(point, distance, centerX, centerY, scale) {
     x: centerX + point[0] * perspective * scale,
     y: centerY + point[1] * perspective * scale,
     z: point[2],
+    perspective,
   };
 }
 
@@ -382,87 +326,43 @@ function polygonArea(points) {
   return Math.abs(area) / 2;
 }
 
-function hueToRgb(first, second, hue) {
-  let normalizedHue = hue;
-  if (normalizedHue < 0) normalizedHue += 1;
-  if (normalizedHue > 1) normalizedHue -= 1;
-  if (normalizedHue < 1 / 6) {
-    return first + (second - first) * 6 * normalizedHue;
-  }
-  if (normalizedHue < 1 / 2) return second;
-  if (normalizedHue < 2 / 3) {
-    return first + (second - first) * (2 / 3 - normalizedHue) * 6;
-  }
-
-  return first;
-}
-
-function hslToRgb(hue, saturation, lightness) {
-  const wrappedHue = ((hue % 360) + 360) % 360;
-  const normalizedHue = wrappedHue / 360;
-  const normalizedSaturation = saturation / 100;
-  const normalizedLightness = lightness / 100;
-
-  if (normalizedSaturation === 0) {
-    return [normalizedLightness, normalizedLightness, normalizedLightness];
-  }
-
-  const second =
-    normalizedLightness < 0.5
-      ? normalizedLightness * (1 + normalizedSaturation)
-      : normalizedLightness +
-        normalizedSaturation -
-        normalizedLightness * normalizedSaturation;
-  const first = 2 * normalizedLightness - second;
-
-  return [
-    hueToRgb(first, second, normalizedHue + 1 / 3),
-    hueToRgb(first, second, normalizedHue),
-    hueToRgb(first, second, normalizedHue - 1 / 3),
-  ];
-}
-
-function spectralColor(hue, frontness, lift = 0, saturation = 94, lightness = 36) {
-  const depthCurve = Math.pow(frontness, 1.35);
-  const finalLightness = lightness + depthCurve * 11 + lift;
-  const finalSaturation = saturation + depthCurve * 2;
-  return hslToRgb(hue, clamp(finalSaturation, 0, 100), clamp(finalLightness, 0, 72));
-}
-
-function stopColor(stop, frontness, lift = 0) {
-  if (stop.kind === "black") {
-    const depthCurve = Math.pow(frontness, 1.25);
-    const lightness = stop.lightness + depthCurve * 2 + lift * 0.15;
-    return hslToRgb(230, 18, clamp(lightness, 0, 11));
-  }
-
-  return spectralColor(
-    stop.hue,
-    frontness,
-    lift,
-    stop.saturation,
-    stop.lightness,
+function primaryColor(name, frontness, lift = 0) {
+  const depthCurve = Math.pow(frontness, 1.28);
+  const intensity = 0.7 + depthCurve * 0.26 + lift * 0.01;
+  return PRIMARY_COLORS[name].map((channel) =>
+    clamp(channel * intensity, 0, 1),
   );
 }
 
-function faceRamp(index, frontness) {
-  const scheme = FACE_SPECTRAL_SCHEMES[index % FACE_SPECTRAL_SCHEMES.length];
+function faceStopColor(name, frontness, illumination, lightSide) {
+  if (name === "black") {
+    const absorptionLift = 0.72 + illumination * 0.38;
+    return BLACK_GLASS.map((channel) => channel * absorptionLift);
+  }
+
+  const lightGain = lightSide
+    ? 0.9 + illumination * 0.28
+    : 0.76 + illumination * 0.2;
+  return primaryColor(name, frontness, lightSide ? 1.5 : 0).map(
+    (channel) => clamp(channel * lightGain, 0, 1),
+  );
+}
+
+function faceRamp(schemeIndex, frontness, illumination) {
+  const scheme = FACE_COLOR_SCHEMES[schemeIndex % FACE_COLOR_SCHEMES.length];
   return {
-    gradientAxis: scheme.axis,
-    rampPosition: scheme.position,
-    rampColors: scheme.stops.map((stop, stopIndex) =>
-      stopColor(stop, frontness, stopIndex === 0 ? 1.5 : 0),
+    rampColors: scheme.map((name, index) =>
+      faceStopColor(name, frontness, illumination, index === 0),
     ),
   };
 }
 
 function edgePalette(index, frontness) {
-  const [firstHue, secondHue] =
-    EDGE_SPECTRAL_HUES[index % EDGE_SPECTRAL_HUES.length];
-
+  const [firstName, secondName] =
+    EDGE_COLOR_PAIRS[index % EDGE_COLOR_PAIRS.length];
   return [
-    spectralColor(firstHue, frontness, 2, 96, 34),
-    spectralColor(secondHue, frontness, 0, 94, 30),
+    primaryColor(firstName, frontness, 2),
+    primaryColor(secondName, frontness),
   ];
 }
 
@@ -491,32 +391,43 @@ function createScene(
     minimumScale,
     Math.min(width, height) * 0.105 * compactScale,
   );
-  const pointerStrength = width <= 768 ? 1.2 : 0.75;
-  const angleXY = time * 0.2;
-  const angleXZ = time * 0.15;
-  const angleYZ = time * 0.1;
-  const angleXW = time * 0.5 + pointer.x * pointerStrength;
-  const angleYW = time * 0.5 + pointer.y * pointerStrength;
-  const angleZW =
-    time * 0.3 + (pointer.x - pointer.y) * pointerStrength * 0.35;
+  const pointerStrength = width <= 768 ? 0.82 : 0.62;
+  const pointerSmoothing =
+    1 - Math.exp(-Math.max(deltaTime, 1 / 240) * POINTER_RESPONSE);
+  temporalState.pointer.x = mixScalar(
+    temporalState.pointer.x,
+    pointer.x,
+    pointerSmoothing,
+  );
+  temporalState.pointer.y = mixScalar(
+    temporalState.pointer.y,
+    pointer.y,
+    pointerSmoothing,
+  );
+
+  // A generic 4D rigid rotation decomposes into two simultaneous rotations in
+  // orthogonal planes. XW and YZ commute, so this is a constant SO(4) double
+  // rotation instead of six independently time-parameterized Euler rotations.
+  const angleXW = time * 0.43;
+  const angleYZ = time * 0.19;
+  const pointerXY = 0.34 + temporalState.pointer.x * pointerStrength;
+  const pointerZW = -0.27 + temporalState.pointer.y * pointerStrength;
 
   const projectedVertices = sourceVertices.map((vertex) => {
     let point4D = [...vertex];
-    point4D = rotate4D(point4D, 0, 1, angleXY);
-    point4D = rotate4D(point4D, 0, 2, angleXZ);
-    point4D = rotate4D(point4D, 1, 2, angleYZ);
     point4D = rotate4D(point4D, 0, 3, angleXW);
-    point4D = rotate4D(point4D, 1, 3, angleYW);
-    point4D = rotate4D(point4D, 2, 3, angleZW);
+    point4D = rotate4D(point4D, 1, 2, angleYZ);
+    point4D = rotate4D(point4D, 0, 1, pointerXY);
+    point4D = rotate4D(point4D, 2, 3, pointerZW);
 
-    let point3D = project4Dto3D(point4D, 3);
+    let point3D = project4Dto3D(point4D, FOUR_D_PROJECTION_DISTANCE);
     point3D = rotate3DX(point3D, 0.4);
     point3D = rotate3DY(point3D, -0.5);
     point3D = rotate3DZ(point3D, 0.1);
 
     const point2D = project3Dto2D(
       point3D,
-      5,
+      THREE_D_PROJECTION_DISTANCE,
       centerX,
       centerY,
       scale,
@@ -528,11 +439,12 @@ function createScene(
     };
   });
 
-  const depthValues = projectedVertices.map((vertex) => vertex.z);
-  const minimumDepth = Math.min(...depthValues);
-  const maximumDepth = Math.max(...depthValues);
-  const depthRange = Math.max(maximumDepth - minimumDepth, 0.0001);
-  const depthRatio = (depth) => (depth - minimumDepth) / depthRange;
+  const depthRatio = (depth) =>
+    clamp(
+      (depth + PROJECTED_RADIUS_3D) / (PROJECTED_RADIUS_3D * 2),
+      0,
+      1,
+    );
 
   for (const vertex of projectedVertices) {
     vertex.depth01 = 1 - depthRatio(vertex.z);
@@ -546,10 +458,14 @@ function createScene(
       const center3D = average3D(points3D);
       const firstSide = subtract3D(points3D[1], points3D[0]);
       const secondSide = subtract3D(points3D[3], points3D[0]);
-      const normal = normalize3D(cross3D(firstSide, secondSide));
       const viewDirection = normalize3D(subtract3D(CAMERA, center3D));
+      const geometricNormal = normalize3D(cross3D(firstSide, secondSide));
+      const normal =
+        dot3D(geometricNormal, viewDirection) >= 0
+          ? geometricNormal
+          : geometricNormal.map((value) => -value);
       const fresnel = Math.pow(
-        1 - Math.abs(dot3D(normal, viewDirection)),
+        1 - clamp(dot3D(normal, viewDirection), 0, 1),
         2.2,
       );
       const firstLight = faceLight(normal, center3D, KEY_LIGHT_A);
@@ -558,6 +474,56 @@ function createScene(
       const secondSpecular = faceSpecular(normal, center3D, KEY_LIGHT_B);
       const strongestSpecular = Math.max(firstSpecular, secondSpecular);
       const lightResponse = Math.max(firstLight, secondLight);
+      const firstTangent = normalize3D(firstSide);
+      const secondTangent = normalize3D(secondSide);
+      const firstLightDirection = normalize3D(
+        subtract3D(KEY_LIGHT_A, center3D),
+      );
+      const secondLightDirection = normalize3D(
+        subtract3D(KEY_LIGHT_B, center3D),
+      );
+      const firstHalfVector = normalize3D(
+        add3D(firstLightDirection, viewDirection),
+      );
+      const secondHalfVector = normalize3D(
+        add3D(secondLightDirection, viewDirection),
+      );
+      const firstInfluence = firstLight * 0.72 + firstSpecular * 0.28;
+      const secondInfluence = secondLight * 0.72 + secondSpecular * 0.28;
+      const gradientAxisTarget = [
+        -(
+          dot3D(firstTangent, firstLightDirection) * firstInfluence +
+          dot3D(firstTangent, secondLightDirection) * secondInfluence
+        ),
+        -(
+          dot3D(secondTangent, firstLightDirection) * firstInfluence +
+          dot3D(secondTangent, secondLightDirection) * secondInfluence
+        ),
+      ];
+      const highlightVector = add3D(
+        firstHalfVector.map(
+          (value) => value * (0.08 + firstSpecular * 0.92),
+        ),
+        secondHalfVector.map(
+          (value) => value * (0.08 + secondSpecular * 0.92),
+        ),
+      );
+      const highlightAxis = [
+        dot3D(firstTangent, highlightVector),
+        dot3D(secondTangent, highlightVector),
+      ];
+      const gradientOffsetTarget = clamp(
+        (firstLight - secondLight) * 0.2 + center3D[2] * 0.025,
+        -0.17,
+        0.17,
+      );
+      const gradientSpanTarget =
+        1.02 + fresnel * 0.42 + strongestSpecular * 0.32;
+      const illuminationTarget = clamp(
+        0.28 + lightResponse * 0.72 + strongestSpecular * 0.18,
+        0,
+        1,
+      );
       const depth =
         points.reduce((sum, point) => sum + point.z, 0) / points.length;
       const projectedArea = polygonArea(points);
@@ -565,8 +531,6 @@ function createScene(
       const frontness = depthRatio(depth);
       const depthCurve = Math.pow(frontness, 1.55);
       const depthVisibility = 0.24 + depthCurve * 0.76;
-      const whitePattern =
-        WHITE_FACE_PATTERN[face.orientationIndex % WHITE_FACE_PATTERN.length];
 
       return {
         index,
@@ -580,28 +544,19 @@ function createScene(
         fresnel,
         strongestSpecular,
         lightResponse,
-        whitePattern,
+        gradientAxisTarget,
+        gradientOffsetTarget,
+        gradientSpanTarget,
+        illuminationTarget,
+        highlightAxis,
+        highlightOffset: clamp(
+          (firstSpecular - secondSpecular) * 0.18,
+          -0.16,
+          0.16,
+        ),
         colorLayer: face.globalColorLayer,
       };
     });
-
-  // Exactly two global colored layers now have fixed topology. Their physical
-  // membership never changes, so there is no ownership pop. Only the projected
-  // depth/color dominance is smoothed over about 0.5 seconds.
-  const frontnessSmoothing =
-    1 - Math.exp(-Math.max(deltaTime, 0.001) * BLOCK_COLOR_RESPONSE);
-
-  for (const face of faceDetails) {
-    const previousFrontness = temporalState.faceFrontness.get(face.index);
-    const stableFrontness =
-      previousFrontness == null
-        ? face.frontness
-        : previousFrontness +
-          (face.frontness - previousFrontness) * frontnessSmoothing;
-
-    temporalState.faceFrontness.set(face.index, stableFrontness);
-    face.stableFrontness = stableFrontness;
-  }
 
   const renderedFaces = faceDetails
     .map((face) => {
@@ -614,9 +569,12 @@ function createScene(
         face.colorLayer >= 0
           ? GLOBAL_LAYER_SCHEME_MAP[face.colorLayer][orientationIndex]
           : orientationIndex;
-      const paletteFrontness =
-        face.colorLayer === 0 ? 0.82 : face.colorLayer === 1 ? 0.7 : 0.42;
-      const ramp = faceRamp(schemeIndex, paletteFrontness);
+      const paletteFrontness = 0.58 + face.frontness * 0.34;
+      const ramp = faceRamp(
+        schemeIndex,
+        paletteFrontness,
+        face.illuminationTarget,
+      );
       const colorVisibility =
         0.985 + face.areaRatio * 0.01 + face.lightResponse * 0.005;
 
@@ -624,16 +582,17 @@ function createScene(
         index: face.index,
         points: face.points,
         depth: face.depth,
-        stableFrontness: face.stableFrontness ?? face.frontness,
         colorLayer: face.colorLayer,
         rampColors: ramp.rampColors,
-        rampPosition: ramp.rampPosition,
-        gradientAxis: ramp.gradientAxis,
+        gradientAxis: face.gradientAxisTarget,
+        gradientOffset: face.gradientOffsetTarget,
+        gradientSpan: face.gradientSpanTarget,
+        highlightAxis: face.highlightAxis,
+        highlightOffset: face.highlightOffset,
         prismOpacity: profile.fill * colorVisibility,
         oitWeight:
           face.colorLayer >= 0
-            ? 0.72 +
-              Math.pow(face.stableFrontness ?? face.frontness, 2.6) * 1.28
+            ? 0.72 + Math.pow(face.frontness, 2.6) * 1.28
             : 0,
         absorptionOpacity:
           profile.absorption +
@@ -641,14 +600,8 @@ function createScene(
           (1 - face.depthCurve) * (face.colorLayer >= 0 ? 0.035 : 0.006),
         whiteStrength:
           profile.white *
-          face.whitePattern *
-          (0.1 + face.fresnel * 0.3 + face.strongestSpecular * 0.48) *
+          (0.08 + face.fresnel * 0.34 + face.strongestSpecular * 0.82) *
           (0.42 + face.depthVisibility * 0.58),
-        whiteDirection: face.sourceFace.orientationIndex % 2,
-        whiteReverse:
-          Math.floor(face.sourceFace.orientationIndex / 2) % 2,
-        phase:
-          ((face.sourceFace.orientationIndex * 0.173) % 1) * 2 - 1,
         edgeLift:
           profile.edgeLift +
           face.fresnel * 0.18 +
@@ -696,48 +649,69 @@ function createScene(
         0,
         1,
       );
-      const split = 0.5 + lightStrength * 0.92 + frontness * 0.16;
-      const firstSide = normalX * -0.775 + normalY * -0.632 >= 0 ? 1 : -1;
-      const secondSide = normalX * 0.731 + normalY * 0.682 >= 0 ? 1 : -1;
+      const split = 0.42 + lightStrength * 0.72;
+      const centerX2D = (first.x + second.x) * 0.5;
+      const centerY2D = (first.y + second.y) * 0.5;
+      const firstLight2D = project3Dto2D(
+        KEY_LIGHT_A,
+        THREE_D_PROJECTION_DISTANCE,
+        centerX,
+        centerY,
+        scale,
+      );
+      const secondLight2D = project3Dto2D(
+        KEY_LIGHT_B,
+        THREE_D_PROJECTION_DISTANCE,
+        centerX,
+        centerY,
+        scale,
+      );
+      const firstSide =
+        (firstLight2D.x - centerX2D) * normalX +
+          (firstLight2D.y - centerY2D) * normalY >=
+        0
+          ? 1
+          : -1;
+      const secondSide =
+        (secondLight2D.x - centerX2D) * normalX +
+          (secondLight2D.y - centerY2D) * normalY >=
+        0
+          ? 1
+          : -1;
       const firstOffsetX = normalX * split * firstSide;
       const firstOffsetY = normalY * split * firstSide;
       const secondOffsetX = normalX * split * secondSide;
       const secondOffsetY = normalY * split * secondSide;
-      const [firstColor, secondColor] = edgePalette(index, 0.72);
-      const dominantFirst = firstSpecular + firstLight >= secondSpecular + secondLight;
-      const dominantOffsetX = dominantFirst ? firstOffsetX : secondOffsetX;
-      const dominantOffsetY = dominantFirst ? firstOffsetY : secondOffsetY;
-      const depthLighting = 0.2 + depthCurve * 0.8;
-      const coreWidth = 3.25 + depthCurve * 0.2;
-      const coreColor = [
-        (firstColor[0] + secondColor[0]) * 0.5,
-        (firstColor[1] + secondColor[1]) * 0.5,
-        (firstColor[2] + secondColor[2]) * 0.5,
-      ];
-      const edgeCenterX = (first.x + second.x) * 0.5;
-      const edgeCenterY = (first.y + second.y) * 0.5;
-      const screenDirection = normalize2D([deltaX, deltaY]);
-      const viewerDirection = normalize2D([centerX - edgeCenterX, centerY - edgeCenterY]);
-      const viewSlide = clamp(
-        screenDirection[0] * viewerDirection[0] +
-          screenDirection[1] * viewerDirection[1],
-        -1,
-        1,
+      const [firstColor, secondColor] = edgePalette(index, frontness);
+      const firstResponse = firstLight + firstSpecular;
+      const secondResponse = secondLight + secondSpecular;
+      const responseTotal = Math.max(firstResponse + secondResponse, 0.0001);
+      const secondMix = secondResponse / responseTotal;
+      const dominantOffsetX = mixScalar(
+        firstOffsetX,
+        secondOffsetX,
+        secondMix,
       );
-      const specularBias = dominantFirst ? -0.045 : 0.045;
-      const glintTarget = clamp(0.5 + viewSlide * 0.24 + specularBias, 0.14, 0.86);
-      const previousGlint = temporalState.edgeGlints.get(index);
-      const glintSmoothing =
-        1 - Math.exp(-Math.max(deltaTime, 0.001) * EDGE_GLINT_RESPONSE);
-      const glintCenter = previousGlint == null
-        ? glintTarget
-        : previousGlint + (glintTarget - previousGlint) * glintSmoothing;
-      temporalState.edgeGlints.set(index, glintCenter);
-      const glintStrength =
-        (0.095 + strongestSpecular * 0.34 + lightStrength * 0.08) *
-        (0.27 + depthCurve * 0.47);
-      const glintSpan = 0.13 + strongestSpecular * 0.045;
-      const frontPassOpacity = smoothstep(0.34, 0.69, frontness);
+      const dominantOffsetY = mixScalar(
+        firstOffsetY,
+        secondOffsetY,
+        secondMix,
+      );
+      const depthLighting = 0.2 + depthCurve * 0.8;
+      const perspectiveScale = (first.perspective + second.perspective) * 0.5;
+      const coreWidth = clamp(1.82 * perspectiveScale, 1.3, 3.6);
+      const refractedCoreColor = mixColor(
+        firstColor,
+        secondColor,
+        secondMix * 0.55,
+      );
+      const coreColor = mixColor(
+        refractedCoreColor,
+        [1, 1, 1],
+        strongestSpecular * 0.46,
+      );
+      const frontPassOpacity =
+        0.32 + smoothstep(0.25, 0.76, frontness) * 0.68;
 
       return {
         index,
@@ -761,17 +735,17 @@ function createScene(
         coreWidth,
         coreColor,
         coreOpacity:
-          0.15 + depthCurve * 0.72 + strongestSpecular * 0.09,
-        shellWidth: coreWidth + 0.72,
+          0.34 + depthCurve * 0.58 + strongestSpecular * 0.08,
+        shellWidth: coreWidth + 1.08,
         shellOpacity:
-          0.032 + depthCurve * 0.135 + strongestSpecular * 0.055,
+          0.1 + depthCurve * 0.2 + strongestSpecular * 0.16,
         firstOpacity:
-          0.03 +
+          0.08 +
           (0.24 + firstLight * 0.5 + firstSpecular * 0.82) *
             depthLighting *
             (0.78 + depthCurve * 0.62),
         secondOpacity:
-          0.03 +
+          0.08 +
           (0.24 + secondLight * 0.5 + secondSpecular * 0.82) *
             depthLighting *
             (0.78 + depthCurve * 0.62),
@@ -783,10 +757,6 @@ function createScene(
           (0.018 + secondSpecular * 0.08) *
           (0.2 + depthCurve * 0.74) *
           (0.34 + secondLight * 0.56),
-        glintCenter,
-        glintSpan,
-        glintStrength,
-        glintWidth: coreWidth * 0.76,
       };
     })
     .sort((first, second) => first.depth - second.depth);
@@ -806,7 +776,6 @@ function createScene(
   return {
     width,
     height,
-    deltaTime,
     faces: renderedFaces,
     edges: renderedEdges,
     vertices: renderedVertices,
@@ -816,17 +785,18 @@ function createScene(
 export default function GlassTesseract() {
   const paused = useSceneAnimationPaused();
   const pausedRef = useRef(paused);
+  const animationControlRef = useRef(null);
   const canvasRef = useRef(null);
   const vertices = useMemo(() => buildVertices4D(), []);
   const edges = useMemo(() => buildEdges4D(vertices), [vertices]);
   const faces = useMemo(() => buildFaces4D(vertices), [vertices]);
   const temporalStateRef = useRef({
-    faceFrontness: new Map(),
-    edgeGlints: new Map(),
+    pointer: { x: 0, y: 0 },
   });
 
   useLayoutEffect(() => {
     pausedRef.current = paused;
+    animationControlRef.current?.sync();
   }, [paused]);
 
   useLayoutEffect(() => {
@@ -837,41 +807,38 @@ export default function GlassTesseract() {
 
     let renderer = createWebGLRenderer(canvas);
     let frameId = 0;
-    const startTime = performance.now();
-    let lastFrameTime = startTime;
+    let running = false;
+    let elapsedTime = 0;
+    let lastFrameTime = null;
     temporalStateRef.current = {
-      faceFrontness: new Map(),
-      edgeGlints: new Map(),
+      pointer: { x: 0, y: 0 },
     };
     const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: 1,
+      height: 1,
     };
     const pointer = { x: 0, y: 0 };
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
 
     const updateViewport = () => {
-      viewport.width = window.innerWidth;
-      viewport.height = window.innerHeight;
+      const bounds = canvas.getBoundingClientRect();
+      viewport.width = Math.max(bounds.width, 1);
+      viewport.height = Math.max(bounds.height, 1);
     };
 
     const updatePointer = (clientX, clientY) => {
-      const width = window.innerWidth || 1;
-      const height = window.innerHeight || 1;
-      pointer.x = (clientX / width - 0.5) * 2;
-      pointer.y = (clientY / height - 0.5) * 2;
+      const bounds = canvas.getBoundingClientRect();
+      const width = bounds.width || 1;
+      const height = bounds.height || 1;
+      pointer.x = clamp(((clientX - bounds.left) / width - 0.5) * 2, -1, 1);
+      pointer.y = clamp(((clientY - bounds.top) / height - 0.5) * 2, -1, 1);
     };
 
     const handlePointerMove = (event) => {
       updatePointer(event.clientX, event.clientY);
-    };
-
-    const handleTouchMove = (event) => {
-      if (!event.touches.length) {
-        return;
-      }
-
-      event.preventDefault();
-      updatePointer(event.touches[0].clientX, event.touches[0].clientY);
+      if (!running) renderFrame(elapsedTime, 1 / 60);
     };
 
     const handleContextLost = (event) => {
@@ -881,16 +848,12 @@ export default function GlassTesseract() {
 
     const handleContextRestored = () => {
       renderer = createWebGLRenderer(canvas);
+      lastFrameTime = null;
+      if (!running) renderFrame(elapsedTime, 1 / 60);
     };
 
-    const renderFrame = (now) => {
-      if (!renderer || pausedRef.current || document.hidden) {
-        return;
-      }
-
-      const time = (now - startTime) / 1000;
-      const deltaTime = clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
-      lastFrameTime = now;
+    function renderFrame(time, deltaTime) {
+      if (!renderer) return;
       const scene = createScene(
         vertices,
         edges,
@@ -902,27 +865,67 @@ export default function GlassTesseract() {
         temporalStateRef.current,
       );
       renderer.render(scene);
-    };
+    }
 
     const animate = (now) => {
-      renderFrame(now);
+      if (!running) return;
+      const deltaTime =
+        lastFrameTime == null
+          ? 1 / 60
+          : clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
+      lastFrameTime = now;
+      elapsedTime += deltaTime;
+      renderFrame(elapsedTime, deltaTime);
       frameId = requestAnimationFrame(animate);
     };
 
+    const syncAnimation = () => {
+      const shouldRun =
+        !pausedRef.current && !document.hidden && !reducedMotion.matches;
+
+      if (shouldRun === running) return;
+      running = shouldRun;
+      lastFrameTime = null;
+
+      if (running) {
+        frameId = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(frameId);
+        renderFrame(elapsedTime, 1 / 60);
+      }
+    };
+
+    const handleViewportChange = () => {
+      updateViewport();
+      if (!running) renderFrame(elapsedTime, 1 / 60);
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(handleViewportChange);
+
     updateViewport();
-    renderFrame(startTime);
-    frameId = requestAnimationFrame(animate);
-    window.addEventListener("resize", updateViewport);
+    renderFrame(elapsedTime, 1 / 60);
+    animationControlRef.current = { sync: syncAnimation };
+    syncAnimation();
+    resizeObserver?.observe(canvas);
+    window.addEventListener("resize", handleViewportChange);
     window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("visibilitychange", syncAnimation);
+    reducedMotion.addEventListener("change", syncAnimation);
     canvas.addEventListener("webglcontextlost", handleContextLost);
     canvas.addEventListener("webglcontextrestored", handleContextRestored);
 
     return () => {
+      running = false;
       cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", updateViewport);
+      animationControlRef.current = null;
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("visibilitychange", syncAnimation);
+      reducedMotion.removeEventListener("change", syncAnimation);
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
 
@@ -939,7 +942,7 @@ export default function GlassTesseract() {
       style={{
         display: "block",
         width: "100%",
-        height: "100vh",
+        height: "100%",
         background: "transparent",
       }}
     />
