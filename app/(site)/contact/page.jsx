@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { RevealItem } from "../../../components/reveal";
 import RollingText from "../../../components/rolling-text";
 import styles from "./contact.module.css";
 
@@ -22,26 +23,6 @@ const socialLinks = [
 ];
 
 const itemCount = socialLinks.length + 2;
-
-/**
- * One line of the list, rising into place. The lines are staggered so that
- * they all settle together: the bottom one starts first and takes the longest.
- */
-function Reveal({ index, children }) {
-  const duration = 200 + (300 * index) / (itemCount - 1);
-
-  return (
-    <div
-      className={styles.item}
-      style={{
-        "--duration": `${duration}ms`,
-        "--delay": `${500 - duration}ms`,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 export default function Contact() {
   const [copied, setCopied] = useState(false);
@@ -96,11 +77,11 @@ export default function Contact() {
   return (
     <main className={styles.contactPage}>
       <section className={styles.content} aria-label="Contact information">
-        <Reveal index={0}>
+        <RevealItem className={styles.item} index={0} count={itemCount}>
           <h1 className={styles.heading}>Start a conversation.</h1>
-        </Reveal>
+        </RevealItem>
 
-        <Reveal index={1}>
+        <RevealItem className={styles.item} index={1} count={itemCount}>
           <RollingText
             type="button"
             label={email}
@@ -115,10 +96,15 @@ export default function Contact() {
           >
             Copied!
           </span>
-        </Reveal>
+        </RevealItem>
 
         {socialLinks.map((link, index) => (
-          <Reveal index={index + 2} key={link.label}>
+          <RevealItem
+            className={styles.item}
+            index={index + 2}
+            count={itemCount}
+            key={link.label}
+          >
             <RollingText
               as="a"
               href={link.href}
@@ -126,7 +112,7 @@ export default function Contact() {
               target="_blank"
               rel="noreferrer"
             />
-          </Reveal>
+          </RevealItem>
         ))}
       </section>
     </main>

@@ -13,6 +13,12 @@
   --display-size: 70px;
   --nav-size: 50px;
 
+  /* Shared text rhythm; media uses the same spacing as body paragraphs. */
+  --body-line-height: 1;
+  --heading-line-height: 1;
+  --heading-gap: 30px;
+  --paragraph-gap: 20px;
+
   /*
    * Over home, the panel's slide and its contents overlap by `--motion-overlap`.
    * Everywhere else the panel fades for `--motion-content`, and the two legs
@@ -53,6 +59,7 @@ body {
    */
   background: #FFFFFF;
   color: #000000;
+  line-height: var(--body-line-height);
   overflow: hidden;
   overscroll-behavior: none;
 }

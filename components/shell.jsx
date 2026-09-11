@@ -28,6 +28,7 @@ export default function Shell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
+  const isGenesis = pathname === "/works/genesis";
 
   /**
    * Menu route transitions run through the navigation panel.
@@ -167,13 +168,14 @@ export default function Shell({ children }) {
         <Chrome
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
+            isGenesis ? styles.projectChrome : "",
             openedOnHome ? styles.chromeEntering : "",
           ]
             .filter(Boolean)
             .join(" ")}
           left={isHome ? <HomeTitle key={pathname} /> : <Brand />}
           right={
-            <span className={isWorks ? styles.worksMenuEntering : ""}>
+            <span className={isWorks || isGenesis ? styles.worksMenuEntering : ""}>
               <RollingText
                 /* On the way home the new label waits for the title. */
                 style={{ "--label-delay": `${enterDelay}ms` }}
@@ -194,7 +196,11 @@ export default function Shell({ children }) {
           className={[
             styles.content,
             /* These pages animate their own contents in. */
-            isHome || isWorks || pathname === "/about" || pathname === "/contact"
+            isHome ||
+            isWorks ||
+            isGenesis ||
+            pathname === "/about" ||
+            pathname === "/contact"
               ? ""
               : styles.contentEntering,
           ]

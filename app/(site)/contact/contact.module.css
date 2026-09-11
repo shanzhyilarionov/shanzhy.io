@@ -7,23 +7,24 @@
 }
 
 .content {
+  --contact-item-gap: 0.75rem;
   width: max-content;
   max-width: calc(100% - 2 * var(--page-inset));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--contact-item-gap);
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
-  line-height: 1;
+  line-height: var(--body-line-height);
 }
 
 .heading {
-  margin: 0 0 1.5rem;
+  margin: 0 0 calc(var(--heading-gap) - var(--contact-item-gap));
   font-family: Arial, Helvetica, sans-serif;
   font-size: var(--nav-size);
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--heading-line-height);
   text-align: center;
   overflow-wrap: anywhere;
 }
@@ -32,8 +33,6 @@
   position: relative;
   width: max-content;
   max-width: 100%;
-  animation: itemEnter var(--duration) ease-out var(--delay) both;
-  will-change: opacity, transform;
 }
 
 .copied {
@@ -41,7 +40,7 @@
   top: 50%;
   left: calc(100% + 0.75rem);
   transform: translateY(-50%);
-  line-height: 1;
+  line-height: var(--body-line-height);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
@@ -53,23 +52,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .item {
-    animation: none;
-  }
-
   .copied {
     transition: none;
-  }
-}
-
-@keyframes itemEnter {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 1rem, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
   }
 }

@@ -10,13 +10,13 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 1.5em;
+  gap: var(--paragraph-gap);
   width: 100%;
-  max-width: 42rem;
+  max-width: 40rem;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: var(--body-line-height);
   text-align: center;
 }
 
@@ -28,47 +28,10 @@
 
 .heading {
   position: relative;
-  margin: 0 0 1.5rem;
+  margin: 0 0 calc(var(--heading-gap) - var(--paragraph-gap));
   font-family: Arial, Helvetica, sans-serif;
   font-size: var(--nav-size);
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--heading-line-height);
   overflow-wrap: anywhere;
-}
-
-.line {
-  position: absolute;
-  inset: 0;
-  display: block;
-  clip-path: inset(var(--clip-top) 0 var(--clip-bottom) 0);
-  pointer-events: none;
-  user-select: none;
-  animation: itemEnter var(--duration) ease-out var(--delay) both;
-}
-
-.content[data-entered="false"] .source {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .line {
-    display: none;
-    animation: none;
-  }
-
-  .content[data-entered="false"] .source {
-    opacity: 1;
-  }
-}
-
-@keyframes itemEnter {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 1em, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
 }

@@ -9,7 +9,7 @@
 
 .content {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--heading-gap);
   width: max-content;
   max-width: calc(100% - 2 * var(--page-inset));
 }
@@ -20,7 +20,10 @@
   font-family: Arial, Helvetica, sans-serif;
   font-size: var(--nav-size);
   font-weight: 400;
-  line-height: 1.2;
+  /* A touch taller than the shared line-height: at 1, Arial's glyphs render
+     taller than the font-size box, so the entrance mask's `overflow: hidden`
+     clips their tops. */
+  line-height: calc(var(--heading-line-height) * 1.15);
   text-align: center;
   overflow-wrap: anywhere;
 }
@@ -79,14 +82,14 @@
 
 .title {
   position: absolute;
-  top: calc(var(--tile-size) * 1.5 + 0.75rem);
+  top: calc(var(--tile-size) * 1.5 + var(--paragraph-gap));
   left: 0;
   width: 100%;
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
   font-weight: 400;
-  line-height: 1;
+  line-height: var(--body-line-height);
   text-align: center;
   opacity: 0;
   transition: opacity 0.2s ease-out;

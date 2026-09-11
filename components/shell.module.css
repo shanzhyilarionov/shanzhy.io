@@ -28,9 +28,16 @@
   animation: fadeIn var(--motion-content) ease-out var(--motion-content) both;
 }
 
-/* Only Works gives its resting Menu control a longer page-entry fade. */
+/* Works and its Genesis detail share the Menu control's page-entry fade. */
 .worksMenuEntering {
   animation: fadeIn 1s ease-out both;
+}
+
+@media (max-width: 768px) {
+  .projectChrome {
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

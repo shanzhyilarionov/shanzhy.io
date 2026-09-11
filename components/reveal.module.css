@@ -1,0 +1,46 @@
+.block {
+  position: relative;
+}
+
+.line {
+  position: absolute;
+  inset: 0;
+  display: block;
+  clip-path: inset(var(--clip-top) 0 var(--clip-bottom) 0);
+  pointer-events: none;
+  user-select: none;
+}
+
+.content[data-entered="false"] .source {
+  opacity: 0;
+}
+
+.moving {
+  animation: enter var(--duration) ease-out var(--delay) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moving {
+    animation: none;
+  }
+
+  .line {
+    display: none;
+  }
+
+  .content[data-entered="false"] .source {
+    opacity: 1;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
