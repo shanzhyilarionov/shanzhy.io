@@ -20,6 +20,7 @@ export default function RollingText({
   as: Element = "button",
   label,
   className,
+  animateLabelChange = true,
   ...props
 }) {
   const hoverEnabled = useHoverEnabled();
@@ -32,7 +33,10 @@ export default function RollingText({
   }
 
   /* The label was replaced under us; take the old one out first. */
-  if (label !== shown && !swap) {
+  if (!animateLabelChange && (label !== shown || swap)) {
+    setShown(label);
+    setSwap("");
+  } else if (label !== shown && !swap) {
     setSwap("leaving");
   }
 

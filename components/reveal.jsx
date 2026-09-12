@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { usePageExiting } from "./page-exit-context";
 import styles from "./reveal.module.css";
 
 function timing(index, count) {
@@ -23,8 +24,17 @@ export default function Reveal({
   const blockRefs = useRef([]);
   const [lines, setLines] = useState([]);
   const [entered, setEntered] = useState(false);
+  const exiting = usePageExiting();
+  const [wasExiting, setWasExiting] = useState(exiting);
   const lineCount = lines.reduce((count, block) => count + block.length, 0);
   let lineIndex = 0;
+
+  // Rebuild the line masks before either direction paints, including after a
+  // resize while the settled page was displaying its selectable source text.
+  if (wasExiting !== exiting) {
+    setWasExiting(exiting);
+    setEntered(false);
+  }
 
   useLayoutEffect(() => {
     if (entered) return;
@@ -69,7 +79,7 @@ export default function Reveal({
       disposed = true;
       observer.disconnect();
     };
-  }, [entered]);
+  }, [entered, exiting]);
 
   return (
     <Element
@@ -77,7 +87,10 @@ export default function Reveal({
       ref={contentRef}
       className={[styles.content, className].filter(Boolean).join(" ")}
       data-entered={entered}
-      onAnimationEnd={() => setEntered(true)}
+      data-exiting={exiting}
+      onAnimationEnd={() => {
+        if (!exiting) setEntered(true);
+      }}
     >
       {blocks.map(({ as: Tag = "p", id, text, className }, blockIndex) => (
         <Tag
@@ -112,10 +125,13 @@ export default function Reveal({
 
 /** Contact rows keep their original order, delays, durations and interactions. */
 export function RevealItem({ index, count, className, children }) {
+  const exiting = usePageExiting();
+
   return (
     <div
       className={[styles.moving, className].filter(Boolean).join(" ")}
       style={timing(index, count)}
+      data-exiting={exiting}
     >
       {children}
     </div>

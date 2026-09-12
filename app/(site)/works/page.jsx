@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
+import { usePageExiting } from "../../../components/page-exit-context";
 import { projects } from "./projects";
 import styles from "./works.module.css";
 
@@ -15,9 +16,20 @@ export default function Works() {
   const hoverEnabled = useHoverEnabled();
   const [resizing, setResizing] = useState(false);
   const [transition, setTransition] = useState(null);
+  const pageExiting = usePageExiting();
+  const [wasPageExiting, setWasPageExiting] = useState(false);
+
+  // Menu and history departures use the same two legs as a project click.
+  // The shell owns that navigation, so these transitions carry no href.
+  if (wasPageExiting !== pageExiting) {
+    setWasPageExiting(pageExiting);
+    setTransition(pageExiting ? { phase: "settling", href: null } : null);
+  }
 
   useEffect(() => {
-    if (!transition) return;
+    if (!transition || (transition.phase === "exiting" && !transition.href)) {
+      return;
+    }
 
     const timer = window.setTimeout(() => {
       if (transition.phase === "settling") {

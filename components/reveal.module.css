@@ -19,8 +19,16 @@
   animation: enter var(--duration) ease-out var(--delay) both;
 }
 
+/* The entrance's timing runs backwards while every line keeps moving up. */
+.content[data-exiting="true"] .moving,
+.moving[data-exiting="true"] {
+  animation: exit var(--duration) ease-in both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .moving {
+  .moving,
+  .content[data-exiting="true"] .moving,
+  .moving[data-exiting="true"] {
     animation: none;
   }
 
@@ -30,6 +38,11 @@
 
   .content[data-entered="false"] .source {
     opacity: 1;
+  }
+
+  .content[data-exiting="true"] .source,
+  .moving[data-exiting="true"] {
+    opacity: 0;
   }
 }
 
@@ -42,5 +55,17 @@
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, -1rem, 0);
   }
 }

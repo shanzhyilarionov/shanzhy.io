@@ -22,19 +22,28 @@
   animation: contentEnter var(--motion-content) ease-out both;
 }
 
-/* First paint on home only: the chrome arrives with the title and the
-   tesseract. Everywhere else it is simply there, and stays there. */
+/* Home's chrome arrives with its title after the white mask has opened. */
 .chromeEntering {
-  animation: fadeIn var(--motion-content) ease-out var(--motion-content) both;
+  animation: fadeIn var(--motion-content) ease-out
+    calc(var(--enter-delay) + var(--motion-content)) both;
 }
 
-/* Works and its Genesis detail share the Menu control's page-entry fade. */
-.worksMenuEntering {
-  animation: fadeIn 1s ease-out both;
+.chromeLeavingHome {
+  animation: fadeOut var(--page-exit-duration) ease-in both;
+  pointer-events: none;
+}
+
+.homeReveal {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: #FFFFFF;
+  animation: homeReveal var(--motion-panel) var(--ease-panel) both;
 }
 
 @media (max-width: 768px) {
-  .projectChrome {
+  /* Shared controls keep the same position across all white pages. */
+  .chromeAbovePanel {
     align-items: flex-start;
     padding-top: 1.5rem;
   }
@@ -43,8 +52,17 @@
 @media (prefers-reduced-motion: reduce) {
   .contentEntering,
   .chromeEntering,
-  .worksMenuEntering {
+  .chromeLeavingHome,
+  .homeReveal {
     animation: none;
+  }
+
+  .chromeLeavingHome {
+    opacity: 0;
+  }
+
+  .homeReveal {
+    display: none;
   }
 }
 
@@ -65,5 +83,25 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes homeReveal {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -100%, 0);
   }
 }

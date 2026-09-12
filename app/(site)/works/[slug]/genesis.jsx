@@ -1,4 +1,7 @@
+"use client";
+
 import Reveal from "../../../../components/reveal";
+import { usePageExiting } from "../../../../components/page-exit-context";
 import RollingText from "../../../../components/rolling-text";
 import GenesisVideo from "./genesis-video";
 import styles from "./genesis.module.css";
@@ -17,8 +20,14 @@ const blocks = [
 ];
 
 export default function Genesis() {
+  const exiting = usePageExiting();
+
   return (
-    <main className={styles.page}>
+    <main
+      className={[styles.page, exiting ? styles.exiting : ""]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <article className={styles.content} aria-labelledby="genesis-heading">
         <Reveal className={styles.intro} blocks={blocks} />
 

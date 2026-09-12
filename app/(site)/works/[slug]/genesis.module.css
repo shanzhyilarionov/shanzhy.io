@@ -76,11 +76,31 @@
   animation: fadeIn 0.5s ease-out both;
 }
 
+.exiting .videoMask {
+  animation: videoMaskOut var(--motion-content) var(--ease-panel) both;
+}
+
+.exiting .video {
+  animation: videoContentOut var(--motion-content) var(--ease-panel) both;
+}
+
+.exiting .action {
+  animation: fadeOut var(--motion-content) ease-in both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .videoMask,
   .video,
-  .action {
+  .action,
+  .exiting .videoMask,
+  .exiting .video,
+  .exiting .action {
     animation: none;
+  }
+
+  .exiting .videoFrame,
+  .exiting .action {
+    opacity: 0;
   }
 }
 
@@ -105,6 +125,27 @@
   }
 }
 
+/* The lower mask edge moves up; the video itself stays in place. */
+@keyframes videoMaskOut {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -100%, 0);
+  }
+}
+
+@keyframes videoContentOut {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -112,6 +153,16 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }
 

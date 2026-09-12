@@ -7,6 +7,8 @@ import Navigation from "./navigation";
 import RollingText from "./rolling-text";
 import { HoverBoundary } from "./hover-boundary";
 import { SceneAnimationPauseProvider } from "./scene-animation-context";
+import { PageExitProvider } from "./page-exit-context";
+import { useHistoryExit } from "./use-history-exit";
 import styles from "./shell.module.css";
 
 /* Mirrors --motion-panel, --motion-content and --motion-overlap in globals.css. */
@@ -29,21 +31,23 @@ export default function Shell({ children }) {
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
   const isGenesis = pathname === "/works/genesis";
+  const isRevealPage = pathname === "/about" || pathname === "/contact";
+  const hasPageExit = !isHome;
+  // Works first settles its hover expansion, then closes the image masks.
+  const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
 
   /**
    * Menu route transitions run through the navigation panel.
-   * Because the panel is opaque, the page swap itself is
-   * never seen:
+   * Because the panel is opaque, the page swap itself is never seen:
    *
    *   open      the panel arrives, then its contents arrive
    *   closing   the contents leave, then the panel leaves after them
    *   leaving   the contents leave; the panel holds still, covering the swap
    *   waiting   the route has been pushed; the panel is still covering it
+   *   departing / routing   the same route exit without an open menu
    *
-   * The panel travels over home, which is black, and merely fades over a white
-   * page, where fading is indistinguishable from the page underneath fading
-   * out in place. Which of the two it does is fixed when each leg starts, so a
-   * panel that faded in over contact can still slide away over home.
+   * The panel travels over home and fades over white pages. Opening it does
+   * not trigger a page exit; that belongs to selecting a different route.
    */
   const [phase, setPhase] = useState("closed");
   const [target, setTarget] = useState(null);
@@ -52,18 +56,36 @@ export default function Shell({ children }) {
   const [exitSlide, setExitSlide] = useState(false);
   /* Home waits for the panel to be completely gone before it begins. */
   const [enterDelay, setEnterDelay] = useState(0);
+  const [homeRevealing, setHomeRevealing] = useState(false);
+  const [viewPath, setViewPath] = useState(pathname);
+  const historyExit = useHistoryExit(
+    pathname,
+    hasPageExit,
+    pageExitMs,
+  );
+  const historyExiting = Boolean(historyExit);
+  const destination = historyExit?.to ?? target ?? pathname;
+  const pageExiting =
+    hasPageExit && (historyExiting || Boolean(target));
+  const leavingForHome = pageExiting && destination === "/";
 
   /*
    * The route we asked for has arrived. Adjusting state during render rather
    * than in an effect means the new page is never painted while the panel is
    * still in its old state.
    *
-   * Going anywhere white, the panel just drops and the page plays its own
-   * entrance. Going home, the panel closes over it properly first.
+   * Every arrival at home gets the same white mask, including history and
+   * direct links. Home's own entrance waits until that mask has opened.
    */
-  if ((phase === "leaving" || phase === "waiting") && pathname === target) {
-    setPhase(exitSlide ? "closing" : "closed");
+  if (viewPath !== pathname) {
+    setViewPath(pathname);
+    const revealHome =
+      isHome && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setPhase("closed");
     setTarget(null);
+    setCovered(false);
+    setHomeRevealing(revealHome);
+    setEnterDelay(revealHome ? PANEL_MS : 0);
   }
 
   useEffect(() => {
@@ -72,14 +94,21 @@ export default function Shell({ children }) {
       return () => window.clearTimeout(timer);
     };
 
+    if (homeRevealing) {
+      return after(PANEL_MS, () => setHomeRevealing(false));
+    }
+
+    // A history traversal takes precedence over a pending menu/link push.
+    if (historyExiting) return undefined;
+
     if (phase === "open") {
       /* Fully covered: nothing behind the panel is worth drawing. */
       return after(enterSlide ? PANEL_MS : CONTENT_MS, () => setCovered(true));
     }
 
-    if (phase === "leaving" && target !== "/") {
-      return after(CONTENT_MS, () => {
-        setPhase("waiting");
+    if (phase === "leaving" || phase === "departing") {
+      return after(pageExitMs, () => {
+        setPhase(phase === "leaving" ? "waiting" : "routing");
         router.push(target);
       });
     }
@@ -90,11 +119,20 @@ export default function Shell({ children }) {
     }
 
     return undefined;
-  }, [phase, target, enterSlide, exitSlide, router]);
+  }, [
+    phase,
+    target,
+    enterSlide,
+    exitSlide,
+    pageExitMs,
+    historyExiting,
+    homeRevealing,
+    router,
+  ]);
 
   /** Leave the panel, by way of `href` if that is somewhere new. */
   const leaveNavigation = (href = null) => {
-    if (phase !== "open") {
+    if (phase !== "open" || historyExiting) {
       return;
     }
 
@@ -110,26 +148,50 @@ export default function Shell({ children }) {
     }
 
     setTarget(next);
-    setEnterDelay(next === "/" ? closeMs(true) : 0);
     setPhase("leaving");
-
-    /*
-     * Home has to be mounted behind the panel before the panel starts moving,
-     * because the close is what uncovers it. Anywhere white is uncovered by
-     * the panel simply dropping, so that push can wait until the contents are
-     * out of the way.
-     */
-    if (next === "/") {
-      router.push(next);
-    }
   };
 
   const toggleNavigation = () => {
+    if (historyExiting || homeRevealing) return;
+
     if (phase === "closed") {
       setEnterSlide(isHome);
       setPhase("open");
     } else if (phase === "open") {
       leaveNavigation();
+    }
+  };
+
+  const followHomeLink = (event) => {
+    if (
+      isHome ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+    ) {
+      return;
+    }
+
+    const link = event.target.closest("a[href]");
+    if (
+      !link ||
+      link.hasAttribute("download") ||
+      (link.target && link.target !== "_self")
+    ) {
+      return;
+    }
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || url.pathname !== "/") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (historyExiting || homeRevealing) return;
+
+    if (phase === "open") {
+      leaveNavigation("/");
+    } else if (phase === "closed") {
+      setTarget("/");
+      setPhase("departing");
     }
   };
 
@@ -140,22 +202,20 @@ export default function Shell({ children }) {
    * white, so there it sits below instead, keeps saying "Click to start", and
    * the panel brings its own copy for the duration.
    *
-   * Its label follows the *destination*, not the page we happen to be standing
-   * on. Reading it off `pathname` meant that leaving home for a white page the
-   * button said "Click to start" until the route landed, and then had to cross
-   * over a second time — a flash of the wrong word, first under the panel and
-   * then out in the open.
+   * Between white pages the same Menu control remains mounted. On the way
+   * home its current label stays still while the whole chrome fades away.
    */
-  const destination = target ?? pathname;
+  const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
+  const navigationPhase = menuVisible
+    ? historyExiting ? "leaving" : phase
+    : "closed";
   const chromeLabel =
-    destination === "/"
+    isHome
       ? "Click to start"
-      : phase === "open"
+      : (phase === "open" && (!pageExiting || leavingForHome)) ||
+          (leavingForHome && (phase === "leaving" || phase === "waiting"))
         ? "Close"
-        : restingLabel(destination);
-
-  /* Home's entrance belongs to the first paint alone, hence the frozen read. */
-  const [openedOnHome] = useState(isHome);
+        : "Menu";
 
   return (
     <SceneAnimationPauseProvider paused={covered}>
@@ -163,22 +223,26 @@ export default function Shell({ children }) {
       <HoverBoundary
         viewKey={`${pathname}:${phase}`}
         className={styles.shell}
-        style={{ "--enter-delay": `${enterDelay}ms` }}
+        style={{
+          "--enter-delay": `${enterDelay}ms`,
+          "--page-exit-duration": `${pageExitMs}ms`,
+        }}
+        onClickCapture={followHomeLink}
       >
         <Chrome
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
-            isGenesis ? styles.projectChrome : "",
-            openedOnHome ? styles.chromeEntering : "",
+            isHome ? styles.chromeEntering : "",
+            leavingForHome ? styles.chromeLeavingHome : "",
           ]
             .filter(Boolean)
             .join(" ")}
           left={isHome ? <HomeTitle key={pathname} /> : <Brand />}
           right={
-            <span className={isWorks || isGenesis ? styles.worksMenuEntering : ""}>
+            <span>
               <RollingText
-                /* On the way home the new label waits for the title. */
-                style={{ "--label-delay": `${enterDelay}ms` }}
+                key={isHome ? "home" : "menu"}
+                animateLabelChange={!(pageExiting && destination !== "/")}
                 type="button"
                 label={chromeLabel}
                 aria-label={
@@ -199,20 +263,25 @@ export default function Shell({ children }) {
             isHome ||
             isWorks ||
             isGenesis ||
-            pathname === "/about" ||
-            pathname === "/contact"
+            isRevealPage
               ? ""
               : styles.contentEntering,
           ]
             .filter(Boolean)
             .join(" ")}
           key={pathname}
+          inert={
+            homeRevealing ||
+            (hasPageExit && (phase !== "closed" || historyExiting))
+          }
         >
-          {children}
+          <PageExitProvider exiting={pageExiting}>
+            {children}
+          </PageExitProvider>
         </div>
 
         <Navigation
-          phase={phase}
+          phase={navigationPhase}
           enterSlide={enterSlide}
           exitSlide={exitSlide}
           chrome={isHome}
@@ -220,6 +289,8 @@ export default function Shell({ children }) {
           onToggle={toggleNavigation}
           onLeave={leaveNavigation}
         />
+
+        {homeRevealing && <div className={styles.homeReveal} aria-hidden="true" />}
       </HoverBoundary>
     </SceneAnimationPauseProvider>
   );
