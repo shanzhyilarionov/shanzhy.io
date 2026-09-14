@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { useSceneAnimationPaused } from "../scene-animation-context";
+import { useEntryLoading } from "../entry-loading";
 import {
   buildEdges4D,
   buildFaces4D,
@@ -19,6 +20,7 @@ import { createScene } from "./scene.js";
  * `geometry.mjs` / `scene.js`, and all of the drawing in `renderer.js`.
  */
 export default function GlassTesseract() {
+  const { ready } = useEntryLoading();
   const paused = useSceneAnimationPaused();
   const pausedRef = useRef(paused);
   const animationControlRef = useRef(null);
@@ -146,6 +148,7 @@ export default function GlassTesseract() {
 
     measure();
     renderFrame(elapsedTime, 1 / 60);
+    ready("scene");
     animationControlRef.current = { sync: syncAnimation };
     syncAnimation();
 
@@ -175,7 +178,7 @@ export default function GlassTesseract() {
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.destroy();
     };
-  }, [edges, faces, vertices]);
+  }, [edges, faces, vertices, ready]);
 
   return (
     <canvas

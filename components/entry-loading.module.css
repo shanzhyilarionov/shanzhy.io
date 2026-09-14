@@ -1,0 +1,57 @@
+.stage {
+  display: contents;
+}
+
+/* Keep the real page mounted and measurable while its entrances wait. */
+.stage[data-entry-pending="true"] *,
+.stage[data-entry-pending="true"] *::before,
+.stage[data-entry-pending="true"] *::after {
+  animation-play-state: paused !important;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: #FFFFFF;
+  color: #000000;
+  cursor: wait;
+}
+
+.overlay[data-theme="dark"] {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+.progress {
+  min-width: 4ch;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--body-line-height);
+  text-align: center;
+}
+
+.overlay[data-phase="leaving"] {
+  animation: fadeOut 200ms ease-out 160ms both;
+}
+
+.overlay[data-phase="leaving"] .progress {
+  animation: fadeOut 160ms ease-out both;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay[data-phase="leaving"],
+  .overlay[data-phase="leaving"] .progress {
+    animation: none;
+  }
+}

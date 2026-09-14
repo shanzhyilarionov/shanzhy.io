@@ -9,6 +9,7 @@ import { HoverBoundary } from "./hover-boundary";
 import { SceneAnimationPauseProvider } from "./scene-animation-context";
 import { PageExitProvider } from "./page-exit-context";
 import { useHistoryExit } from "./use-history-exit";
+import { useEntryLoading } from "./entry-loading";
 import styles from "./shell.module.css";
 
 /* Mirrors --motion-panel, --motion-content and --motion-overlap in globals.css. */
@@ -26,6 +27,7 @@ function restingLabel(path) {
 }
 
 export default function Shell({ children }) {
+  const { pending: entryPending } = useEntryLoading();
   const router = useRouter();
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -218,7 +220,7 @@ export default function Shell({ children }) {
         : "Menu";
 
   return (
-    <SceneAnimationPauseProvider paused={covered}>
+    <SceneAnimationPauseProvider paused={covered || entryPending}>
       {/* Carries --enter-delay down to the home page and its title. */}
       <HoverBoundary
         viewKey={`${pathname}:${phase}`}

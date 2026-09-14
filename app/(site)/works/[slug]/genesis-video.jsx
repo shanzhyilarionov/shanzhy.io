@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useEntryLoading } from "../../../../components/entry-loading";
+import { getGenesisVideoSource, stopVideoWarmup } from "../../../../components/preload-assets";
 import styles from "./genesis.module.css";
 
 export default function GenesisVideo() {
+  const { pending, ready } = useEntryLoading();
+  const [source] = useState(getGenesisVideoSource);
   const videoRef = useRef(null);
   const [hasFrame, setHasFrame] = useState(false);
 
   useEffect(() => {
+    stopVideoWarmup();
     const video = videoRef.current;
     let frameCallback;
 
@@ -20,6 +25,7 @@ export default function GenesisVideo() {
 
     const revealFrame = () => {
       if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      ready("video");
       cancelFrame();
 
       if (video.requestVideoFrameCallback) {
@@ -38,18 +44,32 @@ export default function GenesisVideo() {
       setHasFrame(false);
     };
 
+    const handleError = () => {
+      showPoster();
+      ready("video");
+    };
+
     const readyEvents = ["loadeddata", "playing", "seeked"];
-    const resetEvents = ["seeking", "emptied", "error"];
+    const resetEvents = ["seeking", "emptied"];
+    video.addEventListener("error", handleError);
     readyEvents.forEach((event) => video.addEventListener(event, revealFrame));
     resetEvents.forEach((event) => video.addEventListener(event, showPoster));
     revealFrame();
+    if (video.error) handleError();
 
     return () => {
       cancelFrame();
+      video.removeEventListener("error", handleError);
       readyEvents.forEach((event) => video.removeEventListener(event, revealFrame));
       resetEvents.forEach((event) => video.removeEventListener(event, showPoster));
     };
-  }, []);
+  }, [ready]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (pending) video.pause();
+    else video.play().catch(() => {});
+  }, [pending]);
 
   return (
     <div className={styles.videoFrame}>
@@ -59,11 +79,11 @@ export default function GenesisVideo() {
             ref={videoRef}
             className={styles.videoElement}
             data-ready={hasFrame}
-            src="/videos/genesis.mp4"
+            src={source}
             poster="/images/genesis-poster.jpg"
             width="1600"
             height="900"
-            autoPlay
+            autoPlay={!pending}
             muted
             loop
             playsInline
