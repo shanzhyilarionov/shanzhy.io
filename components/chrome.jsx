@@ -5,19 +5,10 @@ export function Brand() {
   return <span className={styles.brand}>© Shanzhy</span>;
 }
 
-/**
- * Home's version of the wordmark. Each letter slides in from behind its own
- * mask, half a second in, so the word lands with the tesseract.
- */
+/** Home's title fades in with the surrounding chrome. */
 export function HomeTitle() {
   return (
-    <h1 className={styles.title} aria-label="Shanzhy">
-      {"Shanzhy".split("").map((letter, index) => (
-        <span className={styles.letterMask} aria-hidden="true" key={index}>
-          <span className={styles.letter}>{letter}</span>
-        </span>
-      ))}
-    </h1>
+    <h1 className={styles.title}>Shanzhy · Independent Developer</h1>
   );
 }
 

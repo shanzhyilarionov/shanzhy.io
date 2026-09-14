@@ -1,16 +1,10 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Acumin";
-  src: url("/fonts/acumin-pro-extra-condensed-extra-light.woff2") format("woff2");
-}
-
 :root {
   /* The 1/20 and 19/20 lines. Everything pinned to an edge sits on one. */
   --page-inset: 5vw;
 
-  /* Fixed, not viewport-relative: these two never change size. */
-  --display-size: 70px;
+  /* Fixed, not viewport-relative. */
   --nav-size: 50px;
 
   /* Shared text rhythm; media uses the same spacing as body paragraphs. */

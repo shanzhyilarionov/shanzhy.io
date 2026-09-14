@@ -22,7 +22,7 @@ const closeMs = (slide) =>
 
 /** What the right-hand button says when the panel is down. */
 function restingLabel(path) {
-  return path === "/" ? "Click to start" : "Menu";
+  return path === "/" ? "Click here to explore" : "Menu";
 }
 
 export default function Shell({ children }) {
@@ -199,7 +199,7 @@ export default function Shell({ children }) {
    * The chrome is mounted once and never moves. On every page but home it sits
    * *above* the panel, so the panel comes and goes without disturbing it and
    * its button is the one that works the panel. Over home it would be white on
-   * white, so there it sits below instead, keeps saying "Click to start", and
+   * white, so there it sits below instead, keeps saying "Click here to explore", and
    * the panel brings its own copy for the duration.
    *
    * Between white pages the same Menu control remains mounted. On the way
@@ -211,7 +211,7 @@ export default function Shell({ children }) {
     : "closed";
   const chromeLabel =
     isHome
-      ? "Click to start"
+      ? "Click here to explore"
       : (phase === "open" && (!pageExiting || leavingForHome)) ||
           (leavingForHome && (phase === "leaving" || phase === "waiting"))
         ? "Close"
