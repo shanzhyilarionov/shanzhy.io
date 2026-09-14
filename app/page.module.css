@@ -39,7 +39,7 @@
   pointer-events: auto;
   touch-action: none;
   background: transparent;
-  animation: tesseractEnter 1s ease-out var(--enter-delay) both;
+  animation: tesseractEnter var(--page-enter-duration) ease-out var(--enter-delay) both;
   will-change: transform, opacity;
 }
 

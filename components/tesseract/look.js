@@ -23,8 +23,8 @@ export const LOOK = {
     tiltY: -0.5,
     rollZ: 0.1,
     /* Small view rotations in radians, applied after the static framing. */
-    pointerStrengthDesktop: 0.3,
-    pointerStrengthMobile: 0.4,
+    pointerStrengthDesktop: 0.4,
+    pointerStrengthMobile: 0.5,
     /* Exponential smoothing rate for the pointer, in 1/seconds. */
     pointerResponse: 7.5,
   },

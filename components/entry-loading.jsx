@@ -111,12 +111,17 @@ export default function EntryLoading({ children }) {
   useEffect(() => {
     if (progress !== 100) return;
     // Paint 100% before fading the number and releasing the page animations.
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const frame = requestAnimationFrame(() => setPhase("leaving"));
-    const timer = window.setTimeout(() => setPhase("done"), reducedMotion ? 32 : 400);
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const finishWithoutMotion = () => {
+      if (motion.matches) setPhase("done");
+    };
+    const frame = requestAnimationFrame(() => {
+      setPhase(motion.matches ? "done" : "leaving");
+    });
+    motion.addEventListener("change", finishWithoutMotion);
     return () => {
       cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
+      motion.removeEventListener("change", finishWithoutMotion);
     };
   }, [progress]);
 
@@ -148,6 +153,11 @@ export default function EntryLoading({ children }) {
           data-entry-overlay
           data-theme={entryPath === "/" ? "dark" : "light"}
           data-phase={phase}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget && phase === "leaving") {
+              setPhase("done");
+            }
+          }}
         >
           <span
             className={styles.progress}

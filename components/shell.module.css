@@ -22,14 +22,25 @@
   animation: contentEnter var(--motion-content) ease-out both;
 }
 
-/* Home's chrome arrives with its title after the white mask has opened. */
+/* Both sides arrive with the initial page; home also waits for its white mask. */
 .chromeEntering {
-  animation: fadeIn var(--motion-content) ease-out
-    calc(var(--enter-delay) + var(--motion-content)) both;
+  animation: fadeIn var(--page-enter-duration) ease-out var(--enter-delay) both;
 }
 
 .chromeLeavingHome {
-  animation: fadeOut var(--page-exit-duration) ease-in both;
+  animation: fadeOut var(--chrome-exit-duration) ease-in both;
+  pointer-events: none;
+}
+
+.menuEntering {
+  display: block;
+  animation: fadeIn var(--page-enter-duration) ease-out both;
+}
+
+/* Keep Close hidden through the route's loading gap after navigation leaves. */
+.menuLeaving {
+  display: block;
+  animation: fadeOut var(--motion-content) var(--ease-content) both;
   pointer-events: none;
 }
 
@@ -53,11 +64,14 @@
   .contentEntering,
   .chromeEntering,
   .chromeLeavingHome,
+  .menuEntering,
+  .menuLeaving,
   .homeReveal {
     animation: none;
   }
 
-  .chromeLeavingHome {
+  .chromeLeavingHome,
+  .menuLeaving {
     opacity: 0;
   }
 

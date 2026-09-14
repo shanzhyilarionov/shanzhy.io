@@ -36,11 +36,7 @@
 }
 
 .overlay[data-phase="leaving"] {
-  animation: fadeOut 200ms ease-out 160ms both;
-}
-
-.overlay[data-phase="leaving"] .progress {
-  animation: fadeOut 160ms ease-out both;
+  animation: fadeOut 500ms ease-out both;
 }
 
 @keyframes fadeOut {
@@ -50,8 +46,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .overlay[data-phase="leaving"],
-  .overlay[data-phase="leaving"] .progress {
+  .overlay[data-phase="leaving"] {
     animation: none;
   }
 }

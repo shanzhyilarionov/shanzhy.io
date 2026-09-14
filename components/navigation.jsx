@@ -35,7 +35,6 @@ export default function Navigation({
   enterSlide,
   exitSlide,
   chrome,
-  chromeLabel,
   onToggle,
   onLeave,
 }) {
@@ -50,6 +49,7 @@ export default function Navigation({
     open ? styles.open : "",
     /* Everything past `open` keeps the contents off the screen. */
     open && phase !== "open" ? styles.exiting : "",
+    phase === "leaving" || phase === "waiting" ? styles.leaving : "",
     phase === "closing" ? styles.closing : "",
   ]
     .filter(Boolean)
@@ -64,12 +64,14 @@ export default function Navigation({
             className={styles.chrome}
             left={<Brand />}
             right={
-              <RollingText
-                type="button"
-                label={chromeLabel}
-                aria-label="Close navigation"
-                onClick={onToggle}
-              />
+              <span className={styles.menuControl}>
+                <RollingText
+                  type="button"
+                  label="Close"
+                  aria-label="Close navigation"
+                  onClick={onToggle}
+                />
+              </span>
             }
           />
         )}

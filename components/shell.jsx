@@ -21,11 +21,6 @@ const OVERLAP_MS = 300;
 const closeMs = (slide) =>
   CONTENT_MS + (slide ? PANEL_MS - OVERLAP_MS : CONTENT_MS);
 
-/** What the right-hand button says when the panel is down. */
-function restingLabel(path) {
-  return path === "/" ? "Click here to explore" : "Menu";
-}
-
 export default function Shell({ children }) {
   const { pending: entryPending } = useEntryLoading();
   const router = useRouter();
@@ -37,6 +32,8 @@ export default function Shell({ children }) {
   const hasPageExit = !isHome;
   // Works first settles its hover expansion, then closes the image masks.
   const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
+  // Home's scene and Works' reveals finish after one second.
+  const pageEnterMs = isHome || isWorks ? PANEL_MS : CONTENT_MS;
 
   /**
    * Menu route transitions run through the navigation panel.
@@ -60,6 +57,9 @@ export default function Shell({ children }) {
   const [enterDelay, setEnterDelay] = useState(0);
   const [homeRevealing, setHomeRevealing] = useState(false);
   const [viewPath, setViewPath] = useState(pathname);
+  const [initialEntry, setInitialEntry] = useState(true);
+  const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
+  const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
   const historyExit = useHistoryExit(
     pathname,
     hasPageExit,
@@ -81,6 +81,13 @@ export default function Shell({ children }) {
    */
   if (viewPath !== pathname) {
     setViewPath(pathname);
+    setInitialEntry(false);
+    // Only a departing navigation panel needs a fresh, fading-in Menu.
+    // Direct page links and history keep the existing control mounted.
+    setMenuEntry({
+      key: menuEntry.key + (menuVisible ? 1 : 0),
+      animate: menuVisible,
+    });
     const revealHome =
       isHome && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     setPhase("closed");
@@ -204,18 +211,18 @@ export default function Shell({ children }) {
    * white, so there it sits below instead, keeps saying "Click here to explore", and
    * the panel brings its own copy for the duration.
    *
-   * Between white pages the same Menu control remains mounted. On the way
-   * home its current label stays still while the whole chrome fades away.
+   * Close leaves with the navigation contents and stays hidden until the route
+   * arrives. A fresh control then fades in with the new page's entrance.
    */
-  const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
   const navigationPhase = menuVisible
     ? historyExiting ? "leaving" : phase
     : "closed";
+  const navigationLeaving =
+    navigationPhase === "leaving" || navigationPhase === "waiting";
   const chromeLabel =
     isHome
       ? "Click here to explore"
-      : (phase === "open" && (!pageExiting || leavingForHome)) ||
-          (leavingForHome && (phase === "leaving" || phase === "waiting"))
+      : navigationPhase === "open" || navigationLeaving
         ? "Close"
         : "Menu";
 
@@ -227,24 +234,35 @@ export default function Shell({ children }) {
         className={styles.shell}
         style={{
           "--enter-delay": `${enterDelay}ms`,
-          "--page-exit-duration": `${pageExitMs}ms`,
+          "--page-enter-duration": `${pageEnterMs}ms`,
+          "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
         }}
         onClickCapture={followHomeLink}
       >
         <Chrome
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
-            isHome ? styles.chromeEntering : "",
+            isHome || initialEntry ? styles.chromeEntering : "",
             leavingForHome ? styles.chromeLeavingHome : "",
           ]
             .filter(Boolean)
             .join(" ")}
           left={isHome ? <HomeTitle key={pathname} /> : <Brand />}
           right={
-            <span>
+            <span
+              key={isHome ? "home" : menuEntry.key}
+              className={
+                isHome
+                  ? undefined
+                  : navigationLeaving && !leavingForHome
+                    ? styles.menuLeaving
+                    : menuEntry.animate
+                      ? styles.menuEntering
+                      : undefined
+              }
+            >
               <RollingText
-                key={isHome ? "home" : "menu"}
-                animateLabelChange={!(pageExiting && destination !== "/")}
+                animateLabelChange={!navigationLeaving}
                 type="button"
                 label={chromeLabel}
                 aria-label={
@@ -287,7 +305,6 @@ export default function Shell({ children }) {
           enterSlide={enterSlide}
           exitSlide={exitSlide}
           chrome={isHome}
-          chromeLabel={target && target !== "/" ? restingLabel(target) : "Close"}
           onToggle={toggleNavigation}
           onLeave={leaveNavigation}
         />

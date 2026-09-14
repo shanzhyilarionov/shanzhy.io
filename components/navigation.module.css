@@ -151,11 +151,18 @@
 }
 
 /*
- * The wordmark and button only leave when the panel leaves with them. On the
- * way to another page they hold still instead, because that page's own chrome
- * takes their place the instant the route swaps underneath.
+ * Closing the panel takes all its chrome away. When changing routes, only
+ * Close fades out; the next page's wordmark takes over at the route swap.
  */
 .closing .chrome {
+  animation: fadeOut var(--motion-content) var(--ease-content) both;
+}
+
+.menuControl {
+  display: block;
+}
+
+.leaving .menuControl {
   animation: fadeOut var(--motion-content) var(--ease-content) both;
 }
 
