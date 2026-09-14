@@ -11,13 +11,9 @@ export const LOOK = {
     /* Two rotations in orthogonal planes: a genuine SO(4) double rotation. */
     speedXW: 0.43,
     speedYZ: 0.19,
-    /* Pointer tilt, applied after the animation so it reads as a view tilt. */
-    pointerBiasXY: 0.34,
-    pointerBiasZW: -0.27,
-    pointerStrengthDesktop: 0.62,
-    pointerStrengthMobile: 0.82,
-    /* Exponential smoothing rate for the pointer, in 1/seconds. */
-    pointerResponse: 7.5,
+    /* Fixed 4D orientation, independent of the pointer. */
+    biasXY: 0.34,
+    biasZW: -0.27,
   },
 
   camera: {
@@ -26,6 +22,11 @@ export const LOOK = {
     tiltX: 0.4,
     tiltY: -0.5,
     rollZ: 0.1,
+    /* Small view rotations in radians, applied after the static framing. */
+    pointerStrengthDesktop: 0.3,
+    pointerStrengthMobile: 0.4,
+    /* Exponential smoothing rate for the pointer, in 1/seconds. */
+    pointerResponse: 7.5,
   },
 
   /* Point lights, positioned in the same 3D space as the projected object. */

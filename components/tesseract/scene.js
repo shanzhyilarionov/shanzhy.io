@@ -161,10 +161,10 @@ export function createScene(
 
   const pointerStrength =
     width <= LOOK.layout.mobileWidth
-      ? motion.pointerStrengthMobile
-      : motion.pointerStrengthDesktop;
+      ? LOOK.camera.pointerStrengthMobile
+      : LOOK.camera.pointerStrengthDesktop;
   const pointerSmoothing =
-    1 - Math.exp(-Math.max(deltaTime, 1 / 240) * motion.pointerResponse);
+    1 - Math.exp(-Math.max(deltaTime, 1 / 240) * LOOK.camera.pointerResponse);
   temporalState.pointer.x = mixScalar(
     temporalState.pointer.x,
     pointer.x,
@@ -179,8 +179,8 @@ export function createScene(
   const rotations = [
     [0, 3, time * motion.speedXW],
     [1, 2, time * motion.speedYZ],
-    [0, 1, motion.pointerBiasXY + temporalState.pointer.x * pointerStrength],
-    [2, 3, motion.pointerBiasZW + temporalState.pointer.y * pointerStrength],
+    [0, 1, motion.biasXY],
+    [2, 3, motion.biasZW],
   ];
 
   const toViewSpace = (point4D) => {
@@ -189,6 +189,9 @@ export function createScene(
     point3D = rotate3DX(point3D, LOOK.camera.tiltX);
     point3D = rotate3DY(point3D, LOOK.camera.tiltY);
     point3D = rotate3DZ(point3D, LOOK.camera.rollZ);
+    // Tilt the projected object as a whole, preserving its animated 3D shape.
+    point3D = rotate3DX(point3D, -temporalState.pointer.y * pointerStrength);
+    point3D = rotate3DY(point3D, temporalState.pointer.x * pointerStrength);
     return { rotated, point3D };
   };
 

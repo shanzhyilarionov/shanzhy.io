@@ -163,8 +163,8 @@ export function rotate4D(point, firstAxis, secondAxis, angle) {
  * Applies a list of [firstAxis, secondAxis, angle] rotations in order.
  *
  * The animation uses XW + YZ, an orthogonal pair, which is a genuine SO(4)
- * double rotation (the two commute). The pointer adds XY + ZW on top; those
- * are applied afterwards, so they read as a tilt in the viewer's frame.
+ * double rotation (the two commute), followed by fixed XY + ZW orientation.
+ * Pointer tilt is applied separately, after the 4D -> 3D projection.
  */
 export function rotateAll4D(point, rotations) {
   let result = point;
