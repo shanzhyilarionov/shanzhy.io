@@ -34,12 +34,6 @@
   --ease-panel: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-content: cubic-bezier(0.62, 0, 0.2, 1);
 
-  /*
-   * How long home waits before it begins. Arriving through the panel it has to
-   * sit still until the panel is completely gone; on a first paint there is
-   * nothing to wait for. shell.jsx sets the value.
-   */
-  --enter-delay: 0ms;
 }
 
 html,

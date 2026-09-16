@@ -39,24 +39,4 @@
   pointer-events: auto;
   touch-action: none;
   background: transparent;
-  animation: tesseractEnter var(--page-enter-duration) ease-out var(--enter-delay) both;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tesseractLayer {
-    animation: none;
-  }
-}
-
-@keyframes tesseractEnter {
-  from {
-    transform: translateY(20vh);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }

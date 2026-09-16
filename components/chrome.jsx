@@ -19,9 +19,9 @@ export function HomeTitle() {
  * The row spans the viewport but is inert, so it never takes a pointer from
  * the page behind it — only the controls inside it do.
  */
-export default function Chrome({ left, right, className }) {
+export default function Chrome({ left, right, className, inert = false }) {
   return (
-    <div className={[styles.chrome, className].filter(Boolean).join(" ")}>
+    <div className={[styles.chrome, className].filter(Boolean).join(" ")} inert={inert}>
       <div className={styles.slot}>{left}</div>
       <div className={styles.slot}>{right}</div>
     </div>

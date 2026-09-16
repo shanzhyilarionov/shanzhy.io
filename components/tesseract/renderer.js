@@ -42,7 +42,7 @@ import {
   quadVertexShader,
 } from "./shaders.js";
 
-const FACE_STRIDE = 17;
+const FACE_STRIDE = 18;
 const CAPSULE_STRIDE = 18;
 const QUAD_ORDER = [0, 1, 2, 0, 2, 3];
 const CAPSULE_ORDER = [0, 1, 2, 2, 1, 3];
@@ -517,6 +517,7 @@ export function createRenderer(canvas) {
         data[cursor++] = face.thickness;
         data[cursor++] = face.density;
         data[cursor++] = face.scatterGain;
+        data[cursor++] = face.visibility ?? 1;
       }
     }
 
@@ -595,6 +596,12 @@ export function createRenderer(canvas) {
     const lines = [];
 
     for (const edge of edges) {
+      const visibility = edge.visibility ?? 1;
+      if (visibility <= 0) continue;
+      const fadeGlint = (glint) => visibility === 1 || !glint
+        ? glint
+        : glint.map(([alignment, weight]) => [alignment, weight * visibility]);
+
       for (const sample of dispersion) {
         const offsetX = edge.bendDirection[0] * sample.offset * edge.spread;
         const offsetY = edge.bendDirection[1] * sample.offset * edge.spread;
@@ -606,7 +613,7 @@ export function createRenderer(canvas) {
           y2: edge.y2 + offsetY,
           width: edge.coreWidth,
           color: sample.color,
-          intensity: edge.spectralStrength,
+          intensity: edge.spectralStrength * visibility,
           z1: edge.z1,
           z2: edge.z2,
           /* The dispersed copies are a fringe around the rod, not more glass,
@@ -622,12 +629,14 @@ export function createRenderer(canvas) {
         y2: edge.y2,
         width: edge.coreWidth * 0.5,
         color: edge.coreColor,
-        intensity: edge.coreIntensity,
-        glintStart: edge.glintStart,
-        glintEnd: edge.glintEnd,
+        intensity: edge.coreIntensity * visibility,
+        glintStart: fadeGlint(edge.glintStart),
+        glintEnd: fadeGlint(edge.glintEnd),
         z1: edge.z1,
         z2: edge.z2,
-        tint: edge.tint,
+        tint: visibility === 1
+          ? edge.tint
+          : edge.tint.map((value) => Math.max(0.0015, Math.min(value, 0.995)) ** visibility),
       });
     }
 
@@ -713,7 +722,7 @@ export function createRenderer(canvas) {
         ["a_bitangent", 3],
         ["a_uv", 2],
         ["a_tint", 3],
-        ["a_params", 3],
+        ["a_params", 4],
       ],
       FACE_STRIDE,
     );
@@ -932,6 +941,10 @@ export function createRenderer(canvas) {
     resize(scene);
 
     const dispersion = scene.dispersion;
+    const crispEdges = scene.edges.filter((edge) => edge.bloom === false);
+    const glassEdges = crispEdges.length
+      ? scene.edges.filter((edge) => edge.bloom !== false)
+      : scene.edges;
 
     bindTarget(sceneTarget);
     gl.depthMask(true);
@@ -959,7 +972,7 @@ export function createRenderer(canvas) {
       // The parts of every rod behind the glass. They land in the backdrop,
       // so the glass dims and frosts them along with everything else.
       gl.depthFunc(gl.GREATER);
-      uploadCapsules(edgeLines(scene.edges, dispersion));
+      uploadCapsules(edgeLines(glassEdges, dispersion));
       drawRods(scene);
       gl.disable(gl.DEPTH_TEST);
     }
@@ -1003,11 +1016,19 @@ export function createRenderer(canvas) {
       gl.depthFunc(gl.LESS);
     }
 
-    uploadCapsules(edgeLines(scene.edges, dispersion));
+    uploadCapsules(edgeLines(glassEdges, dispersion));
     drawRods(scene);
     gl.disable(gl.DEPTH_TEST);
 
     renderBloom(scene.width >= LOOK.quality.bloomMinWidth);
+
+    // The entrance point stays sharp: add it after extracting bloom, so it
+    // cannot spill light into the surrounding pixels or the glass buffers.
+    if (crispEdges.length) {
+      bindTarget(sceneTarget);
+      uploadCapsules(edgeLines(crispEdges, dispersion));
+      drawRods(scene);
+    }
 
     bindTarget(null);
     clearBound();

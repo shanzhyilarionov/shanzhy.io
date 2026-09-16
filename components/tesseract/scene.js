@@ -151,6 +151,7 @@ export function createScene(
   time,
   deltaTime,
   temporalState,
+  presentation = null,
 ) {
   const { width, height } = viewport;
   const centerX = width / 2;
@@ -223,7 +224,7 @@ export function createScene(
   const edgeTints = sourceEdges.map(() => [0, 0, 0, 0]);
 
   const fourD = LOOK.fourD;
-  const faces = sourceFaces.map((face) => {
+  const faces = sourceFaces.map((face, faceIndex) => {
     const points3D = face.corners.map(
       (vertexIndex) => projectedVertices[vertexIndex].point3D,
     );
@@ -269,6 +270,7 @@ export function createScene(
     }
 
     return {
+      ...(presentation && { visibility: presentation.faceVisibility[faceIndex] }),
       points3D,
       tangent,
       bitangent,
@@ -385,6 +387,7 @@ export function createScene(
       (0.25 + clamp(specular * 0.5, 0, 1) * 0.75) * depthGain;
 
     return {
+      ...(presentation && { visibility: presentation.edgeVisibility[edgeIndex] }),
       x1: first.x,
       y1: first.y,
       x2: second.x,

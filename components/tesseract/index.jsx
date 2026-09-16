@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { useSceneAnimationPaused } from "../scene-animation-context";
+import { useSceneAnimationPaused, useSceneChromeReady } from "../scene-animation-context";
 import { useEntryLoading } from "../entry-loading";
 import {
   buildEdges4D,
@@ -10,7 +10,7 @@ import {
   clamp,
 } from "./geometry.mjs";
 import { createRenderer } from "./renderer.js";
-import { createScene } from "./scene.js";
+import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
 
 /**
  * The decorative tesseract on the home page.
@@ -22,6 +22,7 @@ import { createScene } from "./scene.js";
 export default function GlassTesseract() {
   const { ready } = useEntryLoading();
   const paused = useSceneAnimationPaused();
+  const onChromeReady = useSceneChromeReady();
   const pausedRef = useRef(paused);
   const animationControlRef = useRef(null);
   const canvasRef = useRef(null);
@@ -44,6 +45,8 @@ export default function GlassTesseract() {
     let pointerFrameId = 0;
     let running = false;
     let elapsedTime = 0;
+    let entranceTime = 0;
+    let chromeReported = false;
     let lastFrameTime = null;
 
     const temporalState = { pointer: { x: 0, y: 0 } };
@@ -55,20 +58,24 @@ export default function GlassTesseract() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function renderFrame(time, deltaTime) {
+      if (!chromeReported && (entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
+        chromeReported = true;
+        onChromeReady?.();
+      }
       if (!renderer) return;
 
-      renderer.render(
-        createScene(
-          vertices,
-          edges,
-          faces,
-          viewport,
-          pointer,
-          time,
-          deltaTime,
-          temporalState,
-        ),
+      const scene = createHomeScene(
+        vertices,
+        edges,
+        faces,
+        viewport,
+        pointer,
+        entranceTime + time,
+        deltaTime,
+        temporalState,
       );
+      canvas.style.opacity = String(scene.opacity ?? 1);
+      renderer.render(scene);
     }
 
     const measure = () => {
@@ -113,22 +120,32 @@ export default function GlassTesseract() {
     const animate = (now) => {
       if (!running) return;
 
+      const visibleDelta = lastFrameTime == null ? 0 : Math.max(0, (now - lastFrameTime) / 1000);
       const deltaTime =
         lastFrameTime == null
           ? 1 / 60
           : clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
 
       lastFrameTime = now;
-      elapsedTime += deltaTime;
+      if (entranceTime < ENTRANCE_DURATION) {
+        // Entrance milestones follow visible time, even on a slow device.
+        entranceTime = Math.min(ENTRANCE_DURATION, entranceTime + visibleDelta);
+      } else {
+        elapsedTime += deltaTime;
+      }
       renderFrame(elapsedTime, deltaTime);
       frameId = requestAnimationFrame(animate);
     };
 
     const syncAnimation = () => {
+      if (reducedMotion.matches) entranceTime = ENTRANCE_DURATION;
       const shouldRun =
-        !pausedRef.current && !document.hidden && !reducedMotion.matches;
+        Boolean(renderer) && !pausedRef.current && !document.hidden && !reducedMotion.matches;
 
-      if (shouldRun === running) return;
+      if (shouldRun === running) {
+        if (!running) renderFrame(elapsedTime, 1 / 60);
+        return;
+      }
 
       running = shouldRun;
       lastFrameTime = null;
@@ -147,6 +164,7 @@ export default function GlassTesseract() {
         : new ResizeObserver(handleViewportChange);
 
     measure();
+    if (reducedMotion.matches) entranceTime = ENTRANCE_DURATION;
     renderFrame(elapsedTime, 1 / 60);
     ready("scene");
     animationControlRef.current = { sync: syncAnimation };
@@ -178,7 +196,7 @@ export default function GlassTesseract() {
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.destroy();
     };
-  }, [edges, faces, vertices, ready]);
+  }, [edges, faces, vertices, ready, onChromeReady]);
 
   return (
     <canvas

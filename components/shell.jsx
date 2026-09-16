@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Chrome, { Brand, HomeTitle } from "./chrome";
 import Navigation from "./navigation";
@@ -32,8 +32,7 @@ export default function Shell({ children }) {
   const hasPageExit = !isHome;
   // Works first settles its hover expansion, then closes the image masks.
   const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
-  // Home's scene and Works' reveals finish after one second.
-  const pageEnterMs = isHome || isWorks ? PANEL_MS : CONTENT_MS;
+  const pageEnterMs = isWorks ? PANEL_MS : CONTENT_MS;
 
   /**
    * Menu route transitions run through the navigation panel.
@@ -53,9 +52,9 @@ export default function Shell({ children }) {
   const [covered, setCovered] = useState(false);
   const [enterSlide, setEnterSlide] = useState(false);
   const [exitSlide, setExitSlide] = useState(false);
-  /* Home waits for the panel to be completely gone before it begins. */
-  const [enterDelay, setEnterDelay] = useState(0);
   const [homeRevealing, setHomeRevealing] = useState(false);
+  const [homeChromeReady, setHomeChromeReady] = useState(false);
+  const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
   const [initialEntry, setInitialEntry] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
@@ -94,7 +93,7 @@ export default function Shell({ children }) {
     setTarget(null);
     setCovered(false);
     setHomeRevealing(revealHome);
-    setEnterDelay(revealHome ? PANEL_MS : 0);
+    setHomeChromeReady(false);
   }
 
   useEffect(() => {
@@ -227,22 +226,26 @@ export default function Shell({ children }) {
         : "Menu";
 
   return (
-    <SceneAnimationPauseProvider paused={covered || entryPending}>
-      {/* Carries --enter-delay down to the home page and its title. */}
+    <SceneAnimationPauseProvider
+      paused={covered || entryPending || homeRevealing}
+      onChromeReady={revealHomeChrome}
+    >
       <HoverBoundary
         viewKey={`${pathname}:${phase}`}
         className={styles.shell}
         style={{
-          "--enter-delay": `${enterDelay}ms`,
           "--page-enter-duration": `${pageEnterMs}ms`,
           "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
         }}
         onClickCapture={followHomeLink}
       >
         <Chrome
+          inert={isHome && !homeChromeReady}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
-            isHome || initialEntry ? styles.chromeEntering : "",
+            isHome
+              ? homeChromeReady ? styles.homeChromeEntering : styles.homeChromeWaiting
+              : initialEntry ? styles.chromeEntering : "",
             leavingForHome ? styles.chromeLeavingHome : "",
           ]
             .filter(Boolean)

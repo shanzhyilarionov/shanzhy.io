@@ -40,7 +40,7 @@ attribute vec3 a_tangent;
 attribute vec3 a_bitangent;
 attribute vec2 a_uv;
 attribute vec3 a_tint;
-attribute vec3 a_params;
+attribute vec4 a_params;
 
 uniform vec2 u_center;
 uniform vec2 u_resolution;
@@ -53,7 +53,7 @@ varying vec3 v_tangent;
 varying vec3 v_bitangent;
 varying vec2 v_uv;
 varying vec3 v_tint;
-varying vec3 v_params;
+varying vec4 v_params;
 
 void main() {
   float w = max((u_z_distance - a_pos3.z) / u_z_distance, 0.05);
@@ -96,7 +96,7 @@ varying vec3 v_tangent;
 varying vec3 v_bitangent;
 varying vec2 v_uv;
 varying vec3 v_tint;
-varying vec3 v_params;
+varying vec4 v_params;
 
 uniform vec3 u_camera;
 uniform vec3 u_light_position[2];
@@ -147,7 +147,7 @@ void main() {
   vec3 view = normalize(u_camera - v_world);
   float cosNV = max(abs(dot(normal, view)), 0.06);
 
-  float path = v_params.x / cosNV;
+  float path = v_params.x / cosNV * v_params.w;
   vec3 extinction = -log(clamp(v_tint, 0.0015, 0.995)) * v_params.y;
   vec3 transmittance = exp(-extinction * path);
 
@@ -234,7 +234,7 @@ void main() {
     vec3(1.0, 0.99, 0.98) * fresnel * u_fresnel_rim * length(through) * 0.18;
   vec3 highlight = sheen + grazing;
   highlight = mix(vec3(luminance(highlight)), highlight, saturation) * depthGain;
-  highlight *= u_exposure_scale;
+  highlight *= u_exposure_scale * v_params.w;
 
   gl_FragColor = vec4(highlight, luminance(highlight));
 }
