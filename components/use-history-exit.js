@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { flushSync } from "react-dom";
 
 /** Let the visible page finish leaving before the router handles traversal. */
-export function useHistoryExit(pathname, enabled, duration) {
+export function useHistoryExit(pathname, duration) {
   const [transition, setTransition] = useState(null);
 
   if (transition !== null && transition.from !== pathname) {
@@ -12,7 +12,6 @@ export function useHistoryExit(pathname, enabled, duration) {
   }
 
   const getExit = useEffectEvent(() =>
-    enabled &&
     window.location.pathname !== pathname &&
     !window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ? { from: pathname, to: window.location.pathname, duration }

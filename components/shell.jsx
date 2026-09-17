@@ -56,19 +56,19 @@ export default function Shell({ children }) {
   const [homeChromeReady, setHomeChromeReady] = useState(false);
   const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
-  const [initialEntry, setInitialEntry] = useState(true);
+  const [chromeEntering, setChromeEntering] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
-  const historyExit = useHistoryExit(
-    pathname,
-    hasPageExit,
-    pageExitMs,
-  );
+  // Direct departures from home need a full white sweep before the route swaps.
+  const routeExitMs = isHome && !menuVisible ? PANEL_MS : pageExitMs;
+  const historyExit = useHistoryExit(pathname, routeExitMs);
   const historyExiting = Boolean(historyExit);
-  const destination = historyExit?.to ?? target ?? pathname;
+  const destination = historyExit?.to ?? target?.split(/[?#]/)[0] ?? pathname;
   const pageExiting =
     hasPageExit && (historyExiting || Boolean(target));
   const leavingForHome = pageExiting && destination === "/";
+  const leavingHome =
+    isHome && !menuVisible && (historyExiting || Boolean(target));
 
   /*
    * The route we asked for has arrived. Adjusting state during render rather
@@ -79,10 +79,10 @@ export default function Shell({ children }) {
    * direct links. Home's own entrance waits until that mask has opened.
    */
   if (viewPath !== pathname) {
+    setChromeEntering(viewPath === "/" && !menuVisible);
     setViewPath(pathname);
-    setInitialEntry(false);
     // Only a departing navigation panel needs a fresh, fading-in Menu.
-    // Direct page links and history keep the existing control mounted.
+    // Between white pages, direct links and history keep it mounted.
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
       animate: menuVisible,
@@ -115,7 +115,7 @@ export default function Shell({ children }) {
     }
 
     if (phase === "leaving" || phase === "departing") {
-      return after(pageExitMs, () => {
+      return after(routeExitMs, () => {
         setPhase(phase === "leaving" ? "waiting" : "routing");
         router.push(target);
       });
@@ -132,7 +132,7 @@ export default function Shell({ children }) {
     target,
     enterSlide,
     exitSlide,
-    pageExitMs,
+    routeExitMs,
     historyExiting,
     homeRevealing,
     router,
@@ -145,7 +145,7 @@ export default function Shell({ children }) {
     }
 
     const next = href && href !== pathname ? href : null;
-    const home = next ? next === "/" : isHome;
+    const home = next ? next.split(/[?#]/)[0] === "/" : isHome;
 
     setCovered(false);
     setExitSlide(home);
@@ -170,9 +170,8 @@ export default function Shell({ children }) {
     }
   };
 
-  const followHomeLink = (event) => {
+  const followPageLink = (event) => {
     if (
-      isHome ||
       event.defaultPrevented ||
       event.button !== 0 ||
       event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
@@ -189,26 +188,36 @@ export default function Shell({ children }) {
       return;
     }
     const url = new URL(link.href, window.location.href);
-    if (url.origin !== window.location.origin || url.pathname !== "/") return;
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname === pathname ||
+      (!isHome && url.pathname !== "/")
+    ) {
+      return;
+    }
 
     event.preventDefault();
     event.stopPropagation();
     if (historyExiting || homeRevealing) return;
 
+    const href = `${url.pathname}${url.search}${url.hash}`;
     if (phase === "open") {
-      leaveNavigation("/");
+      leaveNavigation(href);
     } else if (phase === "closed") {
-      setTarget("/");
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        router.push(href);
+        return;
+      }
+      setTarget(href);
       setPhase("departing");
     }
   };
 
   /*
-   * The chrome is mounted once and never moves. On every page but home it sits
-   * *above* the panel, so the panel comes and goes without disturbing it and
-   * its button is the one that works the panel. Over home it would be white on
-   * white, so there it sits below instead, keeps saying "Click here to explore", and
-   * the panel brings its own copy for the duration.
+   * White pages share stationary chrome above the panel. Home has its own
+   * white-on-black chrome underneath, while the panel brings a dark copy.
+   * Switching between home and white pages remounts the chrome so the new
+   * entrance starts afresh, even when both use the same fade animation.
    *
    * Close leaves with the navigation contents and stays hidden until the route
    * arrives. A fresh control then fades in with the new page's entrance.
@@ -237,15 +246,16 @@ export default function Shell({ children }) {
           "--page-enter-duration": `${pageEnterMs}ms`,
           "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
         }}
-        onClickCapture={followHomeLink}
+        onClickCapture={followPageLink}
       >
         <Chrome
-          inert={isHome && !homeChromeReady}
+          key={isHome ? "home" : "page"}
+          inert={leavingHome || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
             isHome
               ? homeChromeReady ? styles.homeChromeEntering : styles.homeChromeWaiting
-              : initialEntry ? styles.chromeEntering : "",
+              : chromeEntering ? styles.chromeEntering : "",
             leavingForHome ? styles.chromeLeavingHome : "",
           ]
             .filter(Boolean)
@@ -295,6 +305,7 @@ export default function Shell({ children }) {
           key={pathname}
           inert={
             homeRevealing ||
+            leavingHome ||
             (hasPageExit && (phase !== "closed" || historyExiting))
           }
         >
@@ -312,6 +323,7 @@ export default function Shell({ children }) {
           onLeave={leaveNavigation}
         />
 
+        {leavingHome && <div className={styles.homeCover} aria-hidden="true" />}
         {homeRevealing && <div className={styles.homeReveal} aria-hidden="true" />}
       </HoverBoundary>
     </SceneAnimationPauseProvider>

@@ -54,11 +54,19 @@
   pointer-events: none;
 }
 
+.homeCover,
 .homeReveal {
   position: fixed;
   inset: 0;
   z-index: 150;
   background: #FFFFFF;
+}
+
+.homeCover {
+  animation: homeCover var(--motion-panel) var(--ease-panel) both;
+}
+
+.homeReveal {
   animation: homeReveal var(--motion-panel) var(--ease-panel) both;
 }
 
@@ -77,6 +85,7 @@
   .chromeLeavingHome,
   .menuEntering,
   .menuLeaving,
+  .homeCover,
   .homeReveal {
     animation: none;
   }
@@ -86,6 +95,7 @@
     opacity: 0;
   }
 
+  .homeCover,
   .homeReveal {
     display: none;
   }
@@ -118,6 +128,16 @@
 
   to {
     opacity: 0;
+  }
+}
+
+@keyframes homeCover {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
   }
 }
 

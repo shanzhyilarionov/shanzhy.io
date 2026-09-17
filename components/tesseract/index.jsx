@@ -90,6 +90,16 @@ export default function GlassTesseract() {
     };
 
     const handlePointerMove = (event) => {
+      // Wait for fresh movement after the home entrance; never retain input
+      // from loading, a covering panel, or a stationary pointer after layout.
+      if (pausedRef.current || document.hidden || entranceTime < ENTRANCE_DURATION) return;
+      if (
+        event.pointerType === "mouse" &&
+        event.movementX === 0 && event.movementY === 0
+      ) {
+        return;
+      }
+
       const width = bounds.width || 1;
       const height = bounds.height || 1;
       pointer.x = clamp(((event.clientX - bounds.left) / width - 0.5) * 2, -1, 1);
