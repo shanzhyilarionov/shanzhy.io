@@ -1,0 +1,22 @@
+.returning {
+  animation: riseIn var(--return-duration) ease-out both;
+  animation-play-state: var(--home-animation-play-state);
+}
+
+@keyframes riseIn {
+  from {
+    transform: translateY(20vh);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .returning {
+    animation: none;
+  }
+}

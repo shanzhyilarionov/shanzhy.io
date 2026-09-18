@@ -53,11 +53,13 @@ export default function Shell({ children }) {
   const [enterSlide, setEnterSlide] = useState(false);
   const [exitSlide, setExitSlide] = useState(false);
   const [homeRevealing, setHomeRevealing] = useState(false);
+  const [homeEntrance, setHomeEntrance] = useState("unfold");
   const [homeChromeReady, setHomeChromeReady] = useState(false);
   const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
+  const scenePaused = covered || entryPending || homeRevealing;
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
   // Direct departures from home need a full white sweep before the route swaps.
   const routeExitMs = isHome && !menuVisible ? PANEL_MS : pageExitMs;
@@ -93,6 +95,7 @@ export default function Shell({ children }) {
     setTarget(null);
     setCovered(false);
     setHomeRevealing(revealHome);
+    setHomeEntrance(isHome ? "rise" : "unfold");
     setHomeChromeReady(false);
   }
 
@@ -236,8 +239,9 @@ export default function Shell({ children }) {
 
   return (
     <SceneAnimationPauseProvider
-      paused={covered || entryPending || homeRevealing}
+      paused={scenePaused}
       onChromeReady={revealHomeChrome}
+      entrance={homeEntrance}
     >
       <HoverBoundary
         viewKey={`${pathname}:${phase}`}
@@ -245,6 +249,7 @@ export default function Shell({ children }) {
         style={{
           "--page-enter-duration": `${pageEnterMs}ms`,
           "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
+          "--home-animation-play-state": scenePaused ? "paused" : "running",
         }}
         onClickCapture={followPageLink}
       >
@@ -254,7 +259,9 @@ export default function Shell({ children }) {
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
             isHome
-              ? homeChromeReady ? styles.homeChromeEntering : styles.homeChromeWaiting
+              ? homeChromeReady
+                ? homeEntrance === "rise" ? styles.homeChromeReturning : styles.homeChromeEntering
+                : styles.homeChromeWaiting
               : chromeEntering ? styles.chromeEntering : "",
             leavingForHome ? styles.chromeLeavingHome : "",
           ]

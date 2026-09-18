@@ -32,9 +32,15 @@
   opacity: 0;
 }
 
-/* The scene releases both sides at 2.5s; their fade finishes at 3s. */
+/* The initial unfolding releases both sides at 2.5s. */
 .homeChromeEntering {
   animation: fadeIn var(--motion-content) ease-out both;
+}
+
+/* Return text shares the canvas's start and pause state, even at low frame rates. */
+.homeChromeReturning {
+  animation: homeChromeReturn var(--motion-content) ease-out var(--motion-content) both;
+  animation-play-state: var(--home-animation-play-state);
 }
 
 .chromeLeavingHome {
@@ -82,6 +88,7 @@
   .contentEntering,
   .chromeEntering,
   .homeChromeEntering,
+  .homeChromeReturning,
   .chromeLeavingHome,
   .menuEntering,
   .menuLeaving,
@@ -118,6 +125,18 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes homeChromeReturn {
+  from {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  to {
+    opacity: 1;
+    visibility: visible;
   }
 }
 

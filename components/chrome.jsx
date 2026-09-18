@@ -17,7 +17,7 @@ export function HomeTitle() {
  * line, `right` on the 19/20 line, both centred vertically.
  *
  * The row spans the viewport but is inert, so it never takes a pointer from
- * the page behind it — only the controls inside it do.
+ * the page behind it — only the text and controls inside it do.
  */
 export default function Chrome({ left, right, className, inert = false }) {
   return (

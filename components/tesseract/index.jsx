@@ -1,7 +1,11 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { useSceneAnimationPaused, useSceneChromeReady } from "../scene-animation-context";
+import {
+  useSceneAnimationPaused,
+  useSceneChromeReady,
+  useSceneEntrance,
+} from "../scene-animation-context";
 import { useEntryLoading } from "../entry-loading";
 import {
   buildEdges4D,
@@ -11,6 +15,10 @@ import {
 } from "./geometry.mjs";
 import { createRenderer } from "./renderer.js";
 import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
+import { createScene } from "./scene.js";
+import styles from "./tesseract.module.css";
+
+const RETURN_ENTRANCE_DURATION = 1;
 
 /**
  * The decorative tesseract on the home page.
@@ -23,6 +31,8 @@ export default function GlassTesseract() {
   const { ready } = useEntryLoading();
   const paused = useSceneAnimationPaused();
   const onChromeReady = useSceneChromeReady();
+  const entrance = useSceneEntrance();
+  const returning = entrance === "rise";
   const pausedRef = useRef(paused);
   const animationControlRef = useRef(null);
   const canvasRef = useRef(null);
@@ -40,6 +50,8 @@ export default function GlassTesseract() {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
 
+    const entranceDuration = returning ? RETURN_ENTRANCE_DURATION : ENTRANCE_DURATION;
+    const createFrame = returning ? createScene : createHomeScene;
     let renderer = createRenderer(canvas);
     let frameId = 0;
     let pointerFrameId = 0;
@@ -58,13 +70,14 @@ export default function GlassTesseract() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function renderFrame(time, deltaTime) {
-      if (!chromeReported && (entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
+      // Return text and canvas start together; CSS delays the text by 0.5s.
+      if (!chromeReported && (returning || entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
         chromeReported = true;
         onChromeReady?.();
       }
       if (!renderer) return;
 
-      const scene = createHomeScene(
+      const scene = createFrame(
         vertices,
         edges,
         faces,
@@ -92,7 +105,7 @@ export default function GlassTesseract() {
     const handlePointerMove = (event) => {
       // Wait for fresh movement after the home entrance; never retain input
       // from loading, a covering panel, or a stationary pointer after layout.
-      if (pausedRef.current || document.hidden || entranceTime < ENTRANCE_DURATION) return;
+      if (pausedRef.current || document.hidden || entranceTime < entranceDuration) return;
       if (
         event.pointerType === "mouse" &&
         event.movementX === 0 && event.movementY === 0
@@ -137,9 +150,11 @@ export default function GlassTesseract() {
           : clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
 
       lastFrameTime = now;
-      if (entranceTime < ENTRANCE_DURATION) {
+      if (entranceTime < entranceDuration) {
         // Entrance milestones follow visible time, even on a slow device.
-        entranceTime = Math.min(ENTRANCE_DURATION, entranceTime + visibleDelta);
+        entranceTime = Math.min(entranceDuration, entranceTime + visibleDelta);
+        // The returning canvas has moved since its initial bounds were read.
+        if (returning && entranceTime === entranceDuration) measure();
       } else {
         elapsedTime += deltaTime;
       }
@@ -148,7 +163,10 @@ export default function GlassTesseract() {
     };
 
     const syncAnimation = () => {
-      if (reducedMotion.matches) entranceTime = ENTRANCE_DURATION;
+      if (reducedMotion.matches) {
+        entranceTime = entranceDuration;
+        measure();
+      }
       const shouldRun =
         Boolean(renderer) && !pausedRef.current && !document.hidden && !reducedMotion.matches;
 
@@ -174,7 +192,7 @@ export default function GlassTesseract() {
         : new ResizeObserver(handleViewportChange);
 
     measure();
-    if (reducedMotion.matches) entranceTime = ENTRANCE_DURATION;
+    if (reducedMotion.matches) entranceTime = entranceDuration;
     renderFrame(elapsedTime, 1 / 60);
     ready("scene");
     animationControlRef.current = { sync: syncAnimation };
@@ -206,17 +224,19 @@ export default function GlassTesseract() {
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.destroy();
     };
-  }, [edges, faces, vertices, ready, onChromeReady]);
+  }, [edges, faces, vertices, ready, onChromeReady, returning]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
+      className={returning ? styles.returning : undefined}
       style={{
         display: "block",
         width: "100%",
         height: "100%",
         background: "transparent",
+        "--return-duration": `${RETURN_ENTRANCE_DURATION}s`,
       }}
     />
   );

@@ -106,6 +106,7 @@
 
   .hoverEnabled .project:hover .title {
     opacity: 1;
+    /* Finish the 0.2s fade with the 0.5s width expansion. */
     transition-delay: 0.3s;
   }
 }
@@ -115,7 +116,6 @@
 }
 
 .departing .title {
-  transition-duration: var(--exit-duration);
   transition-delay: 0s;
 }
 

@@ -4,12 +4,20 @@ import { createContext, useContext } from "react";
 
 const SceneAnimationPausedContext = createContext(false);
 const SceneChromeReadyContext = createContext(() => {});
+const SceneEntranceContext = createContext("unfold");
 
-export function SceneAnimationPauseProvider({ paused, onChromeReady, children }) {
+export function SceneAnimationPauseProvider({
+  paused,
+  onChromeReady,
+  entrance = "unfold",
+  children,
+}) {
   return (
     <SceneAnimationPausedContext.Provider value={paused}>
       <SceneChromeReadyContext.Provider value={onChromeReady}>
-        {children}
+        <SceneEntranceContext.Provider value={entrance}>
+          {children}
+        </SceneEntranceContext.Provider>
       </SceneChromeReadyContext.Provider>
     </SceneAnimationPausedContext.Provider>
   );
@@ -21,4 +29,8 @@ export function useSceneAnimationPaused() {
 
 export function useSceneChromeReady() {
   return useContext(SceneChromeReadyContext);
+}
+
+export function useSceneEntrance() {
+  return useContext(SceneEntranceContext);
 }
