@@ -53,13 +53,16 @@ export default function Shell({ children }) {
   const [enterSlide, setEnterSlide] = useState(false);
   const [exitSlide, setExitSlide] = useState(false);
   const [homeRevealing, setHomeRevealing] = useState(false);
+  const [homeEntranceWaiting, setHomeEntranceWaiting] = useState(false);
   const [homeEntrance, setHomeEntrance] = useState("unfold");
   const [homeChromeReady, setHomeChromeReady] = useState(false);
   const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
-  const scenePaused = covered || entryPending || homeRevealing;
+  const scenePaused = covered || entryPending || homeEntranceWaiting;
+  const homeAnimationPaused =
+    covered || entryPending || (homeEntrance === "rise" && !homeChromeReady);
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
   // Direct departures from home need a full white sweep before the route swaps.
   const routeExitMs = isHome && !menuVisible ? PANEL_MS : pageExitMs;
@@ -78,7 +81,7 @@ export default function Shell({ children }) {
    * still in its old state.
    *
    * Every arrival at home gets the same white mask, including history and
-   * direct links. Home's own entrance waits until that mask has opened.
+   * direct links. Home's entrance overlaps the last 0.3s of that mask.
    */
   if (viewPath !== pathname) {
     setChromeEntering(viewPath === "/" && !menuVisible);
@@ -95,6 +98,7 @@ export default function Shell({ children }) {
     setTarget(null);
     setCovered(false);
     setHomeRevealing(revealHome);
+    setHomeEntranceWaiting(revealHome);
     setHomeEntrance(isHome ? "rise" : "unfold");
     setHomeChromeReady(false);
   }
@@ -106,7 +110,11 @@ export default function Shell({ children }) {
     };
 
     if (homeRevealing) {
-      return after(PANEL_MS, () => setHomeRevealing(false));
+      if (!homeChromeReady) return undefined;
+      // CSS owns the visible timing; this only resumes the WebGL render loop.
+      return after(PANEL_MS - OVERLAP_MS, () =>
+        setHomeEntranceWaiting(false),
+      );
     }
 
     // A history traversal takes precedence over a pending menu/link push.
@@ -138,6 +146,7 @@ export default function Shell({ children }) {
     routeExitMs,
     historyExiting,
     homeRevealing,
+    homeChromeReady,
     router,
   ]);
 
@@ -249,7 +258,7 @@ export default function Shell({ children }) {
         style={{
           "--page-enter-duration": `${pageEnterMs}ms`,
           "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
-          "--home-animation-play-state": scenePaused ? "paused" : "running",
+          "--home-animation-play-state": homeAnimationPaused ? "paused" : "running",
         }}
         onClickCapture={followPageLink}
       >
@@ -331,7 +340,16 @@ export default function Shell({ children }) {
         />
 
         {leavingHome && <div className={styles.homeCover} aria-hidden="true" />}
-        {homeRevealing && <div className={styles.homeReveal} aria-hidden="true" />}
+        {homeRevealing && (
+          <div
+            className={styles.homeReveal}
+            aria-hidden="true"
+            onAnimationEnd={() => {
+              setHomeRevealing(false);
+              setHomeEntranceWaiting(false);
+            }}
+          />
+        )}
       </HoverBoundary>
     </SceneAnimationPauseProvider>
   );

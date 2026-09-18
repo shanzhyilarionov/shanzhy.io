@@ -1,5 +1,6 @@
 .returning {
   animation: riseIn var(--return-duration) ease-out both;
+  animation-delay: var(--home-return-delay);
   animation-play-state: var(--home-animation-play-state);
 }
 

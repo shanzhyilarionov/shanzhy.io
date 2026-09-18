@@ -1,6 +1,7 @@
 /* Carries transition durations without affecting layout. */
 .shell {
   display: contents;
+  --home-return-delay: calc(var(--motion-panel) - var(--motion-overlap));
 }
 
 .content {
@@ -39,7 +40,8 @@
 
 /* Return text shares the canvas's start and pause state, even at low frame rates. */
 .homeChromeReturning {
-  animation: homeChromeReturn var(--motion-content) ease-out var(--motion-content) both;
+  animation: homeChromeReturn var(--motion-content) ease-out both;
+  animation-delay: calc(var(--home-return-delay) + var(--motion-content));
   animation-play-state: var(--home-animation-play-state);
 }
 
@@ -74,6 +76,7 @@
 
 .homeReveal {
   animation: homeReveal var(--motion-panel) var(--ease-panel) both;
+  animation-play-state: var(--home-animation-play-state);
 }
 
 @media (max-width: 768px) {
