@@ -35,3 +35,9 @@
   line-height: var(--heading-line-height);
   overflow-wrap: anywhere;
 }
+
+@media (max-width: 768px) {
+  .page {
+    padding: 5rem var(--page-inset);
+  }
+}

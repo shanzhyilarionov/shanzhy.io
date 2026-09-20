@@ -21,6 +21,12 @@
 
 .heading {
   margin: 0 0 calc(var(--heading-gap) - var(--contact-item-gap));
+  /* A definite cap, not a percentage: the heading sits inside ancestors
+     sized by `width: max-content`, so a percentage here would resolve
+     against their own not-yet-known width and never actually clamp it,
+     letting the heading overflow the viewport on narrow screens and throw
+     off the whole block's centering. */
+  max-width: calc(100vw - 2 * var(--page-inset));
   font-family: Arial, Helvetica, sans-serif;
   font-size: var(--nav-size);
   font-weight: 400;

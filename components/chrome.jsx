@@ -1,8 +1,20 @@
+import Link from "next/link";
 import styles from "./chrome.module.css";
 
-/** The wordmark, on every page but home. */
+/**
+ * The wordmark, on every page but home. On mobile it drops the © and
+ * becomes a button back to home; on larger screens it stays plain, static
+ * text.
+ */
 export function Brand() {
-  return <span className={styles.brand}>© Shanzhy</span>;
+  return (
+    <>
+      <span className={styles.brandText}>© Shanzhy</span>
+      <Link href="/" className={styles.brandButton}>
+        Shanzhy
+      </Link>
+    </>
+  );
 }
 
 /** Home's title fades in with the surrounding chrome. */

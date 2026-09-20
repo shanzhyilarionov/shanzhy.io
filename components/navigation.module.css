@@ -135,6 +135,15 @@
   opacity: 0;
 }
 
+@media (max-width: 768px) {
+  /* Matches the persistent header white pages keep above this panel, so
+     home's own copy (brand + close) doesn't jump to the sides while open. */
+  .chrome {
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
+}
+
 /* Everything the panel carries arrives together. */
 .open .label {
   animation: labelIn var(--motion-content) var(--ease-content) var(--panel-lead)

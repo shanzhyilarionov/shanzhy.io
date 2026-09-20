@@ -16,20 +16,41 @@
   pointer-events: none;
 }
 
-.brand,
 .title {
   pointer-events: auto;
   cursor: text;
   -webkit-user-select: text;
   user-select: text;
+  margin: 0;
+  font: inherit;
 }
 
-.brand {
+.brandText,
+.brandButton {
   display: block;
+  pointer-events: auto;
   white-space: nowrap;
 }
 
-.title {
-  margin: 0;
-  font: inherit;
+.brandText {
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.brandButton {
+  display: none;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .brandText {
+    display: none;
+  }
+
+  .brandButton {
+    display: block;
+  }
 }

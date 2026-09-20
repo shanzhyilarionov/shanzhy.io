@@ -85,6 +85,27 @@
     align-items: flex-start;
     padding-top: 1.5rem;
   }
+
+  /* On a narrow viewport the cube spans the full width, so the title and
+     explore control move off its sides and center on the screen's 1/8 and
+     7/8 height lines instead, clear of the cube regardless of its size. */
+  .chromeOnDark > div:first-child,
+  .chromeOnDark > div:last-child {
+    position: absolute;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 2 * var(--page-inset));
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .chromeOnDark > div:first-child {
+    top: 12.5%;
+  }
+
+  .chromeOnDark > div:last-child {
+    top: 87.5%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
