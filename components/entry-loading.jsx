@@ -9,11 +9,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { warmSiteAssets } from "./preload-assets";
+import { usePathname } from "next/navigation";
 import styles from "./entry-loading.module.css";
 
 const EntryContext = createContext({ pending: false, ready: () => {} });
+const PREPARATION_TIMEOUT_MS = 2500;
+const LEAVING_TIMEOUT_MS = 600;
 
 export function useEntryLoading() {
   return useContext(EntryContext);
@@ -22,7 +23,6 @@ export function useEntryLoading() {
 /** One preparation screen per document; client-side navigation keeps it settled. */
 export default function EntryLoading({ children }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [entryPath] = useState(pathname);
   const [completed, setCompleted] = useState([]);
   const [progress, setProgress] = useState(0);
@@ -32,7 +32,6 @@ export default function EntryLoading({ children }) {
   const tasks = useMemo(() => [
     "page", "fonts", "images",
     ...(entryPath === "/" ? ["scene"] : []),
-    ...(entryPath === "/works/genesis" ? ["video"] : []),
   ], [entryPath]);
   const target = Math.round(
     (tasks.filter((task) => completed.includes(task)).length / tasks.length) * 100,
@@ -55,8 +54,9 @@ export default function EntryLoading({ children }) {
     // Failed or stalled optional visuals fall back to the page's text/poster.
     // This is a preparation percentage, not a count of downloaded bytes.
     const deadline = window.setTimeout(() => {
+      observer?.disconnect();
       tasks.forEach(settle);
-    }, 8000);
+    }, PREPARATION_TIMEOUT_MS);
 
     document.fonts.ready.then(() => settle("fonts"), () => settle("fonts"));
 
@@ -65,9 +65,18 @@ export default function EntryLoading({ children }) {
       if (!page) return;
       observer?.disconnect();
 
-      const images = [...page.querySelectorAll("img")];
+      // Only the initial viewport should hold up entry. Offscreen media can
+      // finish loading while the visitor is already using the page.
+      const visible = (element) => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.width > 0 && bounds.height > 0 &&
+          bounds.bottom > 0 && bounds.top < window.innerHeight &&
+          bounds.right > 0 && bounds.left < window.innerWidth;
+      };
+      const images = [...page.querySelectorAll("img")].filter(visible);
       // Video posters are not img elements, but belong to the visible page.
       page.querySelectorAll("video[poster]").forEach((video) => {
+        if (!visible(video)) return;
         const poster = new Image();
         poster.src = video.poster;
         images.push(poster);
@@ -126,15 +135,12 @@ export default function EntryLoading({ children }) {
   }, [progress]);
 
   useEffect(() => {
-    if (phase !== "done") return;
-    const warm = () => warmSiteAssets(router, entryPath);
-    if ("requestIdleCallback" in window) {
-      const idle = window.requestIdleCallback(warm, { timeout: 1500 });
-      return () => window.cancelIdleCallback(idle);
-    }
-    const timer = window.setTimeout(warm, 250);
+    if (phase !== "leaving") return;
+    // animationend can be lost when styles or motion preferences change.
+    // Never leave an invisible overlay intercepting input indefinitely.
+    const timer = window.setTimeout(() => setPhase("done"), LEAVING_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [entryPath, phase, router]);
+  }, [phase]);
 
   return (
     <EntryContext.Provider value={context}>

@@ -1,3 +1,6 @@
+// Hover expansion needs a larger image; touch layouts only show narrow tiles.
+export const PROJECT_IMAGE_SIZES = "(hover: hover) and (pointer: fine) 18rem, 121px";
+
 export const projects = [
   {
     slug: "genesis",

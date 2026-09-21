@@ -10,6 +10,7 @@ import { SceneAnimationPauseProvider } from "./scene-animation-context";
 import { PageExitProvider } from "./page-exit-context";
 import { useHistoryExit } from "./use-history-exit";
 import { useEntryLoading } from "./entry-loading";
+import { warmRouteAssets } from "./preload-assets";
 import styles from "./shell.module.css";
 
 /* Mirrors --motion-panel, --motion-content and --motion-overlap in globals.css. */
@@ -167,6 +168,8 @@ export default function Shell({ children }) {
       return;
     }
 
+    router.prefetch(next);
+    warmRouteAssets(next);
     setTarget(next);
     setPhase("leaving");
   };
@@ -216,6 +219,8 @@ export default function Shell({ children }) {
     if (phase === "open") {
       leaveNavigation(href);
     } else if (phase === "closed") {
+      router.prefetch(href);
+      warmRouteAssets(href);
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         router.push(href);
         return;

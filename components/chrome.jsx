@@ -6,11 +6,11 @@ import styles from "./chrome.module.css";
  * becomes a button back to home; on larger screens it stays plain, static
  * text.
  */
-export function Brand() {
+export function Brand({ onNavigate }) {
   return (
     <>
       <span className={styles.brandText}>© Shanzhy</span>
-      <Link href="/" className={styles.brandButton}>
+      <Link href="/" className={styles.brandButton} onNavigate={onNavigate}>
         Shanzhy
       </Link>
     </>

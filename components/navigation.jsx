@@ -4,6 +4,7 @@ import Link from "next/link";
 import Chrome, { Brand } from "./chrome";
 import RollingText from "./rolling-text";
 import { useHoverEnabled } from "./hover-boundary";
+import { warmRouteAssets } from "./preload-assets";
 import styles from "./navigation.module.css";
 
 const links = [
@@ -62,7 +63,14 @@ export default function Navigation({
         {chrome && (
           <Chrome
             className={styles.chrome}
-            left={<Brand />}
+            left={
+              <Brand
+                onNavigate={(event) => {
+                  event.preventDefault();
+                  onToggle();
+                }}
+              />
+            }
             right={
               <span className={styles.menuControl}>
                 <RollingText
@@ -82,6 +90,10 @@ export default function Navigation({
               <Link
                 className={styles.link}
                 href={link.href}
+                prefetch={open ? null : false}
+                onPointerEnter={() => warmRouteAssets(link.href)}
+                onFocus={() => warmRouteAssets(link.href)}
+                onTouchStart={() => warmRouteAssets(link.href)}
                 onClick={(event) => {
                   event.preventDefault();
                   onLeave(link.href);
