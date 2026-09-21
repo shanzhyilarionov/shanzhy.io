@@ -15,7 +15,7 @@ const EXIT_STEP_MS = 500;
 export default function Works() {
   const router = useRouter();
   const hoverEnabled = useHoverEnabled();
-  const [resizing, setResizing] = useState(false);
+  const [resizing, setResizing] = useState(true);
   const [transition, setTransition] = useState(null);
   const pageExiting = usePageExiting();
   const [wasPageExiting, setWasPageExiting] = useState(false);
@@ -35,13 +35,23 @@ export default function Works() {
     const range = document.createRange();
     range.selectNodeContents(heading.firstElementChild);
     let disposed = false;
+    let settled = false;
 
     const measureHeading = () => {
       if (disposed) return;
       // A wrapped heading's box fills the available space. Its text ranges
       // give the actual line widths without changing its font size or wrap.
       const width = Math.max(...Array.from(range.getClientRects(), (rect) => rect.width));
-      if (width > 0) row.style.setProperty("--projects-width", `${width}px`);
+      if (width > 0) {
+        row.style.setProperty("--projects-width", `${width}px`);
+        // Before this first measurement lands, the row falls back to 100%
+        // width and tiles render oversized. Hold the flex-basis transition
+        // off until then, so that correction snaps instead of animating.
+        if (!settled) {
+          settled = true;
+          setResizing(false);
+        }
+      }
     };
 
     measureHeading();
