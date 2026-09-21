@@ -13,7 +13,6 @@ import { usePathname } from "next/navigation";
 import styles from "./entry-loading.module.css";
 
 const EntryContext = createContext({ pending: false, ready: () => {} });
-const PREPARATION_TIMEOUT_MS = 2500;
 const LEAVING_TIMEOUT_MS = 600;
 
 export function useEntryLoading() {
@@ -50,13 +49,6 @@ export default function EntryLoading({ children }) {
     const settle = (task) => {
       if (!disposed) ready(task);
     };
-
-    // Failed or stalled optional visuals fall back to the page's text/poster.
-    // This is a preparation percentage, not a count of downloaded bytes.
-    const deadline = window.setTimeout(() => {
-      observer?.disconnect();
-      tasks.forEach(settle);
-    }, PREPARATION_TIMEOUT_MS);
 
     document.fonts.ready.then(() => settle("fonts"), () => settle("fonts"));
 
@@ -95,9 +87,8 @@ export default function EntryLoading({ children }) {
       disposed = true;
       observer.disconnect();
       cancelAnimationFrame(frame);
-      window.clearTimeout(deadline);
     };
-  }, [ready, tasks]);
+  }, [ready]);
 
   useEffect(() => {
     const from = displayedRef.current;

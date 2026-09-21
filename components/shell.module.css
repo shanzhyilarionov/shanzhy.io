@@ -33,7 +33,6 @@
   opacity: 0;
 }
 
-/* The initial unfolding releases both sides at 2.5s. */
 .homeChromeEntering {
   animation: fadeIn var(--motion-content) ease-out both;
 }

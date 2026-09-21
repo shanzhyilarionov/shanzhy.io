@@ -2,15 +2,15 @@ import { smoothstep } from "./geometry.mjs";
 import { LOOK } from "./look.js";
 import { createScene } from "./scene.js";
 
-export const ENTRANCE_DURATION = 2.5;
-export const CHROME_REVEAL_TIME = 2.5;
+export const ENTRANCE_DURATION = 3;
+export const CHROME_REVEAL_TIME = ENTRANCE_DURATION;
 
-/** Point fades in over 0–.4s; square 1.1s, cube 1.8s, tesseract and motion 2.5s. */
 export function entranceState(time) {
   return {
-    plane: smoothstep(0.4, 1.1, time),
-    volume: smoothstep(1.1, 1.8, time),
-    hyper: smoothstep(1.8, 2.5, time),
+    line: smoothstep(0.2, 0.9, time),
+    plane: smoothstep(0.9, 1.6, time),
+    volume: smoothstep(1.6, 2.3, time),
+    hyper: smoothstep(2.3, ENTRANCE_DURATION, time),
     complete: time >= ENTRANCE_DURATION,
     motionTime: Math.max(0, time - ENTRANCE_DURATION),
   };
@@ -34,11 +34,11 @@ export function createHomeScene(
     );
   }
 
-  const dimensions = [entry.plane, entry.plane, entry.volume, entry.hyper];
+  const dimensions = [entry.line, entry.plane, entry.volume, entry.hyper];
   const visibility = (spanningAxes, vertex) => {
     let weight = 1;
     for (let axis = 0; axis < 4; axis++) {
-      if (spanningAxes.includes(axis) || (axis >= 2 && vertex[axis] > 0)) {
+      if (spanningAxes.includes(axis) || vertex[axis] > 0) {
         weight *= dimensions[axis];
       }
     }
@@ -68,10 +68,8 @@ export function createHomeScene(
   scene.faces = scene.faces.filter((face) => face.visibility > 0);
   scene.edges = scene.edges.filter((edge) => edge.visibility > 0);
 
-  // Only the point is present during this interval. Fade the composited
-  // canvas so its size and shading stay fixed throughout the fade.
-  if (time < 0.4) scene.opacity = smoothstep(0, 0.4, time);
-  const point = 1 - smoothstep(0.47, 0.75, time);
+  if (time < 0.2) scene.opacity = smoothstep(0, 0.2, time);
+  const point = 1 - smoothstep(0.27, 0.55, time);
   if (point > 0) {
     // Match the edges' rounded endpoints, without adding a halo.
     scene.edges.push({
