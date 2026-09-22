@@ -33,7 +33,8 @@ export default function Shell({ children }) {
   const hasPageExit = !isHome;
   // Works first settles its hover expansion, then closes the image masks.
   const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
-  const pageEnterMs = isWorks ? PANEL_MS : CONTENT_MS;
+  // Works and Genesis bring new controls in during the second half of entry.
+  const chromeEnterDelayMs = isWorks || isGenesis ? CONTENT_MS : 0;
 
   /**
    * Menu route transitions run through the navigation panel.
@@ -261,7 +262,7 @@ export default function Shell({ children }) {
         viewKey={`${pathname}:${phase}`}
         className={styles.shell}
         style={{
-          "--page-enter-duration": `${pageEnterMs}ms`,
+          "--chrome-enter-delay": `${chromeEnterDelayMs}ms`,
           "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
           "--home-animation-play-state": homeAnimationPaused ? "paused" : "running",
         }}

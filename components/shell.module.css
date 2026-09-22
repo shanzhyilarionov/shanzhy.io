@@ -25,7 +25,8 @@
 
 /* White pages bring their controls in with their contents. */
 .chromeEntering {
-  animation: fadeIn var(--page-enter-duration) ease-out both;
+  animation: fadeIn var(--motion-content) ease-out
+    var(--chrome-enter-delay) both;
 }
 
 .homeChromeWaiting {
@@ -51,7 +52,8 @@
 
 .menuEntering {
   display: block;
-  animation: fadeIn var(--page-enter-duration) ease-out both;
+  animation: fadeIn var(--motion-content) ease-out
+    var(--chrome-enter-delay) both;
 }
 
 /* Keep Close hidden through the route's loading gap after navigation leaves. */

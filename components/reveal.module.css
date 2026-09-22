@@ -16,7 +16,8 @@
 }
 
 .moving {
-  animation: enter var(--duration) ease-out var(--delay) both;
+  animation: enter var(--duration) ease-out
+    calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
 }
 
 /* The entrance's timing runs backwards while every line keeps moving up. */

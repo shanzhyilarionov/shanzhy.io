@@ -19,6 +19,8 @@
 }
 
 .intro {
+  /* Text overlaps the final 0.2s of the video reveal; all lines finish at 1s. */
+  --reveal-enter-delay: 0.5s;
   display: flex;
   flex-direction: column;
   gap: var(--paragraph-gap);
@@ -46,7 +48,7 @@
 .videoMask {
   width: 100%;
   overflow: hidden;
-  animation: videoMaskIn 0.5s var(--ease-panel) both;
+  animation: videoMaskIn 0.7s var(--ease-panel) both;
 }
 
 .video {
@@ -54,7 +56,7 @@
   aspect-ratio: 16 / 9;
   /* The cover remains visible until a decoded video frame is presented. */
   background: url("/images/genesis-poster.jpg") center / cover no-repeat;
-  animation: videoContentIn 0.5s var(--ease-panel) both;
+  animation: videoContentIn 0.7s var(--ease-panel) both;
 }
 
 .videoElement {
@@ -73,7 +75,7 @@
   display: flex;
   justify-content: center;
   margin-top: var(--paragraph-gap);
-  animation: fadeIn 0.5s ease-out both;
+  animation: fadeIn 0.5s ease-out 0.5s both;
 }
 
 .exiting .videoMask {
