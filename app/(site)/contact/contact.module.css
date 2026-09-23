@@ -1,9 +1,5 @@
 .contactPage {
-  width: 100vw;
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  composes: page from "../../../components/centered-page.module.css";
 }
 
 .content {

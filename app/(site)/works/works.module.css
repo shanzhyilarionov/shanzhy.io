@@ -1,14 +1,10 @@
 .page {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  width: 100vw;
-  min-height: 100svh;
-  place-items: center;
-  overflow: hidden;
+  composes: page from "../../../components/centered-page.module.css";
 }
 
 .content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--heading-gap);
   width: max-content;
   max-width: calc(100% - 2 * var(--page-inset));
@@ -83,16 +79,16 @@
 }
 
 .title {
-  position: absolute;
-  top: calc(var(--tile-size) * 1.5 + var(--paragraph-gap));
-  left: 0;
+  /* Hover labels belong to the centered block and its scrollable height. */
   width: 100%;
-  margin: 0;
+  min-height: 2lh;
+  margin: var(--paragraph-gap) 0 0;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1rem;
   font-weight: 400;
   line-height: var(--body-line-height);
   text-align: center;
+  overflow-wrap: anywhere;
   opacity: 0;
   transition: opacity 0.2s ease-out;
 }

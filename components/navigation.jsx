@@ -84,26 +84,28 @@ export default function Navigation({
           />
         )}
 
-        <nav className={styles.list} aria-label="Main navigation">
-          {links.map((link) => (
-            <span className={styles.item} key={link.href}>
-              <Link
-                className={styles.link}
-                href={link.href}
-                prefetch={open ? null : false}
-                onPointerEnter={() => warmRouteAssets(link.href)}
-                onFocus={() => warmRouteAssets(link.href)}
-                onTouchStart={() => warmRouteAssets(link.href)}
-                onClick={(event) => {
-                  event.preventDefault();
-                  onLeave(link.href);
-                }}
-              >
-                <span className={styles.label}>{link.label}</span>
-              </Link>
-            </span>
-          ))}
-        </nav>
+        <div className={styles.viewport}>
+          <nav className={styles.list} aria-label="Main navigation">
+            {links.map((link) => (
+              <span className={styles.item} key={link.href}>
+                <Link
+                  className={styles.link}
+                  href={link.href}
+                  prefetch={open ? null : false}
+                  onPointerEnter={() => warmRouteAssets(link.href)}
+                  onFocus={() => warmRouteAssets(link.href)}
+                  onTouchStart={() => warmRouteAssets(link.href)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onLeave(link.href);
+                  }}
+                >
+                  <span className={styles.label}>{link.label}</span>
+                </Link>
+              </span>
+            ))}
+          </nav>
+        </div>
       </div>
     </section>
   );

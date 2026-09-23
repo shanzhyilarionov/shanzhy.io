@@ -7,6 +7,7 @@
 .content {
   width: 100%;
   min-height: 100svh;
+  min-height: 100dvh;
 }
 
 /* Above the panel, which comes and goes without disturbing it. */
@@ -53,7 +54,7 @@
 .menuEntering {
   display: block;
   animation: fadeIn var(--motion-content) ease-out
-    var(--chrome-enter-delay) both;
+    var(--menu-enter-delay) both;
 }
 
 /* Keep Close hidden through the route's loading gap after navigation leaves. */

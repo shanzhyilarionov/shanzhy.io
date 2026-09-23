@@ -1,10 +1,6 @@
 .page {
-  display: grid;
-  width: 100%;
-  height: 100svh;
-  padding: 3rem calc(var(--page-inset) + 6rem);
-  place-items: center;
-  overflow-y: auto;
+  composes: page from "../../../../components/centered-page.module.css";
+  padding-inline: calc(var(--page-inset) + 6rem);
 }
 
 .content {
@@ -170,6 +166,6 @@
 
 @media (max-width: 768px) {
   .page {
-    padding: 5rem var(--page-inset);
+    padding-inline: var(--page-inset);
   }
 }

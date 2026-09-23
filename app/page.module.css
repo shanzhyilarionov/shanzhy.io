@@ -7,6 +7,7 @@
   position: relative;
   width: 100vw;
   height: 100svh;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   background: #000000;
