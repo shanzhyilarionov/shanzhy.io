@@ -66,18 +66,9 @@ export default function RollingText({
         }
       }}
       onPointerEnter={(event) => {
+        // A view change can leave this control under the pointer. Only a
+        // fresh entry should roll it; moving away must not replay the hover.
         if (hoverEnabled && event.pointerType === "mouse") {
-          setRolling(true);
-        }
-      }}
-      onPointerMove={(event) => {
-        // The first movement may happen inside a control already under the
-        // cursor, so it must start the roll without another pointerenter.
-        if (
-          !hoverEnabled &&
-          event.pointerType === "mouse" &&
-          (event.movementX !== 0 || event.movementY !== 0)
-        ) {
           setRolling(true);
         }
       }}
