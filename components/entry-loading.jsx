@@ -9,28 +9,32 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { GENESIS_VIDEO, preloadGenesisVideo, preloadSiteImages, preloadSiteRoutes } from "./preload-assets";
 import styles from "./entry-loading.module.css";
 
-const EntryContext = createContext({ pending: false, ready: () => {} });
+const EntryContext = createContext({ pending: false, ready: () => {}, videoSource: null });
 const LEAVING_TIMEOUT_MS = 600;
 
 export function useEntryLoading() {
   return useContext(EntryContext);
 }
 
-/** One preparation screen per document; client-side navigation keeps it settled. */
+/** Prepare the entire site once; client-side navigation keeps it settled. */
 export default function EntryLoading({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [entryPath] = useState(pathname);
+  const [videoSource, setVideoSource] = useState(null);
   const [completed, setCompleted] = useState([]);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState("loading");
   const stageRef = useRef(null);
   const displayedRef = useRef(0);
   const tasks = useMemo(() => [
-    "page", "fonts", "images",
+    "page", "fonts", "images", "routes", "video",
     ...(entryPath === "/" ? ["scene"] : []),
+    ...(entryPath === "/works/genesis" ? ["video-frame"] : []),
   ], [entryPath]);
   const target = Math.round(
     (tasks.filter((task) => completed.includes(task)).length / tasks.length) * 100,
@@ -40,7 +44,31 @@ export default function EntryLoading({ children }) {
   const ready = useCallback((task) => {
     setCompleted((current) => current.includes(task) ? current : [...current, task]);
   }, []);
-  const context = useMemo(() => ({ pending, ready }), [pending, ready]);
+  const context = useMemo(() => ({ pending, ready, videoSource }), [pending, ready, videoSource]);
+
+  useEffect(() => {
+    let disposed = false;
+    const routes = preloadSiteRoutes(router);
+    routes.ready.then(() => { if (!disposed) ready("routes"); });
+    preloadSiteImages().then(() => { if (!disposed) ready("images"); });
+    preloadGenesisVideo().then(
+      (source) => {
+        if (disposed) return;
+        setVideoSource(source);
+        ready("video");
+      },
+      () => {
+        if (disposed) return;
+        // Leave normal streaming and the poster available if downloading fails.
+        setVideoSource(GENESIS_VIDEO);
+        ready("video");
+      },
+    );
+    return () => {
+      disposed = true;
+      routes.dispose();
+    };
+  }, [entryPath, ready, router]);
 
   useEffect(() => {
     let disposed = false;
@@ -57,24 +85,6 @@ export default function EntryLoading({ children }) {
       if (!page) return;
       observer?.disconnect();
 
-      // Only the initial viewport should hold up entry. Offscreen media can
-      // finish loading while the visitor is already using the page.
-      const visible = (element) => {
-        const bounds = element.getBoundingClientRect();
-        return bounds.width > 0 && bounds.height > 0 &&
-          bounds.bottom > 0 && bounds.top < window.innerHeight &&
-          bounds.right > 0 && bounds.left < window.innerWidth;
-      };
-      const images = [...page.querySelectorAll("img")].filter(visible);
-      // Video posters are not img elements, but belong to the visible page.
-      page.querySelectorAll("video[poster]").forEach((video) => {
-        if (!visible(video)) return;
-        const poster = new Image();
-        poster.src = video.poster;
-        images.push(poster);
-      });
-      Promise.allSettled(images.map((image) => image.decode()))
-        .then(() => settle("images"));
       frame = requestAnimationFrame(() => settle("page"));
     };
 

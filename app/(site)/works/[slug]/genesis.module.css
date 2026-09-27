@@ -67,6 +67,16 @@
   opacity: 0;
 }
 
+/* Decode the cached clip before opening its mask; navigation needs no loader. */
+.videoFrame[data-preparing="true"] {
+  opacity: 0;
+}
+
+.videoFrame[data-preparing="true"] .videoMask,
+.videoFrame[data-preparing="true"] .video {
+  animation-play-state: paused;
+}
+
 .action {
   display: flex;
   justify-content: center;
