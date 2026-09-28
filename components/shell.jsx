@@ -96,13 +96,11 @@ export default function Shell({ children }) {
       key: menuEntry.key + (menuVisible ? 1 : 0),
       animate: menuVisible,
     });
-    const revealHome =
-      isHome && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     setPhase("closed");
     setTarget(null);
     setCovered(false);
-    setHomeRevealing(revealHome);
-    setHomeEntranceWaiting(revealHome);
+    setHomeRevealing(isHome);
+    setHomeEntranceWaiting(isHome);
     setHomeEntrance(isHome ? "rise" : "unfold");
     setHomeChromeReady(false);
   }
@@ -224,10 +222,6 @@ export default function Shell({ children }) {
     } else if (phase === "closed") {
       router.prefetch(href);
       warmRouteAssets(href);
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        router.push(href);
-        return;
-      }
       setTarget(href);
       setPhase("departing");
     }

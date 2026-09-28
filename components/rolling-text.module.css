@@ -50,14 +50,6 @@
     both;
 }
 
-/* The crossfade is not disabled here: it carries no motion, and it is what
-   hands the new label over — without it the old one would never leave. */
-@media (prefers-reduced-motion: reduce) {
-  .rolling .track {
-    animation: none;
-  }
-}
-
 @keyframes rollUp {
   from {
     transform: translate3d(0, 0, 0);

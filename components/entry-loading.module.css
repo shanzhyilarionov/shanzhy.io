@@ -44,9 +44,3 @@
     opacity: 0;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .overlay[data-phase="leaving"] {
-    animation: none;
-  }
-}

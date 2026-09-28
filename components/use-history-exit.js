@@ -12,8 +12,7 @@ export function useHistoryExit(pathname, duration) {
   }
 
   const getExit = useEffectEvent(() =>
-    window.location.pathname !== pathname &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    window.location.pathname !== pathname
       ? { from: pathname, to: window.location.pathname, duration }
       : null,
   );

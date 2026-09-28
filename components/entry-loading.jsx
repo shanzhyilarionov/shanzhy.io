@@ -103,12 +103,11 @@ export default function EntryLoading({ children }) {
   useEffect(() => {
     const from = displayedRef.current;
     const start = performance.now();
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame;
     const update = (now) => {
       // A callback queued during a frame can receive that frame's earlier
       // timestamp; clamp it so the displayed percentage never moves backward.
-      const fraction = reducedMotion ? 1 : Math.max(0, Math.min((now - start) / 180, 1));
+      const fraction = Math.max(0, Math.min((now - start) / 180, 1));
       const value = Math.floor(from + (target - from) * fraction);
       displayedRef.current = value;
       setProgress(value);
@@ -121,23 +120,15 @@ export default function EntryLoading({ children }) {
   useEffect(() => {
     if (progress !== 100) return;
     // Paint 100% before fading the number and releasing the page animations.
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const finishWithoutMotion = () => {
-      if (motion.matches) setPhase("done");
-    };
     const frame = requestAnimationFrame(() => {
-      setPhase(motion.matches ? "done" : "leaving");
+      setPhase("leaving");
     });
-    motion.addEventListener("change", finishWithoutMotion);
-    return () => {
-      cancelAnimationFrame(frame);
-      motion.removeEventListener("change", finishWithoutMotion);
-    };
+    return () => cancelAnimationFrame(frame);
   }, [progress]);
 
   useEffect(() => {
     if (phase !== "leaving") return;
-    // animationend can be lost when styles or motion preferences change.
+    // animationend can be lost when styles change.
     // Never leave an invisible overlay intercepting input indefinitely.
     const timer = window.setTimeout(() => setPhase("done"), LEAVING_TIMEOUT_MS);
     return () => window.clearTimeout(timer);

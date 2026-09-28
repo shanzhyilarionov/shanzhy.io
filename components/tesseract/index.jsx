@@ -67,8 +67,6 @@ export default function GlassTesseract() {
     // Cached so pointermove never forces a layout.
     let bounds = canvas.getBoundingClientRect();
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
     function renderFrame(time, deltaTime) {
       // Return text and canvas start together; CSS delays the text by 0.5s.
       if (!chromeReported && (returning || entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
@@ -163,12 +161,8 @@ export default function GlassTesseract() {
     };
 
     const syncAnimation = () => {
-      if (reducedMotion.matches) {
-        entranceTime = entranceDuration;
-        measure();
-      }
       const shouldRun =
-        Boolean(renderer) && !pausedRef.current && !document.hidden && !reducedMotion.matches;
+        Boolean(renderer) && !pausedRef.current && !document.hidden;
 
       if (shouldRun === running) {
         if (!running) renderFrame(elapsedTime, 1 / 60);
@@ -192,7 +186,6 @@ export default function GlassTesseract() {
         : new ResizeObserver(handleViewportChange);
 
     measure();
-    if (reducedMotion.matches) entranceTime = entranceDuration;
     renderFrame(elapsedTime, 1 / 60);
     ready("scene");
     animationControlRef.current = { sync: syncAnimation };
@@ -205,7 +198,6 @@ export default function GlassTesseract() {
       passive: true,
     });
     document.addEventListener("visibilitychange", syncAnimation);
-    reducedMotion.addEventListener("change", syncAnimation);
     canvas.addEventListener("webglcontextlost", handleContextLost);
     canvas.addEventListener("webglcontextrestored", handleContextRestored);
 
@@ -219,7 +211,6 @@ export default function GlassTesseract() {
       window.removeEventListener("scroll", measure);
       window.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("visibilitychange", syncAnimation);
-      reducedMotion.removeEventListener("change", syncAnimation);
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.destroy();

@@ -135,22 +135,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .headingLabel,
-  .project,
-  .reveal,
-  .revealContent,
-  .image,
-  .title,
-  .departing .title,
-  .exiting .headingLabel,
-  .exiting .reveal,
-  .exiting .revealContent {
-    animation: none;
-    transition: none;
-  }
-}
-
 @keyframes headingIn {
   from {
     transform: translate3d(0, 100%, 0);

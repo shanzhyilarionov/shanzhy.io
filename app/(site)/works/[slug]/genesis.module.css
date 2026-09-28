@@ -96,22 +96,6 @@
   animation: fadeOut var(--motion-content) ease-in both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .videoMask,
-  .video,
-  .action,
-  .exiting .videoMask,
-  .exiting .video,
-  .exiting .action {
-    animation: none;
-  }
-
-  .exiting .videoFrame,
-  .exiting .action {
-    opacity: 0;
-  }
-}
-
 /* Opposite transforms hold the video still while the mask opens upward. */
 @keyframes videoMaskIn {
   from {

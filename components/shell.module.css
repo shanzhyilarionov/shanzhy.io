@@ -110,30 +110,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .contentEntering,
-  .chromeEntering,
-  .homeChromeEntering,
-  .homeChromeReturning,
-  .chromeLeavingHome,
-  .menuEntering,
-  .menuLeaving,
-  .homeCover,
-  .homeReveal {
-    animation: none;
-  }
-
-  .chromeLeavingHome,
-  .menuLeaving {
-    opacity: 0;
-  }
-
-  .homeCover,
-  .homeReveal {
-    display: none;
-  }
-}
-
 @keyframes contentEnter {
   from {
     opacity: 0;

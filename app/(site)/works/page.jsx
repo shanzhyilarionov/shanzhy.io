@@ -101,12 +101,6 @@ export default function Works() {
     const href = `/works/${slug}`;
     router.prefetch(href);
     warmRouteAssets(href);
-    if (
-      !transition &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
 
     event.preventDefault();
     setTransition((current) =>
