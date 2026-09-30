@@ -5,8 +5,8 @@ export const projects = [
   {
     slug: "genesis",
     title: "Genesis",
-    image: "/images/genesis.png",
-    aspectRatio: 2880 / 1800,
+    image: "/images/genesis-poster.jpg",
+    aspectRatio: 16 / 9,
     duration: "0.8s",
   },
   {

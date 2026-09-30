@@ -8,6 +8,7 @@ import { useHoverEnabled } from "../../../components/hover-boundary";
 import { usePageExiting } from "../../../components/page-exit-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, PROJECT_IMAGE_SIZES } from "./projects";
+import { startProjectTransition } from "./project-transition";
 import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
@@ -22,11 +23,9 @@ export default function Works() {
   const headingRef = useRef(null);
   const projectsRef = useRef(null);
 
-  // Menu and history departures use the same two legs as a project click.
-  // The shell owns that navigation, so these transitions carry no href.
   if (wasPageExiting !== pageExiting) {
     setWasPageExiting(pageExiting);
-    setTransition(pageExiting ? { phase: "settling", href: null } : null);
+    setTransition(pageExiting ? { phase: "settling" } : null);
   }
 
   useLayoutEffect(() => {
@@ -66,20 +65,14 @@ export default function Works() {
   }, []);
 
   useEffect(() => {
-    if (!transition || (transition.phase === "exiting" && !transition.href)) {
-      return;
-    }
+    if (transition?.phase !== "settling") return;
 
     const timer = window.setTimeout(() => {
-      if (transition.phase === "settling") {
-        setTransition({ ...transition, phase: "exiting" });
-      } else {
-        router.push(transition.href);
-      }
+      setTransition({ phase: "exiting" });
     }, EXIT_STEP_MS);
 
     return () => window.clearTimeout(timer);
-  }, [transition, router]);
+  }, [transition]);
 
   useEffect(() => {
     let resizeTimer;
@@ -97,15 +90,20 @@ export default function Works() {
     };
   }, []);
 
-  const openProject = (event, slug) => {
-    const href = `/works/${slug}`;
+  const openProject = (event, project) => {
+    const href = `/works/${project.slug}`;
     router.prefetch(href);
     warmRouteAssets(href);
 
     event.preventDefault();
-    setTransition((current) =>
-      current ?? { href, phase: "settling" },
+    if (transition) return;
+    const page = headingRef.current.closest("main");
+    const image = projectsRef.current.querySelector(
+      `a[href="${href}"] .${styles.imageFrame}`,
     );
+    startProjectTransition(project.image, page, image);
+    setTransition({ phase: "project" });
+    router.push(href);
   };
 
   return (
@@ -134,41 +132,48 @@ export default function Works() {
             .filter(Boolean)
             .join(" ")}
         >
-          {projects.map((project) => (
-            <article
-              className={styles.project}
-              style={{
-                "--reveal-duration": project.duration,
-                "--image-ratio": project.aspectRatio,
-              }}
-              key={project.slug}
-            >
-              <Link
-                className={styles.reveal}
-                href={`/works/${project.slug}`}
-                aria-label={project.title}
-                onPointerEnter={() => warmRouteAssets(`/works/${project.slug}`)}
-                onFocus={() => warmRouteAssets(`/works/${project.slug}`)}
-                onTouchStart={() => warmRouteAssets(`/works/${project.slug}`)}
-                onNavigate={(event) => openProject(event, project.slug)}
-              >
-                <div className={styles.revealContent}>
-                  <div className={styles.imageFrame}>
-                    <Image
-                      className={styles.image}
-                      src={project.image}
-                      alt={`${project.title} project preview`}
-                      fill
-                      sizes={PROJECT_IMAGE_SIZES}
-                      priority
-                    />
-                  </div>
-                </div>
-              </Link>
+          {projects.map((project) => {
+            const Preview = project.slug === "genesis" ? Link : "div";
+            const linkProps = project.slug === "genesis" ? {
+              href: `/works/${project.slug}`,
+              "aria-label": project.title,
+              onPointerEnter: () => warmRouteAssets(`/works/${project.slug}`),
+              onFocus: () => warmRouteAssets(`/works/${project.slug}`),
+              onTouchStart: () => warmRouteAssets(`/works/${project.slug}`),
+              onNavigate: (event) => openProject(event, project),
+            } : {};
 
-              <h2 className={styles.title}>{project.title}</h2>
-            </article>
-          ))}
+            return (
+              <article
+                className={styles.project}
+                style={{
+                  "--reveal-duration": project.duration,
+                  "--image-ratio": project.aspectRatio,
+                }}
+                key={project.slug}
+              >
+                <Preview
+                  {...linkProps}
+                  className={styles.reveal}
+                >
+                  <div className={styles.revealContent}>
+                    <div className={styles.imageFrame}>
+                      <Image
+                        className={styles.image}
+                        src={project.image}
+                        alt={`${project.title} project preview`}
+                        fill
+                        sizes={PROJECT_IMAGE_SIZES}
+                        priority
+                      />
+                    </div>
+                  </div>
+                </Preview>
+
+                <h2 className={styles.title}>{project.title}</h2>
+              </article>
+            );
+          })}
         </div>
       </section>
     </main>

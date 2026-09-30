@@ -4,6 +4,7 @@ import Reveal from "../../../../components/reveal";
 import { usePageExiting } from "../../../../components/page-exit-context";
 import RollingText from "../../../../components/rolling-text";
 import GenesisVideo from "./genesis-video";
+import { useProjectArrival } from "./project-arrival";
 import styles from "./genesis.module.css";
 
 const blocks = [
@@ -21,10 +22,11 @@ const blocks = [
 
 export default function Genesis() {
   const exiting = usePageExiting();
+  const arrival = useProjectArrival();
 
   return (
     <main
-      className={[styles.page, exiting ? styles.exiting : ""]
+      className={[styles.page, exiting ? styles.exiting : "", arrival ? styles.fromWorks : ""]
         .filter(Boolean)
         .join(" ")}
     >

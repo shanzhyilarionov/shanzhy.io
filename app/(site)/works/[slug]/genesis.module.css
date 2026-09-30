@@ -84,6 +84,37 @@
   animation: fadeIn 0.5s ease-out 0.5s both;
 }
 
+.fromWorks .intro {
+  --reveal-enter-delay: var(--project-enter-delay);
+}
+
+.fromWorks .action {
+  animation-delay: var(--project-enter-delay);
+}
+
+.fromWorks .videoFrame {
+  animation: showMedia 0s var(--project-media-delay) both;
+}
+
+.fromWorks .videoFrame[data-preparing="true"] {
+  opacity: 1;
+}
+
+.fromWorks:not(.exiting) .videoMask,
+.fromWorks:not(.exiting) .video {
+  animation: none;
+}
+
+@keyframes showMedia {
+  from {
+    visibility: hidden;
+  }
+
+  to {
+    visibility: visible;
+  }
+}
+
 .exiting .videoMask {
   animation: videoMaskOut var(--motion-content) var(--ease-panel) both;
 }

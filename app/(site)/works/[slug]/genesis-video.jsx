@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useEntryLoading } from "../../../../components/entry-loading";
+import { useProjectArrival } from "./project-arrival";
 import styles from "./genesis.module.css";
 
 export default function GenesisVideo() {
   const { ready, videoSource } = useEntryLoading();
+  const arrival = useProjectArrival();
   const videoRef = useRef(null);
   const [playback, setPlayback] = useState("loading");
 
@@ -16,6 +18,7 @@ export default function GenesisVideo() {
     let presented = false;
     let frameCallback;
     let paintFrame;
+    let playTimer;
 
     const cancelFrame = () => {
       if (frameCallback !== undefined) {
@@ -65,26 +68,32 @@ export default function GenesisVideo() {
     else {
       // The initial site loader already downloaded the complete local source.
       // Decode behind the closed video mask before its entrance starts.
-      video.play().catch(() => {
+      const play = () => video.play().catch(() => {
         if (disposed || video.error) return;
         cancelFrame();
         // A browser that blocks playback must leave a usable play control.
         setPlayback("blocked");
         ready("video-frame");
       });
+      if (arrival) {
+        playTimer = window.setTimeout(play, Math.max(0, 900 - (performance.now() - arrival.startedAt)));
+      } else {
+        play();
+      }
     }
 
     return () => {
       disposed = true;
+      window.clearTimeout(playTimer);
       cancelFrame();
       video.pause();
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("error", showPoster);
     };
-  }, [ready, videoSource]);
+  }, [arrival, ready, videoSource]);
 
   return (
-    <div className={styles.videoFrame} data-preparing={playback === "loading"}>
+    <div className={styles.videoFrame} data-project-media data-preparing={playback === "loading"}>
       <div className={styles.videoMask}>
         <div className={styles.video}>
           <video
