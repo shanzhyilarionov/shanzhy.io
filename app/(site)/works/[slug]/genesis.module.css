@@ -15,7 +15,6 @@
 }
 
 .intro {
-  /* Text overlaps the final 0.2s of the video reveal; all lines finish at 1s. */
   --reveal-enter-delay: 0.5s;
   display: flex;
   flex-direction: column;
@@ -50,8 +49,7 @@
 .video {
   width: 100%;
   aspect-ratio: 16 / 9;
-  /* The cover remains visible until a decoded video frame is presented. */
-  background: url("/images/genesis-poster.jpg") center / cover no-repeat;
+  background: url("/images/genesis.jpg") center / cover no-repeat;
   animation: videoContentIn 0.7s var(--ease-panel) both;
 }
 
@@ -67,7 +65,6 @@
   opacity: 0;
 }
 
-/* Decode the cached clip before opening its mask; navigation needs no loader. */
 .videoFrame[data-preparing="true"] {
   opacity: 0;
 }
@@ -113,7 +110,6 @@
   animation: fadeOut var(--motion-content) ease-in both;
 }
 
-/* Opposite transforms hold the video still while the mask opens upward. */
 @keyframes videoMaskIn {
   from {
     transform: translate3d(0, 100%, 0);
@@ -134,7 +130,6 @@
   }
 }
 
-/* The lower mask edge moves up; the video itself stays in place. */
 @keyframes videoMaskOut {
   from {
     transform: translate3d(0, 0, 0);

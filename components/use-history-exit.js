@@ -3,7 +3,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { flushSync } from "react-dom";
 
-/** Let the visible page finish leaving before the router handles traversal. */
 export function useHistoryExit(pathname, duration) {
   const [transition, setTransition] = useState(null);
 
@@ -13,7 +12,11 @@ export function useHistoryExit(pathname, duration) {
 
   const getExit = useEffectEvent(() =>
     window.location.pathname !== pathname
-      ? { from: pathname, to: window.location.pathname, duration }
+      ? {
+          from: pathname,
+          to: window.location.pathname,
+          duration: typeof duration === "function" ? duration(window.location.pathname) : duration,
+        }
       : null,
   );
 
@@ -36,8 +39,6 @@ export function useHistoryExit(pathname, duration) {
         return;
       }
 
-      // History has already moved. Defer only the router's notification;
-      // forwarding the original state preserves the back/forward stack.
       event.stopImmediatePropagation();
       pendingEvent = new PopStateEvent("popstate", { state: event.state });
       if (timer !== null) window.clearTimeout(timer);
@@ -52,8 +53,6 @@ export function useHistoryExit(pathname, duration) {
       }, exit.duration);
     };
 
-    // Register once, before the parent router's effect. Reattaching on route
-    // or menu changes would move this listener behind the router's listener.
     window.addEventListener("popstate", onPopState, true);
     return () => {
       window.removeEventListener("popstate", onPopState, true);

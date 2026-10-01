@@ -1,4 +1,3 @@
-/* Carries transition durations without affecting layout. */
 .shell {
   display: contents;
   --home-return-delay: calc(var(--motion-panel) - var(--motion-overlap));
@@ -10,12 +9,10 @@
   min-height: 100dvh;
 }
 
-/* Above the panel, which comes and goes without disturbing it. */
 .chromeAbovePanel {
   z-index: 200;
 }
 
-/* Over home it would be white on white, so it stays under the panel instead. */
 .chromeOnDark {
   color: #FFFFFF;
 }
@@ -24,7 +21,6 @@
   animation: contentEnter var(--motion-content) ease-out both;
 }
 
-/* White pages bring their controls in with their contents. */
 .chromeEntering {
   animation: fadeIn var(--motion-content) ease-out
     var(--chrome-enter-delay) both;
@@ -39,7 +35,6 @@
   animation: fadeIn var(--motion-content) ease-out both;
 }
 
-/* Return text shares the canvas's start and pause state, even at low frame rates. */
 .homeChromeReturning {
   animation: homeChromeReturn var(--motion-content) ease-out both;
   animation-delay: calc(var(--home-return-delay) + var(--motion-content));
@@ -57,7 +52,6 @@
     var(--menu-enter-delay) both;
 }
 
-/* Keep Close hidden through the route's loading gap after navigation leaves. */
 .menuLeaving {
   display: block;
   animation: fadeOut var(--motion-content) var(--ease-content) both;
@@ -82,15 +76,11 @@
 }
 
 @media (max-width: 768px) {
-  /* Shared controls keep the same position across all white pages. */
   .chromeAbovePanel {
     align-items: flex-start;
     padding-top: 1.5rem;
   }
 
-  /* On a narrow viewport the cube spans the full width, so the title and
-     explore control move off its sides and center on the screen's 1/8 and
-     7/8 height lines instead, clear of the cube regardless of its size. */
   .chromeOnDark > div:first-child,
   .chromeOnDark > div:last-child {
     position: absolute;

@@ -13,7 +13,6 @@ function timing(index, count) {
   };
 }
 
-/** Apply Contact's original timing to each naturally wrapped text line. */
 export default function Reveal({
   as: Element = "div",
   blocks,
@@ -29,8 +28,6 @@ export default function Reveal({
   const lineCount = lines.reduce((count, block) => count + block.length, 0);
   let lineIndex = 0;
 
-  // Rebuild the line masks before either direction paints, including after a
-  // resize while the settled page was displaying its selectable source text.
   if (wasExiting !== exiting) {
     setWasExiting(exiting);
     setEntered(false);
@@ -123,7 +120,6 @@ export default function Reveal({
   );
 }
 
-/** Contact rows keep their original order, delays, durations and interactions. */
 export function RevealItem({ index, count, className, children }) {
   const exiting = usePageExiting();
 

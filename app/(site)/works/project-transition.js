@@ -1,6 +1,7 @@
 let activeTransition = null;
+let activeReturn = null;
 
-function snapshot(element) {
+function snapshot(element, preserveAnimations = false) {
   const copy = element.cloneNode(true);
   const originals = [element, ...element.querySelectorAll("*")];
   const copies = [copy, ...copy.querySelectorAll("*")];
@@ -13,10 +14,14 @@ function snapshot(element) {
     }
     target.style.animation = "none";
     target.style.transition = "none";
+    if (preserveAnimations) {
+      for (const animation of original.getAnimations()) {
+        const replay = target.animate(animation.effect.getKeyframes(), animation.effect.getTiming());
+        replay.currentTime = animation.currentTime;
+      }
+    }
     target.removeAttribute("id");
     if (original instanceof HTMLImageElement) {
-      // Keep the already displayed bitmap, including Next's selected variant.
-      // A new source or async decode can leave the clone blank for a frame.
       target.removeAttribute("srcset");
       target.removeAttribute("sizes");
       target.src = original.currentSrc || original.src;
@@ -44,6 +49,7 @@ function place(element, bounds) {
 }
 
 export function startProjectTransition(page, frame) {
+  activeReturn?.dispose();
   activeTransition?.dispose();
   const startedAt = performance.now();
   const bounds = frame.getBoundingClientRect();
@@ -90,6 +96,123 @@ export function startProjectTransition(page, frame) {
   activeTransition = transition;
 }
 
+export function startProjectReturn(page, frame, slug) {
+  activeReturn?.dispose();
+  activeTransition?.dispose();
+  const startedAt = performance.now();
+  const bounds = frame.getBoundingClientRect();
+  const departing = snapshot(page, true);
+  departing.querySelector("[data-project-media]").style.visibility = "hidden";
+  place(departing, page.getBoundingClientRect());
+
+  const preview = document.createElement("div");
+  preview.setAttribute("aria-hidden", "true");
+  preview.dataset.projectReturn = slug;
+  preview.inert = true;
+  place(preview, bounds);
+  preview.style.overflow = "hidden";
+  const video = frame.querySelector("video");
+  let bitmap = document.createElement("canvas");
+  bitmap.width = video.videoWidth || 1600;
+  bitmap.height = video.videoHeight || 900;
+  try {
+    if (video.readyState < 2) throw new Error("Video frame is not ready");
+    bitmap.getContext("2d").drawImage(video, 0, 0, bitmap.width, bitmap.height);
+  } catch {
+    bitmap = document.createElement("img");
+    bitmap.src = video.poster;
+  }
+  Object.assign(bitmap.style, {
+    display: "block",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  });
+  preview.append(bitmap);
+  document.body.append(departing, preview);
+  departing.scrollTop = page.scrollTop;
+  page.style.visibility = "hidden";
+  const exitTimer = window.setTimeout(() => departing.remove(), 500 - (performance.now() - startedAt));
+  let disposed = false;
+
+  const transition = {
+    slug,
+    startedAt,
+    bounds,
+    preview,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      window.clearTimeout(exitTimer);
+      departing.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
+      departing.remove();
+      preview.remove();
+      page.style.visibility = "";
+      if (activeReturn === transition) activeReturn = null;
+      transition.onComplete?.();
+    },
+  };
+  activeReturn = transition;
+  return transition;
+}
+
+export function getProjectReturn() {
+  return activeReturn;
+}
+
+export function arriveWorks(transition, page, target) {
+  cancelAnimationFrame(transition.cleanupFrame);
+  const { preview, bounds, startedAt } = transition;
+  const geometry = (rect) => ({
+    top: `${rect.top}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  });
+  const timing = {
+    duration: 700,
+    delay: 300,
+    easing: getComputedStyle(document.documentElement).getPropertyValue("--ease-content").trim(),
+    fill: "both",
+  };
+  const visibility = target.style.visibility;
+  target.style.visibility = "hidden";
+  const thumbnail = snapshot(target.querySelector("img"));
+  Object.assign(thumbnail.style, {
+    position: "absolute",
+    inset: "0",
+    width: "100%",
+    height: "100%",
+    filter: "none",
+  });
+  preview.append(thumbnail);
+  const movement = preview.animate([geometry(bounds), geometry(target.getBoundingClientRect())], timing);
+  const color = preview.animate([{ filter: "grayscale(0)" }, { filter: "grayscale(1)" }], timing);
+  const poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);
+  const fades = Array.from(page.querySelectorAll("[data-works-heading], [data-project-preview]"))
+    .filter((element) => !element.contains(target))
+    .map((element) => element.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 500,
+      delay: 500,
+      easing: "ease-out",
+      fill: "both",
+    }));
+  const animations = [movement, color, poster, ...fades];
+  const elapsed = performance.now() - startedAt;
+  animations.forEach((animation) => { animation.currentTime = elapsed; });
+  movement.onfinish = () => {
+    target.style.visibility = visibility;
+    transition.dispose();
+  };
+
+  return () => {
+    target.style.visibility = visibility;
+    animations.forEach((animation) => animation.cancel());
+    thumbnail.remove();
+    transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
+  };
+}
+
 export function getProjectTransition() {
   return activeTransition;
 }
@@ -127,9 +250,6 @@ export function arriveProject(transition, target) {
   let handoff;
   const revealMedia = () => {
     if (disposed || !arrived || !transition.mediaReady || handoff) return;
-    // Keep the same bitmap until React has committed a presented video frame
-    // (or its playback fallback). Fade it out over the live media so mobile
-    // compositing and the thumbnail's lower resolution cannot cause a flash.
     handoff = preview.animate([{ opacity: 1 }, { opacity: 0 }], {
       duration: 120,
       easing: "ease-out",
@@ -140,8 +260,6 @@ export function arriveProject(transition, target) {
   transition.onMediaReady = revealMedia;
   movement.onfinish = () => {
     arrived = true;
-    // Let the video present underneath the still-opaque cover. In particular,
-    // don't depend on mobile browsers presenting a visibility:hidden video.
     target.style.visibility = visibility;
     revealMedia();
   };

@@ -1,13 +1,3 @@
-/**
- * Builds one frame's worth of renderable data from the 4D geometry.
- *
- * This module owns geometry and the shading that genuinely has to happen per
- * face or per edge (there are only 24 and 32 of them). Everything that varies
- * across a surface — diffuse falloff, Fresnel, the specular lobe, Beer-Lambert
- * absorption — is left to the fragment shader, so faces are shaded per pixel
- * rather than flat.
- */
-
 import {
   PROJECTED_RADIUS_3D,
   W_PROJECTION_DISTANCE,
@@ -34,7 +24,6 @@ import {
 import { GLASS_F0, LOOK } from "./look.js";
 import { DISPERSION, faceTint } from "./palette.js";
 
-/** Screen-space size of the object, preserving the original responsive rules. */
 function layoutScale(width, height) {
   const layout = LOOK.layout;
   const compactProgress = clamp(
@@ -58,20 +47,6 @@ function layoutScale(width, height) {
   );
 }
 
-/**
- * How much glass a pane is made of, relative to a pane of the undistorted
- * tesseract.
- *
- * Every pane shared one thickness before this, which made the accumulated
- * optical depth a fiction: the 4D projection stretches the cell nearest the
- * eye point in w and squeezes the far one, so the panes genuinely differ in
- * size by about a factor of two, and a pane twice as wide is twice as thick.
- * Taking the square root of the quad's own area in 3D gets that from the
- * geometry itself, without needing the 4D coordinates back, and it follows
- * every distortion the projection applies rather than only the w scale.
- *
- * The reference is the undistorted face: edge 2, so area 4, so span 2.
- */
 function paneSpan(points3D) {
   const first = subtract3D(points3D[1], points3D[0]);
   const second = subtract3D(points3D[2], points3D[0]);
@@ -83,7 +58,6 @@ function paneSpan(points3D) {
   return Math.sqrt(area) / 2;
 }
 
-/** Radiance arriving at a point from one light, with inverse-square falloff. */
 function lightSample(light, point) {
   const toLight = subtract3D(light.position, point);
   const distanceSquared = Math.max(dot3D(toLight, toLight), 1e-4);
@@ -98,31 +72,11 @@ function lightSample(light, point) {
   return { direction, distance, attenuation };
 }
 
-/**
- * Kajiya-Kay shading for a cylinder: the response depends on the angle
- * between the tangent and the light, as sin rather than cos. The exact form
- * is sin(theta) = sqrt(1 - (T.L)^2), which is what this uses instead of the
- * `1 - |T.L|` approximation.
- */
 function tangentSin(tangent, direction) {
   const alignment = dot3D(tangent, direction);
   return Math.sqrt(Math.max(0, 1 - alignment * alignment));
 }
 
-/**
- * The two numbers a rod's travelling highlight needs at one of its ends.
- *
- * `alignment` is T.H there — the Kajiya-Kay specular condition for a cylinder
- * is that the half-vector stands perpendicular to the tangent, so the
- * highlight sits wherever this crosses zero. Handing the ends to the shader
- * and letting it interpolate puts the bright spot exactly at that crossing,
- * per pixel, and moves it as smoothly as the geometry moves.
- *
- * Solving for the crossing on the CPU instead — or worse, sampling a handful
- * of points and keeping the best — gives one position for the whole rod, and
- * that position has to jump when the crossing leaves the segment through one
- * end and re-enters through the other.
- */
 function glintAtEnd(point, tangent, light, camera) {
   const sample = lightSample(light, point);
   const toEye = normalize3D(subtract3D(camera, point));
@@ -190,7 +144,6 @@ export function createScene(
     point3D = rotate3DX(point3D, LOOK.camera.tiltX);
     point3D = rotate3DY(point3D, LOOK.camera.tiltY);
     point3D = rotate3DZ(point3D, LOOK.camera.rollZ);
-    // Tilt the projected object as a whole, preserving its animated 3D shape.
     point3D = rotate3DX(point3D, -temporalState.pointer.y * pointerStrength);
     point3D = rotate3DY(point3D, temporalState.pointer.x * pointerStrength);
     return { rotated, point3D };
@@ -209,13 +162,7 @@ export function createScene(
     return { ...point2D, point3D };
   });
 
-  /* ---------------------------------------------------------------- */
-  /* Faces                                                            */
-  /* ---------------------------------------------------------------- */
 
-  /* A rod is made of the same glass as the panes it joins, so it absorbs in
-     their colour. Collected while the faces are built: each face hands its
-     tint to the four tesseract edges its boundary runs along. */
   const edgeKey = (first, second) =>
     first < second ? `${first},${second}` : `${second},${first}`;
   const edgeIndexByPair = new Map(
@@ -231,10 +178,6 @@ export function createScene(
     const center3D = average3D(points3D);
     const viewDirection = normalize3D(subtract3D(camera, center3D));
 
-    /* The pane's own axes, along +u and +v. The shader builds the normal from
-       their cross product and bends it towards whichever boundary is nearest,
-       so it needs the axes rather than a normal. They are handed over already
-       oriented so that cross(tangent, bitangent) faces the viewer. */
     const tangent = normalize3D(subtract3D(points3D[1], points3D[0]));
     let bitangent = normalize3D(subtract3D(points3D[3], points3D[0]));
 
@@ -242,7 +185,6 @@ export function createScene(
       bitangent = bitangent.map((value) => -value);
     }
 
-    /* How the face is turned in 4D, independent of the 3D projection. */
     const rotatedNormal4D = rotateAll4D(faceNormal4D(face), rotations);
     const fourDAlignment = dot4D(rotatedNormal4D, normalize4(fourD.direction));
     const fourDGain = mixScalar(
@@ -282,14 +224,7 @@ export function createScene(
     };
   });
 
-  /* Faces are deliberately not sorted: the renderer composites them
-     order-independently, because several of them share a centre depth
-     exactly and any order that swaps mid-rotation shows up as a pane
-     changing colour in a single frame. */
 
-  /* ---------------------------------------------------------------- */
-  /* Edges                                                            */
-  /* ---------------------------------------------------------------- */
 
   const edgeLook = LOOK.edges;
 
@@ -336,7 +271,6 @@ export function createScene(
       radiance[1] += light.color[1] * response;
       radiance[2] += light.color[2] * response;
 
-      /* Which way this light pushes the refracted fringe, in screen space. */
       const light2D = project3Dto2D(
         light.position,
         Z_PROJECTION_DISTANCE,
@@ -356,10 +290,6 @@ export function createScene(
       bendY += normalY * side * sample.attenuation;
     }
 
-    /* The travelling highlight, as the shader wants it: T.H and a brightness
-       at each end of the rod, for each light. The eye and the lights are at
-       finite distance, so these differ end to end, and where the interpolated
-       T.H crosses zero is where the highlight lands. */
     const glintGain = edgeLook.glintIntensity * depthGain;
 
     const glint = LOOK.lights.map((light) => [
@@ -403,15 +333,8 @@ export function createScene(
       glintEnd,
       spread: edgeLook.dispersionSpread * (0.6 + clamp(diffuse, 0, 1) * 0.9),
       depth,
-      /* The rod's depth at each end. The renderer turns these into a real
-         clip-space z so the depth buffer can decide, per pixel, which parts
-         of the rod are behind the glass and which are in front. */
       z1: first.point3D[2],
       z2: second.point3D[2],
-      /* The glass this rod is made of, averaged over the panes that meet
-         along it. Without a tint the rod could only add light; with one it
-         absorbs like the rest of the object, which is what stops an edge
-         reading as more transparent than the faces it joins. */
       tint: [
         edgeTints[edgeIndex][0] / Math.max(edgeTints[edgeIndex][3], 1),
         edgeTints[edgeIndex][1] / Math.max(edgeTints[edgeIndex][3], 1),

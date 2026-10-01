@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Chrome, { Brand, HomeTitle } from "./chrome";
 import Navigation from "./navigation";
@@ -11,14 +11,13 @@ import { PageExitProvider } from "./page-exit-context";
 import { useHistoryExit } from "./use-history-exit";
 import { useEntryLoading } from "./entry-loading";
 import { warmRouteAssets } from "./preload-assets";
+import { startProjectReturn } from "../app/(site)/works/project-transition";
 import styles from "./shell.module.css";
 
-/* Mirrors --motion-panel, --motion-content and --motion-overlap in globals.css. */
 const PANEL_MS = 1000;
 const CONTENT_MS = 500;
 const OVERLAP_MS = 300;
 
-/** How long a close takes, contents and panel together. */
 const closeMs = (slide) =>
   CONTENT_MS + (slide ? PANEL_MS - OVERLAP_MS : CONTENT_MS);
 
@@ -31,26 +30,10 @@ export default function Shell({ children }) {
   const isGenesis = pathname === "/works/genesis";
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
-  // Works first settles its hover expansion, then closes the image masks.
   const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
-  // Direct entry to Works and Genesis brings the full chrome in at 0.5s.
   const chromeEnterDelayMs = isWorks || isGenesis ? CONTENT_MS : 0;
-  // Arriving through the menu, Works brings its replacement Menu in at once.
   const menuEnterDelayMs = isWorks ? 0 : chromeEnterDelayMs;
 
-  /**
-   * Menu route transitions run through the navigation panel.
-   * Because the panel is opaque, the page swap itself is never seen:
-   *
-   *   open      the panel arrives, then its contents arrive
-   *   closing   the contents leave, then the panel leaves after them
-   *   leaving   the contents leave; the panel holds still, covering the swap
-   *   waiting   the route has been pushed; the panel is still covering it
-   *   departing / routing   the same route exit without an open menu
-   *
-   * The panel travels over home and fades over white pages. Opening it does
-   * not trigger a page exit; that belongs to selecting a different route.
-   */
   const [phase, setPhase] = useState("closed");
   const [target, setTarget] = useState(null);
   const [covered, setCovered] = useState(false);
@@ -64,13 +47,16 @@ export default function Shell({ children }) {
   const [viewPath, setViewPath] = useState(pathname);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
+  const [projectReturning, setProjectReturning] = useState(false);
   const scenePaused = covered || entryPending || homeEntranceWaiting;
   const homeAnimationPaused =
     covered || entryPending || (homeEntrance === "rise" && !homeChromeReady);
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
-  // Direct departures from home need a full white sweep before the route swaps.
-  const routeExitMs = isHome && !menuVisible ? PANEL_MS : pageExitMs;
-  const historyExit = useHistoryExit(pathname, routeExitMs);
+  const returningToWorks = isGenesis && !menuVisible && target === "/works";
+  const routeExitMs = returningToWorks ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
+  const historyExit = useHistoryExit(pathname, (to) =>
+    isGenesis && !menuVisible && to === "/works" ? 0 : routeExitMs,
+  );
   const historyExiting = Boolean(historyExit);
   const destination = historyExit?.to ?? target?.split(/[?#]/)[0] ?? pathname;
   const pageExiting =
@@ -78,20 +64,20 @@ export default function Shell({ children }) {
   const leavingForHome = pageExiting && destination === "/";
   const leavingHome =
     isHome && !menuVisible && (historyExiting || Boolean(target));
+  const projectReturnStarting = isGenesis && pageExiting && destination === "/works" && !menuVisible;
+  if (projectReturnStarting && !projectReturning) setProjectReturning(true);
 
-  /*
-   * The route we asked for has arrived. Adjusting state during render rather
-   * than in an effect means the new page is never painted while the panel is
-   * still in its old state.
-   *
-   * Every arrival at home gets the same white mask, including history and
-   * direct links. Home's entrance overlaps the last 0.3s of that mask.
-   */
+  useLayoutEffect(() => {
+    if (!projectReturnStarting) return;
+    const media = document.querySelector("[data-project-media]");
+    if (!media) return;
+    const transition = startProjectReturn(media.closest("main"), media, "genesis");
+    transition.onComplete = () => setProjectReturning(false);
+  }, [projectReturnStarting]);
+
   if (viewPath !== pathname) {
     setChromeEntering(viewPath === "/" && !menuVisible);
     setViewPath(pathname);
-    // Only a departing navigation panel needs a fresh, fading-in Menu.
-    // Between white pages, direct links and history keep it mounted.
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
       animate: menuVisible,
@@ -113,17 +99,14 @@ export default function Shell({ children }) {
 
     if (homeRevealing) {
       if (!homeChromeReady) return undefined;
-      // CSS owns the visible timing; this only resumes the WebGL render loop.
       return after(PANEL_MS - OVERLAP_MS, () =>
         setHomeEntranceWaiting(false),
       );
     }
 
-    // A history traversal takes precedence over a pending menu/link push.
     if (historyExiting) return undefined;
 
     if (phase === "open") {
-      /* Fully covered: nothing behind the panel is worth drawing. */
       return after(enterSlide ? PANEL_MS : CONTENT_MS, () => setCovered(true));
     }
 
@@ -135,7 +118,6 @@ export default function Shell({ children }) {
     }
 
     if (phase === "closing") {
-      /* Both legs are CSS, so this only has to know when they are over. */
       return after(closeMs(exitSlide), () => setPhase("closed"));
     }
 
@@ -152,7 +134,6 @@ export default function Shell({ children }) {
     router,
   ]);
 
-  /** Leave the panel, by way of `href` if that is somewhere new. */
   const leaveNavigation = (href = null) => {
     if (phase !== "open" || historyExiting) {
       return;
@@ -207,7 +188,7 @@ export default function Shell({ children }) {
     if (
       url.origin !== window.location.origin ||
       url.pathname === pathname ||
-      (!isHome && url.pathname !== "/")
+      (!isHome && url.pathname !== "/" && !(isGenesis && url.pathname === "/works"))
     ) {
       return;
     }
@@ -227,15 +208,6 @@ export default function Shell({ children }) {
     }
   };
 
-  /*
-   * White pages share stationary chrome above the panel. Home has its own
-   * white-on-black chrome underneath, while the panel brings a dark copy.
-   * Switching between home and white pages remounts the chrome so the new
-   * entrance starts afresh, even when both use the same fade animation.
-   *
-   * Close leaves with the navigation contents and stays hidden until the route
-   * arrives. A fresh control then fades in with the new page's entrance.
-   */
   const navigationPhase = menuVisible
     ? historyExiting ? "leaving" : phase
     : "closed";
@@ -256,6 +228,7 @@ export default function Shell({ children }) {
     >
       <HoverBoundary
         viewKey={`${pathname}:${phase}`}
+        blocked={projectReturning}
         className={styles.shell}
         style={{
           "--chrome-enter-delay": `${chromeEnterDelayMs}ms`,
@@ -311,7 +284,6 @@ export default function Shell({ children }) {
         <div
           className={[
             styles.content,
-            /* These pages animate their own contents in. */
             isHome ||
             isWorks ||
             isGenesis ||

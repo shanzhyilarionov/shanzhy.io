@@ -20,13 +20,6 @@ import styles from "./tesseract.module.css";
 
 const RETURN_ENTRANCE_DURATION = 1;
 
-/**
- * The decorative tesseract on the home page.
- *
- * This component owns nothing but the canvas lifecycle: sizing, the animation
- * loop, pointer input and WebGL context loss. All of the maths lives in
- * `geometry.mjs` / `scene.js`, and all of the drawing in `renderer.js`.
- */
 export default function GlassTesseract() {
   const { ready } = useEntryLoading();
   const paused = useSceneAnimationPaused();
@@ -64,11 +57,9 @@ export default function GlassTesseract() {
     const temporalState = { pointer: { x: 0, y: 0 } };
     const viewport = { width: 1, height: 1 };
     const pointer = { x: 0, y: 0 };
-    // Cached so pointermove never forces a layout.
     let bounds = canvas.getBoundingClientRect();
 
     function renderFrame(time, deltaTime) {
-      // Return text and canvas start together; CSS delays the text by 0.5s.
       if (!chromeReported && (returning || entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
         chromeReported = true;
         onChromeReady?.();
@@ -101,8 +92,6 @@ export default function GlassTesseract() {
     };
 
     const handlePointerMove = (event) => {
-      // Wait for fresh movement after the home entrance; never retain input
-      // from loading, a covering panel, or a stationary pointer after layout.
       if (pausedRef.current || document.hidden || entranceTime < entranceDuration) return;
       if (
         event.pointerType === "mouse" &&
@@ -116,8 +105,6 @@ export default function GlassTesseract() {
       pointer.x = clamp(((event.clientX - bounds.left) / width - 0.5) * 2, -1, 1);
       pointer.y = clamp(((event.clientY - bounds.top) / height - 0.5) * 2, -1, 1);
 
-      // While the animation is parked, still follow the pointer — but at most
-      // once per frame rather than once per event.
       if (!running && !pointerFrameId) {
         pointerFrameId = requestAnimationFrame(() => {
           pointerFrameId = 0;
@@ -149,9 +136,7 @@ export default function GlassTesseract() {
 
       lastFrameTime = now;
       if (entranceTime < entranceDuration) {
-        // Entrance milestones follow visible time, even on a slow device.
         entranceTime = Math.min(entranceDuration, entranceTime + visibleDelta);
-        // The returning canvas has moved since its initial bounds were read.
         if (returning && entranceTime === entranceDuration) measure();
       } else {
         elapsedTime += deltaTime;

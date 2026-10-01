@@ -12,7 +12,6 @@
 .page::before,
 .page::after {
   content: "";
-  /* Let decorative space shrink before the content needs to scroll. */
   flex: 1 1 3rem;
   min-height: 0.5rem;
 }
@@ -24,7 +23,6 @@
 @media (max-width: 768px) {
   .page::before,
   .page::after {
-    /* Clear the fixed header while keeping the content centered on screen. */
     flex-basis: 5rem;
     min-height: 4rem;
   }

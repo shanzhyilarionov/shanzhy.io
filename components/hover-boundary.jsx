@@ -8,13 +8,11 @@ export function useHoverEnabled() {
   return useContext(HoverEnabledContext);
 }
 
-/** Routes and navigation views each wait for fresh mouse movement. */
-export function HoverBoundary({ viewKey, children, ...props }) {
+export function HoverBoundary({ viewKey, blocked = false, children, ...props }) {
   const [view, setView] = useState(viewKey);
   const [enabled, setEnabled] = useState(false);
 
-  // Reset before the new view paints, without remounting its contents.
-  if (view !== viewKey) {
+  if (view !== viewKey || (blocked && enabled)) {
     setView(viewKey);
     setEnabled(false);
   }
@@ -29,15 +27,13 @@ export function HoverBoundary({ viewKey, children, ...props }) {
   }, []);
 
   return (
-    <HoverEnabledContext.Provider value={enabled}>
+    <HoverEnabledContext.Provider value={enabled && !blocked}>
       <div
         {...props}
-        data-hover-enabled={enabled}
+        data-hover-enabled={enabled && !blocked}
         onPointerMoveCapture={(event) => {
-          // Layout changes and clicks can place a stationary pointer over a
-          // new control. Only actual mouse movement unlocks hover effects.
           if (
-            !enabled &&
+            !blocked && !enabled &&
             event.pointerType === "mouse" &&
             (event.movementX !== 0 || event.movementY !== 0)
           ) {

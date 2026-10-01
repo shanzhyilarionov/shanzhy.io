@@ -16,13 +16,6 @@ export function entranceState(time) {
   };
 }
 
-/**
- * Expansion uses the original scene's time-zero orientation throughout.
- * The original motion takes over as soon as the fourth dimension opens.
- * During expansion, the negative side of a collapsed axis owns the visible
- * surface; its positive copy fades in as that axis opens. This avoids drawing
- * four coincident panes (or rods) at full brightness in the square stage.
- */
 export function createHomeScene(
   vertices, edges, faces, viewport, pointer, time, deltaTime, temporalState,
 ) {
@@ -64,14 +57,12 @@ export function createHomeScene(
     },
   );
 
-  // Zero-area faces must never reach the shader's normal calculation.
   scene.faces = scene.faces.filter((face) => face.visibility > 0);
   scene.edges = scene.edges.filter((edge) => edge.visibility > 0);
 
   if (time < 0.2) scene.opacity = smoothstep(0, 0.2, time);
   const point = 1 - smoothstep(0.27, 0.55, time);
   if (point > 0) {
-    // Match the edges' rounded endpoints, without adding a halo.
     scene.edges.push({
       bloom: false,
       x1: scene.centerX - 0.005,

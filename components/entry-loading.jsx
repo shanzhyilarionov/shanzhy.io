@@ -20,7 +20,6 @@ export function useEntryLoading() {
   return useContext(EntryContext);
 }
 
-/** Prepare the entire site once; client-side navigation keeps it settled. */
 export default function EntryLoading({ children }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -59,7 +58,6 @@ export default function EntryLoading({ children }) {
       },
       () => {
         if (disposed) return;
-        // Leave normal streaming and the poster available if downloading fails.
         setVideoSource(GENESIS_VIDEO);
         ready("video");
       },
@@ -88,7 +86,6 @@ export default function EntryLoading({ children }) {
       frame = requestAnimationFrame(() => settle("page"));
     };
 
-    // A directly opened route may still be arriving in the server stream.
     observer = new MutationObserver(preparePage);
     observer.observe(stageRef.current, { childList: true, subtree: true });
     preparePage();
@@ -105,8 +102,6 @@ export default function EntryLoading({ children }) {
     const start = performance.now();
     let frame;
     const update = (now) => {
-      // A callback queued during a frame can receive that frame's earlier
-      // timestamp; clamp it so the displayed percentage never moves backward.
       const fraction = Math.max(0, Math.min((now - start) / 180, 1));
       const value = Math.floor(from + (target - from) * fraction);
       displayedRef.current = value;
@@ -119,7 +114,6 @@ export default function EntryLoading({ children }) {
 
   useEffect(() => {
     if (progress !== 100) return;
-    // Paint 100% before fading the number and releasing the page animations.
     const frame = requestAnimationFrame(() => {
       setPhase("leaving");
     });
@@ -128,8 +122,6 @@ export default function EntryLoading({ children }) {
 
   useEffect(() => {
     if (phase !== "leaving") return;
-    // animationend can be lost when styles change.
-    // Never leave an invisible overlay intercepting input indefinitely.
     const timer = window.setTimeout(() => setPhase("done"), LEAVING_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
   }, [phase]);

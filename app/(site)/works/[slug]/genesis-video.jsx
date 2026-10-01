@@ -12,8 +12,6 @@ export default function GenesisVideo() {
   const [playback, setPlayback] = useState("loading");
 
   useLayoutEffect(() => {
-    // Signal after data-ready/controls have reached the DOM, not from the
-    // video callback before React has made its first frame visible.
     if (playback !== "loading") arrival?.markMediaReady();
   }, [arrival, playback]);
 
@@ -45,7 +43,6 @@ export default function GenesisVideo() {
     };
 
     const onPlaying = () => {
-      // Retain the rendered video through buffering and loop seeks.
       if (presented) return;
       cancelFrame();
       if (video.requestVideoFrameCallback) {
@@ -54,7 +51,6 @@ export default function GenesisVideo() {
           revealFrame();
         });
       } else {
-        // Older browsers still need a paint between playback and the reveal.
         paintFrame = requestAnimationFrame(() => {
           paintFrame = requestAnimationFrame(revealFrame);
         });
@@ -64,7 +60,6 @@ export default function GenesisVideo() {
     const showPoster = () => {
       cancelFrame();
       setPlayback("error");
-      // A failed video should not trap the entire page behind its loader.
       ready("video-frame");
     };
 
@@ -72,12 +67,9 @@ export default function GenesisVideo() {
     video.addEventListener("error", showPoster);
     if (video.error) showPoster();
     else {
-      // The initial site loader already downloaded the complete local source.
-      // Decode behind the closed video mask before its entrance starts.
       const play = () => video.play().catch(() => {
         if (disposed || video.error) return;
         cancelFrame();
-        // A browser that blocks playback must leave a usable play control.
         setPlayback("blocked");
         ready("video-frame");
       });
@@ -107,7 +99,7 @@ export default function GenesisVideo() {
             className={styles.videoElement}
             data-ready={playback === "playing" || playback === "blocked"}
             src={videoSource ?? undefined}
-            poster="/images/genesis-poster.jpg"
+            poster="/images/genesis.jpg"
             width="1600"
             height="900"
             controls={playback === "blocked"}

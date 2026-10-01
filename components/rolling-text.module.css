@@ -9,11 +9,9 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  /* The rows these sit in are inert, so each control claims the pointer back. */
   pointer-events: auto;
 }
 
-/* 1.15em rather than 1em so descenders and the @ of an address are not cut. */
 .mask {
   display: block;
   height: 1.15em;
@@ -38,13 +36,10 @@
   animation: rollUp 0.2s ease-out both;
 }
 
-/* A replaced label crosses over in two halves rather than rolling. */
 .leaving {
   animation: labelFadeOut var(--motion-content) ease-out both;
 }
 
-/* `--label-delay` holds the new label back so it can land with something else
-   — on home, with the title. It is 0 unless the caller sets it. */
 .arriving {
   animation: labelFadeIn var(--motion-content) ease-out var(--label-delay, 0ms)
     both;

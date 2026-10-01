@@ -1,36 +1,14 @@
-/**
- * Pure 4D geometry for the tesseract.
- *
- * Nothing in this module touches React, the DOM or WebGL, so it can be unit
- * tested with `node --test`. Everything downstream (shading, rendering) is
- * built on top of the primitives defined here.
- */
-
 export const AXES = [0, 1, 2, 3];
 const SIGNS = [-1, 1];
 
-/** |v| for a vertex of the (±1, ±1, ±1, ±1) tesseract. */
 export const TESSERACT_RADIUS = 2;
 
-/** Distance of the 4D eye point along +w. */
 export const W_PROJECTION_DISTANCE = 3;
 
-/** Distance of the 3D eye point along +z. */
 export const Z_PROJECTION_DISTANCE = 5;
 
-/**
- * Largest |P(v)| reachable in 3D after the 4D perspective projection, over all
- * rotations of a radius-2 tesseract projected from w = 3.
- *
- * Maximising f(w) = sqrt(4 - w^2) * 3 / (3 - w) gives f'(w) = 0 at w = 4/3,
- * and f(4/3) = (2*sqrt(5)/3) * (9/5) = 6/sqrt(5).
- *
- * Using this closed-form bound (instead of a per-frame min/max) keeps every
- * depth-dependent effect stable while the object rotates.
- */
 export const PROJECTED_RADIUS_3D = 6 / Math.sqrt(5);
 
-/** The 16 vertices of the tesseract, as (±1, ±1, ±1, ±1). */
 export function buildVertices4D() {
   const vertices = [];
 
@@ -47,7 +25,6 @@ export function buildVertices4D() {
   return vertices;
 }
 
-/** The 32 edges: vertex pairs at Hamming distance 1. */
 export function buildEdges4D(vertices) {
   const edges = [];
 
@@ -66,17 +43,6 @@ export function buildEdges4D(vertices) {
   return edges;
 }
 
-/**
- * The 24 square faces: one for each choice of a spanning 2-plane
- * (C(4,2) = 6 of them) and each sign assignment of the two fixed axes (4).
- *
- * `cellLayer` marks the two "corner" cells — the faces where both fixed axes
- * agree in sign. Those two families carry the warm and cool tints; every other
- * face is neutral structural glass.
- *
- * `fixedAxes` / `fixedSigns` describe the face's position in the 2D space
- * normal to it, which is what the optional 4D lighting term uses.
- */
 export function buildFaces4D(vertices) {
   const indexByVertex = new Map(
     vertices.map((vertex, index) => [vertex.join(","), index]),
@@ -132,11 +98,6 @@ export function buildFaces4D(vertices) {
   return faces;
 }
 
-/**
- * A unit vector in the 2-plane normal to the face, used as a stand-in for the
- * face's 4D orientation. Rotating this alongside the geometry gives a
- * well-defined "how is this face turned in 4D" signal.
- */
 export function faceNormal4D(face) {
   const normal = [0, 0, 0, 0];
   const inverseRoot2 = 1 / Math.SQRT2;
@@ -145,7 +106,6 @@ export function faceNormal4D(face) {
   return normal;
 }
 
-/** Givens rotation in the (firstAxis, secondAxis) coordinate plane. */
 export function rotate4D(point, firstAxis, secondAxis, angle) {
   const rotated = [...point];
   const cosine = Math.cos(angle);
@@ -159,13 +119,6 @@ export function rotate4D(point, firstAxis, secondAxis, angle) {
   return rotated;
 }
 
-/**
- * Applies a list of [firstAxis, secondAxis, angle] rotations in order.
- *
- * The animation uses XW + YZ, an orthogonal pair, which is a genuine SO(4)
- * double rotation (the two commute), followed by fixed XY + ZW orientation.
- * Pointer tilt is applied separately, after the 4D -> 3D projection.
- */
 export function rotateAll4D(point, rotations) {
   let result = point;
 
@@ -176,7 +129,6 @@ export function rotateAll4D(point, rotations) {
   return result;
 }
 
-/** 4D -> 3D perspective projection from an eye point at w = distance. */
 export function project4Dto3D(point, distance = W_PROJECTION_DISTANCE) {
   const scale = distance / (distance - point[3]);
   return [point[0] * scale, point[1] * scale, point[2] * scale];
@@ -203,13 +155,6 @@ export function rotate3DZ(point, angle) {
   return [x * cosine - y * sine, x * sine + y * cosine, z];
 }
 
-/**
- * 3D -> 2D perspective projection.
- *
- * Only the line/point passes use this on the CPU; face geometry is projected
- * in the vertex shader instead, so that WebGL divides the varyings by w and
- * every interpolated value across a face stays perspective-correct.
- */
 export function project3Dto2D(point, distance, centerX, centerY, scale) {
   const perspective = distance / (distance - point[2]);
   return {
@@ -220,16 +165,12 @@ export function project3Dto2D(point, distance, centerX, centerY, scale) {
   };
 }
 
-/** Maps a 3D depth onto [0, 1], 1 = nearest, using the closed-form bound. */
 export function frontness(depth) {
   const ratio =
     (depth + PROJECTED_RADIUS_3D) / (PROJECTED_RADIUS_3D * 2);
   return Math.max(0, Math.min(1, ratio));
 }
 
-/* ------------------------------------------------------------------ */
-/* Small vector helpers. Kept here so shading has no dependencies.     */
-/* ------------------------------------------------------------------ */
 
 export function subtract3D(first, second) {
   return [first[0] - second[0], first[1] - second[1], first[2] - second[2]];

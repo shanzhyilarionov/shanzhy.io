@@ -1,8 +1,3 @@
-/*
- * The one black page on the site. It paints its own background rather than
- * fading in, because the navigation panel slides off the top to reveal it —
- * anything less than opaque black would show white through the seam.
- */
 .home {
   position: relative;
   width: 100vw;
@@ -14,11 +9,6 @@
   color: #FFFFFF;
 }
 
-/*
- * A barely-there pool of light behind the tesseract. On pure #000 the bloom
- * has nothing to sit against and the object reads as floating; two stops of
- * lift are enough to seat it in space without becoming a visible gradient.
- */
 .home::before {
   content: "";
   position: absolute;

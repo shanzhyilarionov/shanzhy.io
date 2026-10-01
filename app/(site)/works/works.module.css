@@ -16,9 +16,6 @@
   font-family: Arial, Helvetica, sans-serif;
   font-size: var(--nav-size);
   font-weight: 400;
-  /* A touch taller than the shared line-height: at 1, Arial's glyphs render
-     taller than the font-size box, so the entrance mask's `overflow: hidden`
-     clips their tops. */
   line-height: calc(var(--heading-line-height) * 1.15);
   text-align: center;
   overflow-wrap: anywhere;
@@ -31,7 +28,6 @@
 
 .projects {
   --tile-gap: 0.75rem;
-  /* Keep the resting row as wide as the heading, even during hover. */
   --tile-size: calc((100cqw - 2 * var(--tile-gap)) / 3);
   container-type: inline-size;
   display: flex;
@@ -79,7 +75,6 @@
 }
 
 .title {
-  /* Hover labels belong to the centered block and its scrollable height. */
   width: 100%;
   min-height: 2lh;
   margin: var(--paragraph-gap) 0 0;
@@ -104,7 +99,6 @@
 
   .hoverEnabled .project:hover .title {
     opacity: 1;
-    /* Finish the 0.2s fade with the 0.5s width expansion. */
     transition-delay: 0.3s;
   }
 }
@@ -115,6 +109,12 @@
 
 .departing .title {
   transition-delay: 0s;
+}
+
+.returning .headingLabel,
+.returning .reveal,
+.returning .revealContent {
+  animation: none;
 }
 
 .exiting .headingLabel {

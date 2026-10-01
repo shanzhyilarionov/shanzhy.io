@@ -8,7 +8,7 @@ import { useHoverEnabled } from "../../../components/hover-boundary";
 import { usePageExiting } from "../../../components/page-exit-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, PROJECT_IMAGE_SIZES } from "./projects";
-import { startProjectTransition } from "./project-transition";
+import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
 import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
@@ -18,6 +18,7 @@ export default function Works() {
   const hoverEnabled = useHoverEnabled();
   const [resizing, setResizing] = useState(true);
   const [transition, setTransition] = useState(null);
+  const [projectReturn] = useState(getProjectReturn);
   const pageExiting = usePageExiting();
   const [wasPageExiting, setWasPageExiting] = useState(false);
   const headingRef = useRef(null);
@@ -38,14 +39,9 @@ export default function Works() {
 
     const measureHeading = () => {
       if (disposed) return;
-      // A wrapped heading's box fills the available space. Its text ranges
-      // give the actual line widths without changing its font size or wrap.
       const width = Math.max(...Array.from(range.getClientRects(), (rect) => rect.width));
       if (width > 0) {
         row.style.setProperty("--projects-width", `${width}px`);
-        // Before this first measurement lands, the row falls back to 100%
-        // width and tiles render oversized. Hold the flex-basis transition
-        // off until then, so that correction snaps instead of animating.
         if (!settled) {
           settled = true;
           setResizing(false);
@@ -63,6 +59,12 @@ export default function Works() {
       observer.disconnect();
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!projectReturn) return;
+    const target = projectsRef.current.querySelector(`[data-project-thumbnail="${projectReturn.slug}"]`);
+    return arriveWorks(projectReturn, headingRef.current.closest("main"), target);
+  }, [projectReturn]);
 
   useEffect(() => {
     if (transition?.phase !== "settling") return;
@@ -110,6 +112,7 @@ export default function Works() {
     <main
       className={[
         styles.page,
+        projectReturn ? styles.returning : "",
         transition?.phase === "exiting" ? styles.exiting : "",
       ]
         .filter(Boolean)
@@ -117,7 +120,7 @@ export default function Works() {
       style={{ "--exit-duration": `${EXIT_STEP_MS}ms` }}
     >
       <section className={styles.content} aria-labelledby="works-heading">
-        <h1 ref={headingRef} className={styles.heading} id="works-heading">
+        <h1 ref={headingRef} className={styles.heading} id="works-heading" data-works-heading>
           <span className={styles.headingLabel}>Things I’ve built.</span>
         </h1>
 
@@ -146,6 +149,7 @@ export default function Works() {
             return (
               <article
                 className={styles.project}
+                data-project-preview
                 style={{
                   "--reveal-duration": project.duration,
                   "--image-ratio": project.aspectRatio,
@@ -157,7 +161,7 @@ export default function Works() {
                   className={styles.reveal}
                 >
                   <div className={styles.revealContent}>
-                    <div className={styles.imageFrame}>
+                    <div className={styles.imageFrame} data-project-thumbnail={project.slug}>
                       <Image
                         className={styles.image}
                         src={project.image}

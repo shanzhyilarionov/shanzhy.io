@@ -2,7 +2,6 @@
   display: contents;
 }
 
-/* Keep the real page mounted and measurable while its entrances wait. */
 .stage[data-entry-pending="true"] *,
 .stage[data-entry-pending="true"] *::before,
 .stage[data-entry-pending="true"] *::after {

@@ -14,7 +14,7 @@ function routeImages(pathname) {
       src: project.image, alt: "", fill: true, sizes: PROJECT_IMAGE_SIZES,
     }).props);
   }
-  return pathname === "/works/genesis" ? [{ src: "/images/genesis-poster.jpg" }] : [];
+  return pathname === "/works/genesis" ? [{ src: "/images/genesis.jpg" }] : [];
 }
 
 function prepareImage(props, priority) {
@@ -30,7 +30,6 @@ function prepareImage(props, priority) {
     warmedImages.delete(props.src);
     throw error;
   });
-  // Keep the decoded images alive for later routes, including their srcsets.
   warmedImages.set(props.src, { image, ready });
   return ready;
 }
@@ -39,7 +38,6 @@ export function preloadSiteImages() {
   return Promise.allSettled(siteRoutes.flatMap(routeImages).map((props) => prepareImage(props, "high")));
 }
 
-/** Download the entire clip once, and retain its object URL for this document. */
 export function preloadGenesisVideo() {
   if (!videoDownload) {
     videoDownload = fetch(GENESIS_VIDEO)
@@ -49,8 +47,6 @@ export function preloadGenesisVideo() {
       })
       .then((blob) => {
         if (!blob.size) throw new Error("Video download was empty");
-        // The browser releases this document's URLs on unload. Keeping this
-        // one alive lets every Genesis visit reuse the complete local video.
         return URL.createObjectURL(blob);
       })
       .catch((error) => {
@@ -61,10 +57,7 @@ export function preloadGenesisVideo() {
   return videoDownload;
 }
 
-/** Fetch route data and load page modules without mounting any hidden pages. */
 export function preloadSiteRoutes(router) {
-  // Include the entry route: its initial HTML does not populate every entry
-  // in Next's navigation cache needed when returning through a link.
   const pending = new Set(siteRoutes);
   let observer;
   let finish;
@@ -74,8 +67,6 @@ export function preloadSiteRoutes(router) {
     finish();
   };
 
-  // router.prefetch returns void. Resource timing lets the initial loader
-  // wait for the route responses instead of treating scheduling as completion.
   const checkResponses = (entries) => {
     for (const entry of entries) {
       if (entry.initiatorType !== "fetch") continue;
@@ -93,8 +84,6 @@ export function preloadSiteRoutes(router) {
     observer.observe({ type: "resource", buffered: true });
     checkResponses(performance.getEntriesByType("resource"));
   } else {
-    // Next disables prefetching in development and for crawlers. Without
-    // resource timing, still prepare modules and request the routes normally.
     settle();
   }
   for (const path of pending) router.prefetch(path, { kind: "full" });
@@ -111,7 +100,6 @@ export function preloadSiteRoutes(router) {
   return { ready, dispose: settle };
 }
 
-/** Prepare a destination's visible images when a link is focused or chosen. */
 export function warmRouteAssets(href) {
   const connection = navigator.connection;
   if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || "")) return;

@@ -20,7 +20,6 @@
     calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
 }
 
-/* The entrance's timing runs backwards while every line keeps moving up. */
 .content[data-exiting="true"] .moving,
 .moving[data-exiting="true"] {
   animation: exit var(--duration) ease-in both;

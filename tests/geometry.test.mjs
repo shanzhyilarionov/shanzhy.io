@@ -27,7 +27,6 @@ function norm4(point) {
 }
 
 function randomRotations(seed) {
-  // Deterministic pseudo-random angles, so a failure is reproducible.
   let state = seed;
   const next = () => {
     state = (state * 1103515245 + 12345) % 2147483648;
@@ -82,11 +81,9 @@ test("the tesseract has 24 square faces", () => {
       const next = face.corners[(index + 1) % 4];
       const key = `${Math.min(current, next)}-${Math.max(current, next)}`;
 
-      // Consecutive corners are joined by a real edge of the tesseract...
       assert.ok(edgeKeys.has(key), "face side is not a tesseract edge");
     }
 
-    // ...and opposite corners are the diagonal, differing on both axes.
     for (const [first, second] of [
       [0, 2],
       [1, 3],
@@ -133,7 +130,6 @@ test("4D rotation is an isometry", () => {
     assert.ok(Math.abs(norm4(rotated) - norm4(vertex)) < 1e-9);
   }
 
-  // A rotation by 2*pi is the identity.
   const point = [0.3, -0.7, 0.5, 0.1];
   const round = rotate4D(point, 1, 3, Math.PI * 2);
   for (let axis = 0; axis < 4; axis++) {
@@ -192,7 +188,6 @@ test("the projected radius never exceeds the closed-form bound 6/sqrt(5)", () =>
   }
 
   assert.ok(observed <= PROJECTED_RADIUS_3D + 1e-9, "bound was exceeded");
-  // The bound should be tight, not merely safe.
   assert.ok(observed > PROJECTED_RADIUS_3D * 0.97, "bound is not tight");
 });
 
@@ -228,7 +223,6 @@ test("the 4D face normal is a unit vector orthogonal to the face", () => {
     const normal = faceNormal4D(face);
     assert.ok(Math.abs(norm4(normal) - 1) < 1e-12);
 
-    // The face spans firstAxis and secondAxis; the normal must not.
     assert.equal(normal[face.firstAxis], 0);
     assert.equal(normal[face.secondAxis], 0);
   }

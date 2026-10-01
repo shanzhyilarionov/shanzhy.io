@@ -4,34 +4,15 @@
   z-index: 100;
   background: #FFFFFF;
   color: #000000;
-  /*
-   * The panel is a mask, not a moving page: the box travels and `.stage`
-   * inside it travels exactly as far the other way, so the wordmark, the
-   * button and the labels hold still while an edge sweeps across them.
-   *
-   * `clip-path` would say this more directly, and it is what this used to do —
-   * but a minifier shortens `inset(0 0 0 0)` to `inset(0)`, and browsers do
-   * not interpolate that against a four-value inset. The animation silently
-   * became a jump to the end state, which read as the panel appearing all at
-   * once. Two cancelling transforms have no such edge, and stay on the
-   * compositor besides.
-   */
   overflow: hidden;
   transform: translate3d(0, 100%, 0);
   visibility: hidden;
   pointer-events: none;
 
-  /* Fade transitions run both legs in full; only home's slide overlaps. */
   --panel-lead: var(--enter-leg);
   --content-lead: var(--motion-content);
 }
 
-/*
- * Over home the panel is white against black, so an edge has to sweep across:
- * up from the bottom to uncover it, up past the top to take it away. Over any
- * other page it is white against white, so it only fades — which is what the
- * page underneath fading out in place looks like.
- */
 .enterSlide {
   --enter-leg: var(--motion-panel);
   --panel-lead: calc(var(--enter-leg) - var(--motion-overlap));
@@ -56,7 +37,6 @@
   transform: translate3d(0, 0, 0);
 }
 
-/* Everything the panel carries rides here, held still against its travel. */
 .stage {
   position: absolute;
   inset: 0;
@@ -79,8 +59,6 @@
   animation: panelFadeIn var(--enter-leg) var(--ease-content) both;
 }
 
-/* Closing outright: the contents go first, then the panel follows them out.
-   Both legs are CSS, so no timer sits between them to drift. */
 .closing {
   pointer-events: none;
 }
@@ -125,7 +103,6 @@
   transition: color 0.2s ease-out;
 }
 
-/* Waiting below its mask until the panel is nearly in place. */
 .label {
   display: block;
   transform: translate3d(0, 100%, 0);
@@ -137,15 +114,12 @@
 }
 
 @media (max-width: 768px) {
-  /* Matches the persistent header white pages keep above this panel, so
-     home's own copy (brand + close) doesn't jump to the sides while open. */
   .chrome {
     align-items: flex-start;
     padding-top: 1.5rem;
   }
 }
 
-/* Everything the panel carries arrives together. */
 .open .label {
   animation: labelIn var(--motion-content) var(--ease-content) var(--panel-lead)
     both;
@@ -160,10 +134,6 @@
   animation: labelOut var(--motion-content) var(--ease-content) both;
 }
 
-/*
- * Closing the panel takes all its chrome away. When changing routes, only
- * Close fades out; the next page's wordmark takes over at the route swap.
- */
 .closing .chrome {
   animation: fadeOut var(--motion-content) var(--ease-content) both;
 }
@@ -186,11 +156,6 @@
   }
 }
 
-/*
- * The revealing edge runs bottom to top; the taking-away edge follows it. Each
- * pair moves the box and its contents by the same amount in opposite
- * directions, so only the edge is ever seen to move.
- */
 @keyframes panelIn {
   from {
     transform: translate3d(0, 100%, 0);

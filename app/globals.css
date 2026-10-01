@@ -1,36 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  /* The 1/20 and 19/20 lines. Everything pinned to an edge sits on one. */
   --page-inset: 5vw;
 
-  /* Fixed, not viewport-relative. */
   --nav-size: 50px;
 
-  /* Shared text rhythm; media uses the same spacing as body paragraphs. */
   --body-line-height: 1;
   --heading-line-height: 1;
   --heading-gap: 30px;
   --paragraph-gap: 20px;
 
-  /*
-   * Over home, the panel's slide and its contents overlap by `--motion-overlap`.
-   * Everywhere else the panel fades for `--motion-content`, and the two legs
-   * run in sequence with no overlap.
-   *
-   * Mirrored by PANEL_MS / CONTENT_MS / OVERLAP_MS in shell.jsx, which have to
-   * know when each leg is over; keep the two in step.
-   */
   --motion-panel: 1s;
   --motion-content: 0.5s;
   --motion-overlap: 0.3s;
 
-  /*
-   * A curve that starts or ends at speed would leave a visible seam where one
-   * leg hands over to the next. Both of these begin and end at rest: the panel
-   * with a long, weighted middle, its contents with a shorter push and a
-   * longer settle.
-   */
   --ease-panel: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-content: cubic-bezier(0.62, 0, 0.2, 1);
 
@@ -40,11 +23,6 @@ html,
 body {
   width: 100%;
   min-height: 100%;
-  /*
-   * The site is white; only the home page is black, and it paints its own
-   * background. Changes between home and white pages happen behind the opaque
-   * navigation panel, so the two never meet in the open.
-   */
   background: #FFFFFF;
   color: #000000;
   line-height: var(--body-line-height);
