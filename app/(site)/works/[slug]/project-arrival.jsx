@@ -18,7 +18,6 @@ export default function ProjectArrival({ children }) {
     const container = containerRef.current;
     const elapsed = performance.now() - transition.startedAt;
     container.style.setProperty("--project-enter-delay", `${700 - elapsed}ms`);
-    container.style.setProperty("--project-media-delay", `${Math.max(0, 900 - elapsed)}ms`);
     return arriveProject(
       transition,
       container.querySelector("[data-project-media]"),

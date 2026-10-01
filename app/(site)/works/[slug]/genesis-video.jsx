@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useEntryLoading } from "../../../../components/entry-loading";
 import { useProjectArrival } from "./project-arrival";
 import styles from "./genesis.module.css";
@@ -10,6 +10,12 @@ export default function GenesisVideo() {
   const arrival = useProjectArrival();
   const videoRef = useRef(null);
   const [playback, setPlayback] = useState("loading");
+
+  useLayoutEffect(() => {
+    // Signal after data-ready/controls have reached the DOM, not from the
+    // video callback before React has made its first frame visible.
+    if (playback !== "loading") arrival?.markMediaReady();
+  }, [arrival, playback]);
 
   useEffect(() => {
     const video = videoRef.current;

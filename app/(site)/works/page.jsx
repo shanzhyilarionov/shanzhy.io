@@ -101,7 +101,7 @@ export default function Works() {
     const image = projectsRef.current.querySelector(
       `a[href="${href}"] .${styles.imageFrame}`,
     );
-    startProjectTransition(project.image, page, image);
+    startProjectTransition(page, image);
     setTransition({ phase: "project" });
     router.push(href);
   };

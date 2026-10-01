@@ -14,6 +14,14 @@ function snapshot(element) {
     target.style.animation = "none";
     target.style.transition = "none";
     target.removeAttribute("id");
+    if (original instanceof HTMLImageElement) {
+      // Keep the already displayed bitmap, including Next's selected variant.
+      // A new source or async decode can leave the clone blank for a frame.
+      target.removeAttribute("srcset");
+      target.removeAttribute("sizes");
+      target.src = original.currentSrc || original.src;
+      target.decoding = "sync";
+    }
   });
 
   copy.setAttribute("aria-hidden", "true");
@@ -35,7 +43,7 @@ function place(element, bounds) {
   });
 }
 
-export function startProjectTransition(source, page, frame) {
+export function startProjectTransition(page, frame) {
   activeTransition?.dispose();
   const startedAt = performance.now();
   const bounds = frame.getBoundingClientRect();
@@ -47,9 +55,6 @@ export function startProjectTransition(source, page, frame) {
   place(departing, page.getBoundingClientRect());
   place(preview, bounds);
   const image = preview.querySelector("img");
-  image.removeAttribute("srcset");
-  image.removeAttribute("sizes");
-  image.src = source;
   Object.assign(image.style, {
     width: "100%",
     height: "100%",
@@ -69,6 +74,11 @@ export function startProjectTransition(source, page, frame) {
     startedAt,
     preview,
     bounds,
+    mediaReady: false,
+    markMediaReady() {
+      transition.mediaReady = true;
+      transition.onMediaReady?.();
+    },
     dispose() {
       fade.cancel();
       departing.remove();
@@ -88,23 +98,61 @@ export function arriveProject(transition, target) {
   cancelAnimationFrame(transition.cleanupFrame);
   const { preview, bounds, startedAt } = transition;
   const destination = target.getBoundingClientRect();
+  const visibility = target.style.visibility;
+  target.style.visibility = "hidden";
   const geometry = (rect) => ({
     top: `${rect.top}px`,
     left: `${rect.left}px`,
     width: `${rect.width}px`,
     height: `${rect.height}px`,
   });
-  const movement = preview.animate([geometry(bounds), geometry(destination)], {
+  const timing = {
     duration: 700,
     delay: 200,
     easing: getComputedStyle(document.documentElement).getPropertyValue("--ease-content").trim(),
     fill: "both",
-  });
-  movement.currentTime = performance.now() - startedAt;
-  movement.onfinish = () => transition.dispose();
+  };
+  const movement = preview.animate([geometry(bounds), geometry(destination)], timing);
+  const image = preview.querySelector("img");
+  const color = image.animate([
+    { filter: image.style.filter },
+    { filter: "grayscale(0)" },
+  ], timing);
+  const elapsed = performance.now() - startedAt;
+  movement.currentTime = elapsed;
+  color.currentTime = elapsed;
+
+  let arrived = false;
+  let disposed = false;
+  let handoff;
+  const revealMedia = () => {
+    if (disposed || !arrived || !transition.mediaReady || handoff) return;
+    // Keep the same bitmap until React has committed a presented video frame
+    // (or its playback fallback). Fade it out over the live media so mobile
+    // compositing and the thumbnail's lower resolution cannot cause a flash.
+    handoff = preview.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 120,
+      easing: "ease-out",
+      fill: "both",
+    });
+    handoff.onfinish = () => transition.dispose();
+  };
+  transition.onMediaReady = revealMedia;
+  movement.onfinish = () => {
+    arrived = true;
+    // Let the video present underneath the still-opaque cover. In particular,
+    // don't depend on mobile browsers presenting a visibility:hidden video.
+    target.style.visibility = visibility;
+    revealMedia();
+  };
 
   return () => {
+    disposed = true;
+    transition.onMediaReady = null;
+    target.style.visibility = visibility;
     movement.cancel();
+    color.cancel();
+    handoff?.cancel();
     transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
   };
 }
