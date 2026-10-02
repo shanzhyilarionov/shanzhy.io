@@ -57,6 +57,7 @@ export default function GlassTesseract() {
     const temporalState = { pointer: { x: 0, y: 0 } };
     const viewport = { width: 1, height: 1 };
     const pointer = { x: 0, y: 0 };
+    let pointerOrigin = null;
     let bounds = canvas.getBoundingClientRect();
 
     function renderFrame(time, deltaTime) {
@@ -100,10 +101,15 @@ export default function GlassTesseract() {
         return;
       }
 
+      if (!pointerOrigin) {
+        pointerOrigin = { x: event.clientX, y: event.clientY };
+        return;
+      }
+
       const width = bounds.width || 1;
       const height = bounds.height || 1;
-      pointer.x = clamp(((event.clientX - bounds.left) / width - 0.5) * 2, -1, 1);
-      pointer.y = clamp(((event.clientY - bounds.top) / height - 0.5) * 2, -1, 1);
+      pointer.x = clamp(((event.clientX - pointerOrigin.x) / width) * 2, -1, 1);
+      pointer.y = clamp(((event.clientY - pointerOrigin.y) / height) * 2, -1, 1);
 
       if (!running && !pointerFrameId) {
         pointerFrameId = requestAnimationFrame(() => {
