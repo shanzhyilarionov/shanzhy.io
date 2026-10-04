@@ -12,6 +12,7 @@ import { useHistoryExit } from "./use-history-exit";
 import { useEntryLoading } from "./entry-loading";
 import { warmRouteAssets } from "./preload-assets";
 import { startProjectReturn } from "../app/(site)/works/project-transition";
+import { getWorksExitDelay } from "../app/(site)/works/exit-timing";
 import styles from "./shell.module.css";
 
 const PANEL_MS = 1000;
@@ -30,12 +31,12 @@ export default function Shell({ children }) {
   const isGenesis = pathname === "/works/genesis";
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
-  const pageExitMs = isWorks ? CONTENT_MS * 2 : CONTENT_MS;
   const chromeEnterDelayMs = isWorks || isGenesis ? CONTENT_MS : 0;
   const menuEnterDelayMs = isWorks ? 0 : chromeEnterDelayMs;
 
   const [phase, setPhase] = useState("closed");
   const [target, setTarget] = useState(null);
+  const [worksExitDelayMs, setWorksExitDelayMs] = useState(0);
   const [covered, setCovered] = useState(false);
   const [enterSlide, setEnterSlide] = useState(false);
   const [exitSlide, setExitSlide] = useState(false);
@@ -53,10 +54,14 @@ export default function Shell({ children }) {
     covered || entryPending || (homeEntrance === "rise" && !homeChromeReady);
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
   const returningToWorks = isGenesis && !menuVisible && target === "/works";
+  const pageExitMs = CONTENT_MS + (isWorks ? worksExitDelayMs : 0);
   const routeExitMs = returningToWorks ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
   const historyExit = useHistoryExit(pathname, (to) =>
-    isGenesis && !menuVisible && to === "/works" ? 0 : routeExitMs,
+    isGenesis && !menuVisible && to === "/works" ? 0 :
+      isWorks ? CONTENT_MS + getWorksExitDelay() : routeExitMs,
   );
+  const activePageExitMs = historyExit?.duration ?? pageExitMs;
+  const exitSettleMs = isWorks ? activePageExitMs - CONTENT_MS : 0;
   const historyExiting = Boolean(historyExit);
   const destination = historyExit?.to ?? target?.split(/[?#]/)[0] ?? pathname;
   const pageExiting =
@@ -84,6 +89,7 @@ export default function Shell({ children }) {
     });
     setPhase("closed");
     setTarget(null);
+    setWorksExitDelayMs(0);
     setCovered(false);
     setHomeRevealing(isHome);
     setHomeEntranceWaiting(isHome);
@@ -152,6 +158,7 @@ export default function Shell({ children }) {
 
     router.prefetch(next);
     warmRouteAssets(next);
+    setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
     setTarget(next);
     setPhase("leaving");
   };
@@ -203,6 +210,7 @@ export default function Shell({ children }) {
     } else if (phase === "closed") {
       router.prefetch(href);
       warmRouteAssets(href);
+      setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
       setTarget(href);
       setPhase("departing");
     }
@@ -233,7 +241,7 @@ export default function Shell({ children }) {
         style={{
           "--chrome-enter-delay": `${chromeEnterDelayMs}ms`,
           "--menu-enter-delay": `${menuEnterDelayMs}ms`,
-          "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : pageExitMs}ms`,
+          "--chrome-exit-duration": `${navigationLeaving ? CONTENT_MS : activePageExitMs}ms`,
           "--home-animation-play-state": homeAnimationPaused ? "paused" : "running",
         }}
         onClickCapture={followPageLink}
@@ -300,7 +308,7 @@ export default function Shell({ children }) {
             (hasPageExit && (phase !== "closed" || historyExiting))
           }
         >
-          <PageExitProvider exiting={pageExiting}>
+          <PageExitProvider exiting={pageExiting} settleMs={exitSettleMs}>
             {children}
           </PageExitProvider>
         </div>

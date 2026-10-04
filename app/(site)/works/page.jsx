@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
-import { usePageExiting } from "../../../components/page-exit-context";
+import { usePageExiting, usePageExitSettleMs } from "../../../components/page-exit-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, PROJECT_IMAGE_SIZES } from "./projects";
 import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
@@ -20,13 +20,14 @@ export default function Works() {
   const [transition, setTransition] = useState(null);
   const [projectReturn] = useState(getProjectReturn);
   const pageExiting = usePageExiting();
+  const exitSettleMs = usePageExitSettleMs();
   const [wasPageExiting, setWasPageExiting] = useState(false);
   const headingRef = useRef(null);
   const projectsRef = useRef(null);
 
   if (wasPageExiting !== pageExiting) {
     setWasPageExiting(pageExiting);
-    setTransition(pageExiting ? { phase: "settling" } : null);
+    setTransition(pageExiting ? { phase: exitSettleMs > 0 ? "settling" : "exiting" } : null);
   }
 
   useLayoutEffect(() => {
@@ -71,10 +72,10 @@ export default function Works() {
 
     const timer = window.setTimeout(() => {
       setTransition({ phase: "exiting" });
-    }, EXIT_STEP_MS);
+    }, exitSettleMs);
 
     return () => window.clearTimeout(timer);
-  }, [transition]);
+  }, [transition, exitSettleMs]);
 
   useEffect(() => {
     let resizeTimer;
@@ -126,6 +127,8 @@ export default function Works() {
 
         <div
           ref={projectsRef}
+          data-works-projects
+          data-hover-enabled={hoverEnabled && !transition}
           className={[
             styles.projects,
             hoverEnabled && !transition ? styles.hoverEnabled : "",
