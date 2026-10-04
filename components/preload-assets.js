@@ -1,6 +1,6 @@
 import { getImageProps } from "next/image";
 import { isBot } from "next/dist/shared/lib/router/utils/is-bot";
-import { projects, PROJECT_IMAGE_SIZES } from "../app/(site)/works/projects";
+import { projects, PROJECT_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../app/(site)/works/projects";
 
 const warmedImages = new Map();
 export const GENESIS_VIDEO = "/videos/genesis.mp4";
@@ -12,6 +12,7 @@ function routeImages(pathname) {
   if (pathname === "/works") {
     return projects.map((project) => getImageProps({
       src: project.image, alt: "", fill: true, sizes: PROJECT_IMAGE_SIZES,
+      quality: PROJECT_IMAGE_QUALITY,
     }).props);
   }
   return pathname === "/works/genesis" ? [{ src: "/images/genesis.jpg" }] : [];

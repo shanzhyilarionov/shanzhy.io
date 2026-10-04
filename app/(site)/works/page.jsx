@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
 import { usePageExiting, usePageExitSettleMs } from "../../../components/page-exit-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
-import { projects, PROJECT_IMAGE_SIZES } from "./projects";
+import { projects, PROJECT_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "./projects";
 import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
 import styles from "./works.module.css";
 
@@ -171,6 +171,7 @@ export default function Works() {
                         alt={`${project.title} project preview`}
                         fill
                         sizes={PROJECT_IMAGE_SIZES}
+                        quality={PROJECT_IMAGE_QUALITY}
                         priority
                       />
                     </div>

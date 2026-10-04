@@ -11,9 +11,9 @@ export const LOOK = {
     tiltX: 0.4,
     tiltY: -0.5,
     rollZ: 0.1,
-    pointerStrengthDesktop: 0.4,
-    pointerStrengthMobile: 0.5,
-    pointerResponse: 7.5,
+    pointerStrengthDesktop: 0.8,
+    pointerStrengthMobile: 0.8,
+    pointerResponse: 10,
   },
 
   lights: [

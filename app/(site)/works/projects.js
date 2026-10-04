@@ -1,4 +1,5 @@
-export const PROJECT_IMAGE_SIZES = "(hover: hover) and (pointer: fine) 18rem, 121px";
+export const PROJECT_IMAGE_SIZES = "22rem";
+export const PROJECT_IMAGE_QUALITY = 90;
 
 export const projects = [
   {
