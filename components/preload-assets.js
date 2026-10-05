@@ -11,11 +11,23 @@ const siteRoutes = ["/", "/about", "/contact", "/works", ...projects.map(({ slug
 function routeImages(pathname) {
   if (pathname === "/works") {
     return projects.map((project) => getImageProps({
-      src: project.image, alt: "", fill: true, sizes: PROJECT_IMAGE_SIZES,
+      src: project.image, alt: "", fill: !project.crop,
+      width: project.crop ? project.width : undefined,
+      height: project.crop ? project.height : undefined,
+      sizes: PROJECT_IMAGE_SIZES,
       quality: PROJECT_IMAGE_QUALITY,
     }).props);
   }
-  return pathname === "/works/genesis" ? [{ src: "/images/genesis.jpg" }] : [];
+  if (pathname === "/works/genesis") return [{ src: "/images/genesis.jpg" }];
+  if (pathname === "/works/shanzhy-io") {
+    const project = projects.find(({ slug }) => slug === "shanzhy-io");
+    return [getImageProps({
+      src: project.image, alt: "", width: project.width, height: project.height,
+      sizes: "(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem",
+      quality: PROJECT_IMAGE_QUALITY,
+    }).props];
+  }
+  return [];
 }
 
 function prepareImage(props, priority) {
@@ -97,6 +109,7 @@ export function preloadSiteRoutes(router) {
     import("../app/(site)/contact/page"),
     import("../app/(site)/works/page"),
     import("../app/(site)/works/[slug]/genesis"),
+    import("../app/(site)/works/[slug]/shanzhy-io"),
   ]);
   return { ready, dispose: settle };
 }

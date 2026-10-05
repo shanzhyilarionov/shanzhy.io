@@ -139,8 +139,9 @@ export default function Works() {
             .join(" ")}
         >
           {projects.map((project) => {
-            const Preview = project.slug === "genesis" ? Link : "div";
-            const linkProps = project.slug === "genesis" ? {
+            const clickable = project.slug === "genesis" || project.slug === "shanzhy-io";
+            const Preview = clickable ? Link : "div";
+            const linkProps = clickable ? {
               href: `/works/${project.slug}`,
               "aria-label": project.title,
               onPointerEnter: () => warmRouteAssets(`/works/${project.slug}`),
@@ -164,16 +165,38 @@ export default function Works() {
                   className={styles.reveal}
                 >
                   <div className={styles.revealContent}>
-                    <div className={styles.imageFrame} data-project-thumbnail={project.slug}>
-                      <Image
-                        className={styles.image}
-                        src={project.image}
-                        alt={`${project.title} project preview`}
-                        fill
-                        sizes={PROJECT_IMAGE_SIZES}
-                        quality={PROJECT_IMAGE_QUALITY}
-                        priority
-                      />
+                    <div
+                      className={styles.imageFrame}
+                      data-project-thumbnail={project.slug}
+                      data-project-crop={project.crop ? "true" : undefined}
+                    >
+                      <div
+                        className={project.crop ? styles.screenCrop : styles.imageContent}
+                        style={project.crop ? { aspectRatio: project.aspectRatio } : undefined}
+                      >
+                        <Image
+                          className={styles.image}
+                          src={project.image}
+                          alt={`${project.title} project preview`}
+                          fill={!project.crop}
+                          width={project.crop ? project.width : undefined}
+                          height={project.crop ? project.height : undefined}
+                          sizes={PROJECT_IMAGE_SIZES}
+                          quality={PROJECT_IMAGE_QUALITY}
+                          priority
+                          style={project.crop ? {
+                            position: "absolute",
+                            width: `${project.width / project.crop.width * 100}%`,
+                            height: `${project.height / project.crop.height * 100}%`,
+                            left: `${-project.crop.x / project.crop.width * 100}%`,
+                            top: `${-project.crop.y / project.crop.height * 100}%`,
+                            right: "auto",
+                            bottom: "auto",
+                            maxWidth: "none",
+                            objectFit: "fill",
+                          } : undefined}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Preview>

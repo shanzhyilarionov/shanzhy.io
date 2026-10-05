@@ -28,10 +28,10 @@ export default function Shell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
-  const isGenesis = pathname === "/works/genesis";
+  const isProject = pathname === "/works/genesis" || pathname === "/works/shanzhy-io";
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
-  const chromeEnterDelayMs = isWorks || isGenesis ? CONTENT_MS : 0;
+  const chromeEnterDelayMs = isWorks || isProject ? CONTENT_MS : 0;
   const menuEnterDelayMs = isWorks ? 0 : chromeEnterDelayMs;
 
   const [phase, setPhase] = useState("closed");
@@ -53,11 +53,11 @@ export default function Shell({ children }) {
   const homeAnimationPaused =
     covered || entryPending || (homeEntrance === "rise" && !homeChromeReady);
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
-  const returningToWorks = isGenesis && !menuVisible && target === "/works";
+  const returningToWorks = isProject && !menuVisible && target === "/works";
   const pageExitMs = CONTENT_MS + (isWorks ? worksExitDelayMs : 0);
   const routeExitMs = returningToWorks ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
   const historyExit = useHistoryExit(pathname, (to) =>
-    isGenesis && !menuVisible && to === "/works" ? 0 :
+    isProject && !menuVisible && to === "/works" ? 0 :
       isWorks ? CONTENT_MS + getWorksExitDelay() : routeExitMs,
   );
   const activePageExitMs = historyExit?.duration ?? pageExitMs;
@@ -69,16 +69,16 @@ export default function Shell({ children }) {
   const leavingForHome = pageExiting && destination === "/";
   const leavingHome =
     isHome && !menuVisible && (historyExiting || Boolean(target));
-  const projectReturnStarting = isGenesis && pageExiting && destination === "/works" && !menuVisible;
+  const projectReturnStarting = isProject && pageExiting && destination === "/works" && !menuVisible;
   if (projectReturnStarting && !projectReturning) setProjectReturning(true);
 
   useLayoutEffect(() => {
     if (!projectReturnStarting) return;
     const media = document.querySelector("[data-project-media]");
     if (!media) return;
-    const transition = startProjectReturn(media.closest("main"), media, "genesis");
+    const transition = startProjectReturn(media.closest("main"), media, pathname.split("/").at(-1));
     transition.onComplete = () => setProjectReturning(false);
-  }, [projectReturnStarting]);
+  }, [projectReturnStarting, pathname]);
 
   if (viewPath !== pathname) {
     setChromeEntering(viewPath === "/" && !menuVisible);
@@ -195,7 +195,7 @@ export default function Shell({ children }) {
     if (
       url.origin !== window.location.origin ||
       url.pathname === pathname ||
-      (!isHome && url.pathname !== "/" && !(isGenesis && url.pathname === "/works"))
+      (!isHome && url.pathname !== "/" && !(isProject && url.pathname === "/works"))
     ) {
       return;
     }
@@ -294,7 +294,7 @@ export default function Shell({ children }) {
             styles.content,
             isHome ||
             isWorks ||
-            isGenesis ||
+            isProject ||
             isRevealPage
               ? ""
               : styles.contentEntering,

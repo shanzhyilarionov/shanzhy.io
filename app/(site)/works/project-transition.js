@@ -48,6 +48,28 @@ function place(element, bounds) {
   });
 }
 
+function imageGeometry(imageBounds, frameBounds) {
+  return {
+    top: `${imageBounds.top - frameBounds.top}px`,
+    left: `${imageBounds.left - frameBounds.left}px`,
+    width: `${imageBounds.width}px`,
+    height: `${imageBounds.height}px`,
+  };
+}
+
+function placeImage(image, bounds, frameBounds) {
+  Object.assign(image.style, imageGeometry(bounds, frameBounds), {
+    position: "absolute",
+    right: "auto",
+    bottom: "auto",
+    margin: "0",
+    maxWidth: "none",
+    maxHeight: "none",
+    transform: "none",
+    objectFit: "fill",
+  });
+}
+
 export function startProjectTransition(page, frame) {
   activeReturn?.dispose();
   activeTransition?.dispose();
@@ -61,10 +83,18 @@ export function startProjectTransition(page, frame) {
   place(departing, page.getBoundingClientRect());
   place(preview, bounds);
   const image = preview.querySelector("img");
-  Object.assign(image.style, {
-    width: "100%",
-    height: "100%",
-  });
+  const cropped = frame.dataset.projectCrop === "true";
+  preview.replaceChildren(image);
+  if (cropped) {
+    placeImage(image, frame.querySelector("img").getBoundingClientRect(), bounds);
+  } else {
+    Object.assign(image.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+    });
+  }
   document.body.append(departing, preview);
   page.style.visibility = "hidden";
 
@@ -80,6 +110,7 @@ export function startProjectTransition(page, frame) {
     startedAt,
     preview,
     bounds,
+    cropped,
     mediaReady: false,
     markMediaReady() {
       transition.mediaReady = true;
@@ -112,15 +143,20 @@ export function startProjectReturn(page, frame, slug) {
   place(preview, bounds);
   preview.style.overflow = "hidden";
   const video = frame.querySelector("video");
-  let bitmap = document.createElement("canvas");
-  bitmap.width = video.videoWidth || 1600;
-  bitmap.height = video.videoHeight || 900;
-  try {
-    if (video.readyState < 2) throw new Error("Video frame is not ready");
-    bitmap.getContext("2d").drawImage(video, 0, 0, bitmap.width, bitmap.height);
-  } catch {
-    bitmap = document.createElement("img");
-    bitmap.src = video.poster;
+  let bitmap;
+  if (video) {
+    bitmap = document.createElement("canvas");
+    bitmap.width = video.videoWidth || 1600;
+    bitmap.height = video.videoHeight || 900;
+    try {
+      if (video.readyState < 2) throw new Error("Video frame is not ready");
+      bitmap.getContext("2d").drawImage(video, 0, 0, bitmap.width, bitmap.height);
+    } catch {
+      bitmap = document.createElement("img");
+      bitmap.src = video.poster;
+    }
+  } else {
+    bitmap = snapshot(frame.querySelector("img"));
   }
   Object.assign(bitmap.style, {
     display: "block",
@@ -128,6 +164,7 @@ export function startProjectReturn(page, frame, slug) {
     height: "100%",
     objectFit: "cover",
   });
+  if (!video) placeImage(bitmap, frame.querySelector("img").getBoundingClientRect(), bounds);
   preview.append(bitmap);
   document.body.append(departing, preview);
   departing.scrollTop = page.scrollTop;
@@ -140,6 +177,7 @@ export function startProjectReturn(page, frame, slug) {
     startedAt,
     bounds,
     preview,
+    cropped: frame.dataset.projectCrop === "true",
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -177,18 +215,28 @@ export function arriveWorks(transition, page, target) {
   };
   const visibility = target.style.visibility;
   target.style.visibility = "hidden";
-  const thumbnail = snapshot(target.querySelector("img"));
-  Object.assign(thumbnail.style, {
-    position: "absolute",
-    inset: "0",
-    width: "100%",
-    height: "100%",
-    filter: "none",
-  });
-  preview.append(thumbnail);
+  let thumbnail;
+  let poster;
+  if (transition.cropped) {
+    const image = preview.querySelector("img");
+    poster = image.animate([
+      imageGeometry(image.getBoundingClientRect(), bounds),
+      imageGeometry(target.querySelector("img").getBoundingClientRect(), target.getBoundingClientRect()),
+    ], timing);
+  } else {
+    thumbnail = snapshot(target.querySelector("img"));
+    Object.assign(thumbnail.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      filter: "none",
+    });
+    preview.append(thumbnail);
+    poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);
+  }
   const movement = preview.animate([geometry(bounds), geometry(target.getBoundingClientRect())], timing);
   const color = preview.animate([{ filter: "grayscale(0)" }, { filter: "grayscale(1)" }], timing);
-  const poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);
   const fades = Array.from(page.querySelectorAll("[data-works-heading], [data-project-preview]"))
     .filter((element) => !element.contains(target))
     .map((element) => element.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -208,7 +256,7 @@ export function arriveWorks(transition, page, target) {
   return () => {
     target.style.visibility = visibility;
     animations.forEach((animation) => animation.cancel());
-    thumbnail.remove();
+    thumbnail?.remove();
     transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
   };
 }
@@ -241,9 +289,14 @@ export function arriveProject(transition, target) {
     { filter: image.style.filter },
     { filter: "grayscale(0)" },
   ], timing);
+  const crop = transition.cropped ? image.animate([
+    imageGeometry(image.getBoundingClientRect(), bounds),
+    imageGeometry(destination, destination),
+  ], timing) : null;
   const elapsed = performance.now() - startedAt;
   movement.currentTime = elapsed;
   color.currentTime = elapsed;
+  if (crop) crop.currentTime = elapsed;
 
   let arrived = false;
   let disposed = false;
@@ -270,6 +323,7 @@ export function arriveProject(transition, target) {
     target.style.visibility = visibility;
     movement.cancel();
     color.cancel();
+    crop?.cancel();
     handoff?.cancel();
     transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
   };

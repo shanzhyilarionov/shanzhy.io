@@ -61,6 +61,18 @@
   object-fit: cover;
 }
 
+.image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  animation: videoContentIn 0.7s var(--ease-panel) both;
+}
+
+.imageElement {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .videoElement[data-ready="false"] {
   opacity: 0;
 }
@@ -94,7 +106,8 @@
 }
 
 .fromWorks:not(.exiting) .videoMask,
-.fromWorks:not(.exiting) .video {
+.fromWorks:not(.exiting) .video,
+.fromWorks:not(.exiting) .image {
   animation: none;
 }
 
@@ -102,7 +115,8 @@
   animation: videoMaskOut var(--motion-content) var(--ease-panel) both;
 }
 
-.exiting .video {
+.exiting .video,
+.exiting .image {
   animation: videoContentOut var(--motion-content) var(--ease-panel) both;
 }
 

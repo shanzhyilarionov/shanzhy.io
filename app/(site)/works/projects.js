@@ -12,8 +12,11 @@ export const projects = [
   {
     slug: "shanzhy-io",
     title: "shanzhy.io",
-    image: "/images/shanzhy.png",
-    aspectRatio: 1438 / 899,
+    image: "/images/shanzhy.io.png",
+    aspectRatio: 2636.93 / 1648.08,
+    crop: { x: 681.035, y: 328.43, width: 2636.93, height: 1648.08 },
+    width: 4000,
+    height: 2500,
     duration: "0.5s",
   },
   {

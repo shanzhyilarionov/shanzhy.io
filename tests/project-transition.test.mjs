@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { arriveProject } from "../app/(site)/works/project-transition.js";
 
-function setup(t, { mediaReady = false, filter = "grayscale(1)" } = {}) {
+function setup(t, { mediaReady = false, filter = "grayscale(1)", cropped = false } = {}) {
   const frames = new Map();
   let nextFrame = 0;
   const globals = {
@@ -29,17 +29,22 @@ function setup(t, { mediaReady = false, filter = "grayscale(1)" } = {}) {
     animations.push(animation);
     return animation;
   };
-  const image = { style: { filter }, animate };
+  const image = {
+    style: { filter },
+    animate,
+    getBoundingClientRect: () => ({ top: -20, left: -90, width: 400, height: 250 }),
+  };
   const bounds = { top: 10, left: 10, width: 100, height: 150 };
   const target = {
     style: { visibility: "" },
-    getBoundingClientRect: () => ({ top: 300, left: 20, width: 350, height: 197 }),
+    getBoundingClientRect: () => ({ top: 300, left: 20, width: 350, height: cropped ? 218.75 : 197 }),
   };
   const transition = {
     startedAt: performance.now(),
     bounds,
     preview: { animate, querySelector: () => image },
     mediaReady,
+    cropped,
     dispose: t.mock.fn(),
   };
   const cleanup = arriveProject(transition, target);
@@ -66,6 +71,38 @@ test("keeps the cover after movement until a video frame has been committed", (t
   assert.equal(animations.length, 3);
   animations[2].onfinish();
   assert.equal(transition.dispose.mock.callCount(), 1);
+});
+
+test("a mockup expands its existing image from the screen crop to the full composition without distortion", (t) => {
+  const { animations, target } = setup(t, { cropped: true });
+  const [movement, color, crop] = animations;
+  assert.equal(target.style.visibility, "hidden");
+  assert.deepEqual(crop.keyframes, [
+    { top: "-30px", left: "-100px", width: "400px", height: "250px" },
+    { top: "0px", left: "0px", width: "350px", height: "218.75px" },
+  ]);
+  assert.deepEqual(crop.timing, movement.timing);
+  assert.equal(crop.currentTime, movement.currentTime);
+  assert.equal(color.currentTime, movement.currentTime);
+  const [start, end] = crop.keyframes.map(({ width, height }) => ({
+    width: parseFloat(width), height: parseFloat(height),
+  }));
+  for (const progress of [0, 0.25, 0.5, 0.75, 1]) {
+    const width = start.width + (end.width - start.width) * progress;
+    const height = start.height + (end.height - start.height) * progress;
+    assert.equal(width / height, 1.6);
+  }
+});
+
+test("a mockup waits for image readiness and cancels its crop animation when interrupted", (t) => {
+  const { transition, animations, cleanup, presentMedia } = setup(t, { cropped: true });
+  animations[0].onfinish();
+  assert.equal(animations.length, 3);
+  presentMedia();
+  assert.equal(animations.length, 4);
+  cleanup();
+  animations.forEach((animation) => assert.equal(animation.cancel.mock.callCount(), 1));
+  assert.equal(transition.dispose.mock.callCount(), 0);
 });
 
 test("a ready video or playback fallback still waits for the movement to finish", (t) => {

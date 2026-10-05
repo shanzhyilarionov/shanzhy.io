@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { projects } from "../projects";
 import Genesis from "./genesis";
+import ShanzhyIo from "./shanzhy-io";
 import ProjectArrival from "./project-arrival";
 
 export function generateStaticParams() {
@@ -15,6 +16,10 @@ export default async function ProjectPage({ params }) {
 
   if (slug === "genesis") {
     return <ProjectArrival><Genesis /></ProjectArrival>;
+  }
+
+  if (slug === "shanzhy-io") {
+    return <ProjectArrival><ShanzhyIo /></ProjectArrival>;
   }
 
   return <main className="blankPage" aria-label={project.title} />;
