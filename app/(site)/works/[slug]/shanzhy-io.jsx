@@ -49,7 +49,7 @@ export default function ShanzhyIo() {
                 ref={imageRef}
                 className={styles.imageElement}
                 src={project.image}
-                alt="shanzhy.io portfolio displayed on a MacBook Pro"
+                alt="shanzhy.io portfolio displayed on an iMac"
                 width={project.width}
                 height={project.height}
                 sizes="(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem"
