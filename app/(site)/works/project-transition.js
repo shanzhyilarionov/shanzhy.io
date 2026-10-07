@@ -133,7 +133,7 @@ export function startProjectReturn(page, frame, slug) {
   const startedAt = performance.now();
   const bounds = frame.getBoundingClientRect();
   const departing = snapshot(page, true);
-  departing.querySelector("[data-project-media]").style.visibility = "hidden";
+  departing.querySelector("[data-project-media]").style.opacity = "0";
   place(departing, page.getBoundingClientRect());
 
   const preview = document.createElement("div");
