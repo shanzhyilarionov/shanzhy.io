@@ -139,7 +139,7 @@ export default function Works() {
             .join(" ")}
         >
           {projects.map((project) => {
-            const clickable = project.slug === "genesis" || project.slug === "shanzhy-io";
+            const clickable = project.slug === "genesis" || project.slug === "shanzhy-io" || project.slug === "commissioning-workspace";
             const Preview = clickable ? Link : "div";
             const linkProps = clickable ? {
               href: `/works/${project.slug}`,

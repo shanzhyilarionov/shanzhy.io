@@ -34,6 +34,10 @@
   overflow-wrap: anywhere;
 }
 
+.longHeading {
+  font-size: min(var(--nav-size), 13vw);
+}
+
 .videoFrame {
   width: 100%;
   margin-top: var(--paragraph-gap);
@@ -91,6 +95,19 @@
   justify-content: center;
   margin-top: var(--paragraph-gap);
   animation: fadeIn 0.5s ease-out 0.5s both;
+}
+
+.actions {
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actionSeparator {
+  width: 0.125rem;
+  height: 0.125rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .fromWorks .intro {
@@ -187,5 +204,12 @@
 @media (max-width: 768px) {
   .page {
     padding-inline: var(--page-inset);
+  }
+}
+
+@media (max-width: 360px) {
+  .actions {
+    gap: 0.375rem;
+    font-size: 0.8125rem;
   }
 }

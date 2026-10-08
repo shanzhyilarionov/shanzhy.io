@@ -164,7 +164,9 @@ export function startProjectReturn(page, frame, slug) {
     height: "100%",
     objectFit: "cover",
   });
-  if (!video) placeImage(bitmap, frame.querySelector("img").getBoundingClientRect(), bounds);
+  if (!video && frame.dataset.projectCrop === "true") {
+    placeImage(bitmap, frame.querySelector("img").getBoundingClientRect(), bounds);
+  }
   preview.append(bitmap);
   document.body.append(departing, preview);
   departing.scrollTop = page.scrollTop;
@@ -231,6 +233,7 @@ export function arriveWorks(transition, page, target) {
       width: "100%",
       height: "100%",
       filter: "none",
+      visibility: "visible",
     });
     preview.append(thumbnail);
     poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);

@@ -24,6 +24,8 @@ export const projects = [
     title: "Commissioning Workspace",
     image: "/images/commissioning-workspace.png",
     aspectRatio: 2880 / 1800,
+    width: 2880,
+    height: 1800,
     duration: "1s",
   },
 ];

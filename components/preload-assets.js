@@ -19,8 +19,8 @@ function routeImages(pathname) {
     }).props);
   }
   if (pathname === "/works/genesis") return [{ src: "/images/genesis.jpg" }];
-  if (pathname === "/works/shanzhy-io") {
-    const project = projects.find(({ slug }) => slug === "shanzhy-io");
+  if (pathname === "/works/shanzhy-io" || pathname === "/works/commissioning-workspace") {
+    const project = projects.find(({ slug }) => pathname === `/works/${slug}`);
     return [getImageProps({
       src: project.image, alt: "", width: project.width, height: project.height,
       sizes: "(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem",
@@ -110,6 +110,7 @@ export function preloadSiteRoutes(router) {
     import("../app/(site)/works/page"),
     import("../app/(site)/works/[slug]/genesis"),
     import("../app/(site)/works/[slug]/shanzhy-io"),
+    import("../app/(site)/works/[slug]/commissioning-workspace"),
   ]);
   return { ready, dispose: settle };
 }

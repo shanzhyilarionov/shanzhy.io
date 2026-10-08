@@ -28,7 +28,7 @@ export default function Shell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
-  const isProject = pathname === "/works/genesis" || pathname === "/works/shanzhy-io";
+  const isProject = pathname === "/works/genesis" || pathname === "/works/shanzhy-io" || pathname === "/works/commissioning-workspace";
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
   const chromeEnterDelayMs = isWorks || isProject ? CONTENT_MS : 0;

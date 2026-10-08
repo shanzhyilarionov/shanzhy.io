@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { projects } from "../projects";
 import Genesis from "./genesis";
 import ShanzhyIo from "./shanzhy-io";
+import CommissioningWorkspace from "./commissioning-workspace";
 import ProjectArrival from "./project-arrival";
 
 export function generateStaticParams() {
@@ -20,6 +21,10 @@ export default async function ProjectPage({ params }) {
 
   if (slug === "shanzhy-io") {
     return <ProjectArrival><ShanzhyIo /></ProjectArrival>;
+  }
+
+  if (slug === "commissioning-workspace") {
+    return <ProjectArrival><CommissioningWorkspace /></ProjectArrival>;
   }
 
   return <main className="blankPage" aria-label={project.title} />;
