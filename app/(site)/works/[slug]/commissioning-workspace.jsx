@@ -62,9 +62,7 @@ export default function CommissioningWorkspace() {
           </div>
         </div>
 
-        <div className={`${styles.action} ${styles.actions}`}>
-          <RollingText type="button" label="View Screenshots" />
-          <span className={styles.actionSeparator} aria-hidden="true" />
+        <div className={styles.action}>
           <RollingText
             as="a"
             href="https://github.com/shanzhyilarionov/commissioning-workspace"

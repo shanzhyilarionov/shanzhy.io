@@ -70,6 +70,53 @@ function placeImage(image, bounds, frameBounds) {
   });
 }
 
+function coverBounds(bounds, aspectRatio) {
+  const width = Math.max(bounds.width, bounds.height * aspectRatio);
+  const height = width / aspectRatio;
+  return {
+    top: bounds.top + (bounds.height - height) / 2,
+    left: bounds.left + (bounds.width - width) / 2,
+    width,
+    height,
+  };
+}
+
+function animateReturnImage(image, from, to, frameBounds, timing) {
+  placeImage(image, from, frameBounds);
+  image.style.transformOrigin = "0 0";
+  image.style.willChange = "transform, opacity";
+  return image.animate([
+    { transform: "translate3d(0, 0, 0) scale(1)" },
+    { transform: `translate3d(${to.left - from.left}px, ${to.top - from.top}px, 0) scale(${to.width / from.width})` },
+  ], timing);
+}
+
+export function retainProjectVideo(video) {
+  const parent = video.parentElement;
+  const sibling = video.nextSibling;
+  const style = video.getAttribute("style");
+  const controls = video.controls;
+  const playing = !video.paused;
+  let restored = false;
+  video.pause();
+  video.controls = false;
+
+  return () => {
+    if (restored) return;
+    restored = true;
+    parent.insertBefore(video, sibling?.parentNode === parent ? sibling : null);
+    if (style === null) video.removeAttribute("style");
+    else video.setAttribute("style", style);
+    video.controls = controls;
+    if (!parent.isConnected) {
+      video.removeAttribute("src");
+      video.load();
+    } else if (playing) {
+      video.play().catch(() => {});
+    }
+  };
+}
+
 export function startProjectTransition(page, frame) {
   activeReturn?.dispose();
   activeTransition?.dispose();
@@ -143,20 +190,19 @@ export function startProjectReturn(page, frame, slug) {
   place(preview, bounds);
   preview.style.overflow = "hidden";
   const video = frame.querySelector("video");
+  const sourceImage = frame.querySelector("img");
   let bitmap;
+  let restoreVideo;
   if (video) {
-    bitmap = document.createElement("canvas");
-    bitmap.width = video.videoWidth || 1600;
-    bitmap.height = video.videoHeight || 900;
-    try {
-      if (video.readyState < 2) throw new Error("Video frame is not ready");
-      bitmap.getContext("2d").drawImage(video, 0, 0, bitmap.width, bitmap.height);
-    } catch {
+    if (video.readyState >= 2) {
+      bitmap = video;
+      restoreVideo = retainProjectVideo(video);
+    } else {
       bitmap = document.createElement("img");
       bitmap.src = video.poster;
     }
   } else {
-    bitmap = snapshot(frame.querySelector("img"));
+    bitmap = snapshot(sourceImage);
   }
   Object.assign(bitmap.style, {
     display: "block",
@@ -165,7 +211,7 @@ export function startProjectReturn(page, frame, slug) {
     objectFit: "cover",
   });
   if (!video && frame.dataset.projectCrop === "true") {
-    placeImage(bitmap, frame.querySelector("img").getBoundingClientRect(), bounds);
+    placeImage(bitmap, sourceImage.getBoundingClientRect(), bounds);
   }
   preview.append(bitmap);
   document.body.append(departing, preview);
@@ -180,12 +226,16 @@ export function startProjectReturn(page, frame, slug) {
     bounds,
     preview,
     cropped: frame.dataset.projectCrop === "true",
+    mediaAspectRatio: video
+      ? (video.videoWidth || 1600) / (video.videoHeight || 900)
+      : (sourceImage.naturalWidth || sourceImage.width) / (sourceImage.naturalHeight || sourceImage.height),
     dispose() {
       if (disposed) return;
       disposed = true;
       window.clearTimeout(exitTimer);
       departing.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       departing.remove();
+      restoreVideo?.();
       preview.remove();
       page.style.visibility = "";
       if (activeReturn === transition) activeReturn = null;
@@ -203,12 +253,19 @@ export function getProjectReturn() {
 export function arriveWorks(transition, page, target) {
   cancelAnimationFrame(transition.cleanupFrame);
   const { preview, bounds, startedAt } = transition;
-  const geometry = (rect) => ({
-    top: `${rect.top}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
-    height: `${rect.height}px`,
-  });
+  const destination = target.getBoundingClientRect();
+  const targetImage = target.querySelector("img");
+  const bitmap = transition.bitmap ?? preview.firstElementChild;
+  transition.bitmap = bitmap;
+  const mediaAspectRatio = transition.mediaAspectRatio || bounds.width / bounds.height;
+  const thumbnailAspectRatio = targetImage.naturalWidth / targetImage.naturalHeight || mediaAspectRatio;
+  const imageFrom = transition.imageBounds ?? (transition.cropped
+    ? bitmap.getBoundingClientRect()
+    : coverBounds(bounds, mediaAspectRatio));
+  transition.imageBounds = imageFrom;
+  const imageTo = transition.cropped
+    ? targetImage.getBoundingClientRect()
+    : coverBounds(destination, mediaAspectRatio);
   const timing = {
     duration: 700,
     delay: 300,
@@ -217,29 +274,58 @@ export function arriveWorks(transition, page, target) {
   };
   const visibility = target.style.visibility;
   target.style.visibility = "hidden";
-  let thumbnail;
-  let poster;
-  if (transition.cropped) {
-    const image = preview.querySelector("img");
-    poster = image.animate([
-      imageGeometry(image.getBoundingClientRect(), bounds),
-      imageGeometry(target.querySelector("img").getBoundingClientRect(), target.getBoundingClientRect()),
-    ], timing);
-  } else {
-    thumbnail = snapshot(target.querySelector("img"));
-    Object.assign(thumbnail.style, {
-      position: "absolute",
-      inset: "0",
-      width: "100%",
-      height: "100%",
-      filter: "none",
-      visibility: "visible",
-    });
-    preview.append(thumbnail);
-    poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);
-  }
-  const movement = preview.animate([geometry(bounds), geometry(target.getBoundingClientRect())], timing);
-  const color = preview.animate([{ filter: "grayscale(0)" }, { filter: "grayscale(1)" }], timing);
+
+  const width = Math.max(bounds.width, destination.width);
+  const height = Math.max(bounds.height, destination.height);
+  const clipFrom = { x: bounds.width - width, y: bounds.height - height };
+  const clipTo = { x: destination.width - width, y: destination.height - height };
+  Object.assign(preview.style, {
+    width: `${width}px`,
+    height: `${height}px`,
+    filter: "none",
+    willChange: "transform",
+  });
+  const clippingFrame = document.createElement("div");
+  Object.assign(clippingFrame.style, {
+    position: "absolute",
+    top: "0",
+    left: "0",
+    width: `${width}px`,
+    height: `${height}px`,
+    overflow: "hidden",
+    willChange: "transform",
+  });
+  const movement = preview.animate([
+    { transform: "translate3d(0, 0, 0)" },
+    { transform: `translate3d(${destination.left - bounds.left}px, ${destination.top - bounds.top}px, 0)` },
+  ], timing);
+  const clip = clippingFrame.animate([
+    { transform: `translate3d(${clipFrom.x}px, ${clipFrom.y}px, 0)` },
+    { transform: `translate3d(${clipTo.x}px, ${clipTo.y}px, 0)` },
+  ], timing);
+  const imageFrameBounds = {
+    left: bounds.left + clipFrom.x,
+    top: bounds.top + clipFrom.y,
+  };
+  const relativeDestination = (rect) => ({
+    width: rect.width,
+    height: rect.height,
+    left: rect.left - destination.left + bounds.left - (clipTo.x - clipFrom.x),
+    top: rect.top - destination.top + bounds.top - (clipTo.y - clipFrom.y),
+  });
+  const imageMovement = animateReturnImage(bitmap, imageFrom, relativeDestination(imageTo), imageFrameBounds, timing);
+  const thumbnail = snapshot(targetImage);
+  Object.assign(thumbnail.style, { filter: "grayscale(1)", visibility: "visible" });
+  const thumbnailMovement = animateReturnImage(
+    thumbnail,
+    transition.cropped ? imageFrom : coverBounds(bounds, thumbnailAspectRatio),
+    relativeDestination(transition.cropped ? imageTo : coverBounds(destination, thumbnailAspectRatio)),
+    imageFrameBounds,
+    timing,
+  );
+  clippingFrame.append(bitmap, thumbnail);
+  preview.append(clippingFrame);
+  const poster = thumbnail.animate([{ opacity: 0 }, { opacity: 1 }], timing);
   const fades = Array.from(page.querySelectorAll("[data-works-heading], [data-project-preview]"))
     .filter((element) => !element.contains(target))
     .map((element) => element.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -248,9 +334,10 @@ export function arriveWorks(transition, page, target) {
       easing: "ease-out",
       fill: "both",
     }));
-  const animations = [movement, color, poster, ...fades];
-  const elapsed = performance.now() - startedAt;
-  animations.forEach((animation) => { animation.currentTime = elapsed; });
+  const animations = [movement, clip, imageMovement, thumbnailMovement, poster, ...fades];
+  const elapsed = Math.min(performance.now() - startedAt, timing.delay);
+  const startTime = document.timeline.currentTime - elapsed;
+  animations.forEach((animation) => { animation.startTime = startTime; });
   movement.onfinish = () => {
     target.style.visibility = visibility;
     transition.dispose();
@@ -259,7 +346,10 @@ export function arriveWorks(transition, page, target) {
   return () => {
     target.style.visibility = visibility;
     animations.forEach((animation) => animation.cancel());
-    thumbnail?.remove();
+    thumbnail.remove();
+    preview.append(bitmap);
+    clippingFrame.remove();
+    placeImage(bitmap, imageFrom, bounds);
     transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
   };
 }
