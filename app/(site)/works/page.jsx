@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
-import { usePageExiting, usePageExitSettleMs } from "../../../components/page-exit-context";
+import { usePageExiting, usePageExitSettleMs } from "../../../components/shell-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
-import { projects, PROJECT_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "./projects";
+import { projects, projectThumbnailProps } from "./projects";
 import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
 import styles from "./works.module.css";
 
@@ -93,8 +93,7 @@ export default function Works() {
     };
   }, []);
 
-  const openProject = (event, project) => {
-    const href = `/works/${project.slug}`;
+  const openProject = (event, href) => {
     router.prefetch(href);
     warmRouteAssets(href);
 
@@ -139,16 +138,7 @@ export default function Works() {
             .join(" ")}
         >
           {projects.map((project) => {
-            const clickable = project.slug === "genesis" || project.slug === "shanzhy-io" || project.slug === "commissioning-workspace";
-            const Preview = clickable ? Link : "div";
-            const linkProps = clickable ? {
-              href: `/works/${project.slug}`,
-              "aria-label": project.title,
-              onPointerEnter: () => warmRouteAssets(`/works/${project.slug}`),
-              onFocus: () => warmRouteAssets(`/works/${project.slug}`),
-              onTouchStart: () => warmRouteAssets(`/works/${project.slug}`),
-              onNavigate: (event) => openProject(event, project),
-            } : {};
+            const href = `/works/${project.slug}`;
 
             return (
               <article
@@ -160,9 +150,14 @@ export default function Works() {
                 }}
                 key={project.slug}
               >
-                <Preview
-                  {...linkProps}
+                <Link
+                  href={href}
+                  aria-label={project.title}
                   className={styles.reveal}
+                  onPointerEnter={() => warmRouteAssets(href)}
+                  onFocus={() => warmRouteAssets(href)}
+                  onTouchStart={() => warmRouteAssets(href)}
+                  onNavigate={(event) => openProject(event, href)}
                 >
                   <div className={styles.revealContent}>
                     <div
@@ -175,14 +170,9 @@ export default function Works() {
                         style={project.crop ? { aspectRatio: project.aspectRatio } : undefined}
                       >
                         <Image
+                          {...projectThumbnailProps(project)}
                           className={styles.image}
-                          src={project.image}
                           alt={`${project.title} project preview`}
-                          fill={!project.crop}
-                          width={project.crop ? project.width : undefined}
-                          height={project.crop ? project.height : undefined}
-                          sizes={PROJECT_IMAGE_SIZES}
-                          quality={PROJECT_IMAGE_QUALITY}
                           priority
                           style={project.crop ? {
                             position: "absolute",
@@ -199,7 +189,7 @@ export default function Works() {
                       </div>
                     </div>
                   </div>
-                </Preview>
+                </Link>
 
                 <h2 className={styles.title}>{project.title}</h2>
               </article>

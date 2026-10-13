@@ -1,4 +1,4 @@
-export const WORKS_HOVER_SETTLE_MS = 500;
+const WORKS_HOVER_SETTLE_MS = 500;
 
 export function getWorksExitDelay(row = document.querySelector("[data-works-projects]")) {
   if (!row) return 0;

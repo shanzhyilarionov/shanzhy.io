@@ -2,8 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useEntryLoading } from "../../../../components/entry-loading";
-import { useProjectArrival } from "./project-arrival";
-import styles from "./genesis.module.css";
+import { useProjectArrival } from "./project-detail";
+import styles from "./project.module.css";
 
 export default function GenesisVideo() {
   const { ready, videoSource } = useEntryLoading();

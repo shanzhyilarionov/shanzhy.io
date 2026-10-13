@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "clean": "rm -rf .next out && rm -f components/*.bak components/tesseract.jsx components/tesseract-webgl.js",
+    "clean": "rm -rf .next out",
     "test": "node --test \"tests/**/*.test.mjs\"",
     "verify": "npm run clean && npm run lint && npm test && npm run build"
   },

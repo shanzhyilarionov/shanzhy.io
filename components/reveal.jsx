@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { usePageExiting } from "./page-exit-context";
+import { usePageExiting } from "./shell-context";
 import styles from "./reveal.module.css";
 
 function timing(index, count) {

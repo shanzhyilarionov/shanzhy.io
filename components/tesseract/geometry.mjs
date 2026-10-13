@@ -1,7 +1,5 @@
-export const AXES = [0, 1, 2, 3];
+const AXES = [0, 1, 2, 3];
 const SIGNS = [-1, 1];
-
-export const TESSERACT_RADIUS = 2;
 
 export const W_PROJECTION_DISTANCE = 3;
 

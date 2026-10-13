@@ -6,13 +6,13 @@ import Chrome, { Brand, HomeTitle } from "./chrome";
 import Navigation from "./navigation";
 import RollingText from "./rolling-text";
 import { HoverBoundary } from "./hover-boundary";
-import { SceneAnimationPauseProvider } from "./scene-animation-context";
-import { PageExitProvider } from "./page-exit-context";
+import { PageExitProvider, SceneAnimationPauseProvider } from "./shell-context";
 import { useHistoryExit } from "./use-history-exit";
 import { useEntryLoading } from "./entry-loading";
 import { warmRouteAssets } from "./preload-assets";
 import { startProjectReturn } from "../app/(site)/works/project-transition";
 import { getWorksExitDelay } from "../app/(site)/works/exit-timing";
+import { findProjectByPath } from "../app/(site)/works/projects";
 import styles from "./shell.module.css";
 
 const PANEL_MS = 1000;
@@ -28,7 +28,7 @@ export default function Shell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
-  const isProject = pathname === "/works/genesis" || pathname === "/works/shanzhy-io" || pathname === "/works/commissioning-workspace";
+  const isProject = Boolean(findProjectByPath(pathname));
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
   const chromeEnterDelayMs = isWorks || isProject ? CONTENT_MS : 0;
@@ -140,6 +140,14 @@ export default function Shell({ children }) {
     router,
   ]);
 
+  const departTo = (href, nextPhase) => {
+    router.prefetch(href);
+    warmRouteAssets(href);
+    setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
+    setTarget(href);
+    setPhase(nextPhase);
+  };
+
   const leaveNavigation = (href = null) => {
     if (phase !== "open" || historyExiting) {
       return;
@@ -156,11 +164,7 @@ export default function Shell({ children }) {
       return;
     }
 
-    router.prefetch(next);
-    warmRouteAssets(next);
-    setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
-    setTarget(next);
-    setPhase("leaving");
+    departTo(next, "leaving");
   };
 
   const toggleNavigation = () => {
@@ -208,11 +212,7 @@ export default function Shell({ children }) {
     if (phase === "open") {
       leaveNavigation(href);
     } else if (phase === "closed") {
-      router.prefetch(href);
-      warmRouteAssets(href);
-      setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
-      setTarget(href);
-      setPhase("departing");
+      departTo(href, "departing");
     }
   };
 

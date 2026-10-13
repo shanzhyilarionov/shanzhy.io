@@ -5,7 +5,7 @@ import {
   useSceneAnimationPaused,
   useSceneChromeReady,
   useSceneEntrance,
-} from "../scene-animation-context";
+} from "../shell-context";
 import { useEntryLoading } from "../entry-loading";
 import {
   buildEdges4D,

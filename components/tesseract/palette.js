@@ -1,10 +1,10 @@
-export function srgbToLinear(channel) {
+function srgbToLinear(channel) {
   return channel <= 0.04045
     ? channel / 12.92
     : ((channel + 0.055) / 1.055) ** 2.4;
 }
 
-export function toLinear(color) {
+function toLinear(color) {
   return color.map(srgbToLinear);
 }
 
@@ -15,7 +15,7 @@ const AUTHORED = {
   structural: [0.05, 0.065, 0.09],
 };
 
-export const PRIMARIES = {
+const PRIMARIES = {
   red: toLinear(AUTHORED.red),
   blue: toLinear(AUTHORED.blue),
   green: toLinear(AUTHORED.green),

@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
-import { projects } from "../projects";
-import Genesis from "./genesis";
-import ShanzhyIo from "./shanzhy-io";
-import CommissioningWorkspace from "./commissioning-workspace";
-import ProjectArrival from "./project-arrival";
+import { findProject, projects } from "../projects";
+import GenesisVideo from "./genesis-video";
+import ProjectDetail, { ProjectImage } from "./project-detail";
 
 export function generateStaticParams() {
   return projects.map(({ slug }) => ({ slug }));
@@ -11,21 +9,13 @@ export function generateStaticParams() {
 
 export default async function ProjectPage({ params }) {
   const { slug } = await params;
-  const project = projects.find((project) => project.slug === slug);
+  const project = findProject(slug);
 
   if (!project) notFound();
 
-  if (slug === "genesis") {
-    return <ProjectArrival><Genesis /></ProjectArrival>;
-  }
-
-  if (slug === "shanzhy-io") {
-    return <ProjectArrival><ShanzhyIo /></ProjectArrival>;
-  }
-
-  if (slug === "commissioning-workspace") {
-    return <ProjectArrival><CommissioningWorkspace /></ProjectArrival>;
-  }
-
-  return <main className="blankPage" aria-label={project.title} />;
+  return (
+    <ProjectDetail project={project}>
+      {project.media === "video" ? <GenesisVideo /> : <ProjectImage project={project} />}
+    </ProjectDetail>
+  );
 }

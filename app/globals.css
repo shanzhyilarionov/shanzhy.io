@@ -16,7 +16,6 @@
 
   --ease-panel: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-content: cubic-bezier(0.62, 0, 0.2, 1);
-
 }
 
 html,
@@ -28,11 +27,4 @@ body {
   line-height: var(--body-line-height);
   overflow: hidden;
   overscroll-behavior: none;
-}
-
-.blankPage {
-  width: 100vw;
-  min-height: 100svh;
-  min-height: 100dvh;
-  overflow: hidden;
 }

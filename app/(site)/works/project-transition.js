@@ -48,17 +48,17 @@ function place(element, bounds) {
   });
 }
 
-function imageGeometry(imageBounds, frameBounds) {
+function geometry(bounds, origin = { top: 0, left: 0 }) {
   return {
-    top: `${imageBounds.top - frameBounds.top}px`,
-    left: `${imageBounds.left - frameBounds.left}px`,
-    width: `${imageBounds.width}px`,
-    height: `${imageBounds.height}px`,
+    top: `${bounds.top - origin.top}px`,
+    left: `${bounds.left - origin.left}px`,
+    width: `${bounds.width}px`,
+    height: `${bounds.height}px`,
   };
 }
 
 function placeImage(image, bounds, frameBounds) {
-  Object.assign(image.style, imageGeometry(bounds, frameBounds), {
+  Object.assign(image.style, geometry(bounds, frameBounds), {
     position: "absolute",
     right: "auto",
     bottom: "auto",
@@ -364,12 +364,6 @@ export function arriveProject(transition, target) {
   const destination = target.getBoundingClientRect();
   const visibility = target.style.visibility;
   target.style.visibility = "hidden";
-  const geometry = (rect) => ({
-    top: `${rect.top}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
-    height: `${rect.height}px`,
-  });
   const timing = {
     duration: 700,
     delay: 200,
@@ -383,8 +377,8 @@ export function arriveProject(transition, target) {
     { filter: "grayscale(0)" },
   ], timing);
   const crop = transition.cropped ? image.animate([
-    imageGeometry(image.getBoundingClientRect(), bounds),
-    imageGeometry(destination, destination),
+    geometry(image.getBoundingClientRect(), bounds),
+    geometry(destination, destination),
   ], timing) : null;
   const elapsed = performance.now() - startedAt;
   movement.currentTime = elapsed;

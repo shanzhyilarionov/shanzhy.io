@@ -1,6 +1,12 @@
 import { getImageProps } from "next/image";
 import { isBot } from "next/dist/shared/lib/router/utils/is-bot";
-import { projects, PROJECT_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../app/(site)/works/projects";
+import {
+  findProjectByPath,
+  projects,
+  projectThumbnailProps,
+  PROJECT_IMAGE_QUALITY,
+  PROJECT_PAGE_IMAGE_SIZES,
+} from "../app/(site)/works/projects";
 
 const warmedImages = new Map();
 export const GENESIS_VIDEO = "/videos/genesis.mp4";
@@ -10,20 +16,14 @@ const siteRoutes = ["/", "/about", "/contact", "/works", ...projects.map(({ slug
 
 function routeImages(pathname) {
   if (pathname === "/works") {
-    return projects.map((project) => getImageProps({
-      src: project.image, alt: "", fill: !project.crop,
-      width: project.crop ? project.width : undefined,
-      height: project.crop ? project.height : undefined,
-      sizes: PROJECT_IMAGE_SIZES,
-      quality: PROJECT_IMAGE_QUALITY,
-    }).props);
+    return projects.map((project) => getImageProps({ ...projectThumbnailProps(project), alt: "" }).props);
   }
   if (pathname === "/works/genesis") return [{ src: "/images/genesis.jpg" }];
-  if (pathname === "/works/shanzhy-io" || pathname === "/works/commissioning-workspace") {
-    const project = projects.find(({ slug }) => pathname === `/works/${slug}`);
+  const project = findProjectByPath(pathname);
+  if (project) {
     return [getImageProps({
       src: project.image, alt: "", width: project.width, height: project.height,
-      sizes: "(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem",
+      sizes: PROJECT_PAGE_IMAGE_SIZES,
       quality: PROJECT_IMAGE_QUALITY,
     }).props];
   }
@@ -108,9 +108,8 @@ export function preloadSiteRoutes(router) {
     import("../app/(site)/about/page"),
     import("../app/(site)/contact/page"),
     import("../app/(site)/works/page"),
-    import("../app/(site)/works/[slug]/genesis"),
-    import("../app/(site)/works/[slug]/shanzhy-io"),
-    import("../app/(site)/works/[slug]/commissioning-workspace"),
+    import("../app/(site)/works/[slug]/project-detail"),
+    import("../app/(site)/works/[slug]/genesis-video"),
   ]);
   return { ready, dispose: settle };
 }
