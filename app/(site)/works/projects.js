@@ -34,6 +34,12 @@ export const projects = [
     repository: "commissioning-workspace",
     alt: "Commissioning Workspace desktop application",
     image: "/images/commissioning-workspace.png",
+    screenshots: [
+      { image: "/images/home.png", alt: "Commissioning Workspace home dashboard" },
+      { image: "/images/project.png", alt: "Commissioning Workspace project overview" },
+      { image: "/images/assets.png", alt: "Commissioning Workspace assets" },
+      { image: "/images/tests.png", alt: "Commissioning Workspace checklists and tests" },
+    ],
     aspectRatio: 2880 / 1800,
     width: 2880,
     height: 1800,

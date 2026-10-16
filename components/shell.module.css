@@ -17,6 +17,14 @@
   color: #FFFFFF;
 }
 
+.chromeAbovePanel.chromeBehindScreenshots {
+  animation: fadeOut var(--motion-content) var(--ease-content) both;
+}
+
+.chromeAbovePanel.chromeReturningFromScreenshots {
+  animation: fadeIn var(--motion-content) var(--ease-content) var(--motion-content) both;
+}
+
 .contentEntering {
   animation: contentEnter var(--motion-content) ease-out both;
 }

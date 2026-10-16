@@ -4,7 +4,7 @@ import Image from "next/image";
 import { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
 import Reveal from "../../../../components/reveal";
 import RollingText from "../../../../components/rolling-text";
-import { usePageExiting } from "../../../../components/shell-context";
+import { usePageExiting, useScreenshots } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
 import { PROJECT_IMAGE_QUALITY, PROJECT_PAGE_IMAGE_SIZES } from "../projects";
 import styles from "./project.module.css";
@@ -55,6 +55,7 @@ export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const [arrival] = useState(getProjectTransition);
   const exiting = usePageExiting();
+  const openScreenshots = useScreenshots();
   const headingId = `${project.slug}-heading`;
   const blocks = [
     {
@@ -91,6 +92,14 @@ export default function ProjectDetail({ project, children }) {
             {children}
 
             <div className={styles.action}>
+              {project.screenshots?.length > 0 && (
+                <RollingText
+                  type="button"
+                  label="View screenshots"
+                  aria-haspopup="dialog"
+                  onClick={(event) => openScreenshots(event.currentTarget)}
+                />
+              )}
               <RollingText
                 as="a"
                 href={`https://github.com/shanzhyilarionov/${project.repository}`}

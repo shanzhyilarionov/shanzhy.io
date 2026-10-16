@@ -92,7 +92,9 @@
 
 .action {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: var(--paragraph-gap) 2rem;
   margin-top: var(--paragraph-gap);
   animation: fadeIn 0.5s ease-out 0.5s both;
 }

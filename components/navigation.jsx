@@ -14,13 +14,12 @@ const links = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function Navigation({
+export function NavigationPanel({
   phase,
   enterSlide,
   exitSlide,
-  chrome,
-  onToggle,
-  onLeave,
+  children,
+  ...props
 }) {
   const open = phase !== "closed";
   const hoverEnabled = useHoverEnabled();
@@ -39,55 +38,70 @@ export default function Navigation({
     .join(" ");
 
   return (
-    <section className={className} aria-hidden={!open}>
-      <div className={styles.stage}>
-        {chrome && (
-          <Chrome
-            className={styles.chrome}
-            left={
-              <Brand
-                onNavigate={(event) => {
-                  event.preventDefault();
-                  onToggle();
-                }}
-              />
-            }
-            right={
-              <span className={styles.menuControl}>
-                <RollingText
-                  type="button"
-                  label="Close"
-                  aria-label="Close navigation"
-                  onClick={onToggle}
-                />
-              </span>
-            }
-          />
-        )}
-
-        <div className={styles.viewport}>
-          <nav className={styles.list} aria-label="Main navigation">
-            {links.map((link) => (
-              <span className={styles.item} key={link.href}>
-                <Link
-                  className={styles.link}
-                  href={link.href}
-                  prefetch={open ? null : false}
-                  onPointerEnter={() => warmRouteAssets(link.href)}
-                  onFocus={() => warmRouteAssets(link.href)}
-                  onTouchStart={() => warmRouteAssets(link.href)}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    onLeave(link.href);
-                  }}
-                >
-                  <span className={styles.label}>{link.label}</span>
-                </Link>
-              </span>
-            ))}
-          </nav>
-        </div>
-      </div>
+    <section className={className} aria-hidden={!open} {...props}>
+      <div className={styles.stage}>{children}</div>
     </section>
+  );
+}
+
+export default function Navigation({
+  phase,
+  enterSlide,
+  exitSlide,
+  chrome,
+  onToggle,
+  onLeave,
+}) {
+  const open = phase !== "closed";
+
+  return (
+    <NavigationPanel phase={phase} enterSlide={enterSlide} exitSlide={exitSlide}>
+      {chrome && (
+        <Chrome
+          className={styles.chrome}
+          left={
+            <Brand
+              onNavigate={(event) => {
+                event.preventDefault();
+                onToggle();
+              }}
+            />
+          }
+          right={
+            <span className={styles.menuControl}>
+              <RollingText
+                type="button"
+                label="Close"
+                aria-label="Close navigation"
+                onClick={onToggle}
+              />
+            </span>
+          }
+        />
+      )}
+
+      <div className={styles.viewport}>
+        <nav className={styles.list} aria-label="Main navigation">
+          {links.map((link) => (
+            <span className={styles.item} key={link.href}>
+              <Link
+                className={styles.link}
+                href={link.href}
+                prefetch={open ? null : false}
+                onPointerEnter={() => warmRouteAssets(link.href)}
+                onFocus={() => warmRouteAssets(link.href)}
+                onTouchStart={() => warmRouteAssets(link.href)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onLeave(link.href);
+                }}
+              >
+                <span className={styles.label}>{link.label}</span>
+              </Link>
+            </span>
+          ))}
+        </nav>
+      </div>
+    </NavigationPanel>
   );
 }

@@ -1,0 +1,141 @@
+.viewer {
+  position: absolute;
+  inset: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.viewport {
+  composes: page from "../app/(site)/works/[slug]/project.module.css";
+}
+
+.frame {
+  composes: content from "../app/(site)/works/[slug]/project.module.css";
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.mask {
+  composes: videoMask from "../app/(site)/works/[slug]/project.module.css";
+  height: 100%;
+  animation-delay: var(--panel-lead);
+}
+
+.media {
+  composes: image from "../app/(site)/works/[slug]/project.module.css";
+  position: relative;
+  height: 100%;
+  animation-delay: var(--panel-lead);
+}
+
+.exiting {
+  composes: exiting from "../app/(site)/works/[slug]/project.module.css";
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+}
+
+.active {
+  opacity: 1;
+}
+
+.fadeOut {
+  animation: imageOut 0.2s ease-out both;
+}
+
+.fadeIn {
+  animation: imageIn 0.2s ease-out both;
+}
+
+.controls {
+  z-index: 1;
+  animation: fadeIn 0.2s ease-out var(--panel-lead) both;
+}
+
+.control {
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-out, visibility 0s 0.2s;
+}
+
+.available {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.close {
+  position: absolute;
+  top: var(--screenshot-close-top);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: fadeIn var(--motion-content) var(--ease-content) var(--panel-lead) both;
+}
+
+.exiting .close {
+  animation: fadeOut var(--motion-content) var(--ease-content) both;
+}
+
+.exiting .controls {
+  animation: fadeOut 0.2s ease-out both;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes imageOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes imageIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
