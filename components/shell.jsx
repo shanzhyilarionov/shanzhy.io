@@ -49,6 +49,7 @@ export default function Shell({ children }) {
   const [homeChromeReady, setHomeChromeReady] = useState(false);
   const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
+  const [fromScreenshots, setFromScreenshots] = useState(false);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
   const [projectReturning, setProjectReturning] = useState(false);
@@ -59,9 +60,11 @@ export default function Shell({ children }) {
   const screenshotsVisible = Boolean(screenshotAnchor) && menuVisible;
   const returningToWorks = isProject && !menuVisible && target === "/works";
   const pageExitMs = CONTENT_MS + (isWorks ? worksExitDelayMs : 0);
-  const routeExitMs = returningToWorks ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
+  const routeExitMs = screenshotsVisible ? CONTENT_MS :
+    returningToWorks ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
   const historyExit = useHistoryExit(pathname, (to) =>
-    isProject && !menuVisible && to === "/works" ? 0 :
+    screenshotsVisible ? CONTENT_MS :
+      isProject && !menuVisible && to === "/works" ? 0 :
       isWorks ? CONTENT_MS + getWorksExitDelay() : routeExitMs,
   );
   const activePageExitMs = historyExit?.duration ?? pageExitMs;
@@ -85,11 +88,12 @@ export default function Shell({ children }) {
   }, [projectReturnStarting, pathname]);
 
   if (viewPath !== pathname) {
-    setChromeEntering(viewPath === "/" && !menuVisible);
+    setFromScreenshots(screenshotsVisible);
+    setChromeEntering(screenshotsVisible || (viewPath === "/" && !menuVisible));
     setViewPath(pathname);
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
-      animate: menuVisible,
+      animate: menuVisible && !screenshotsVisible,
     });
     setPhase("closed");
     setScreenshotAnchor(null);
@@ -213,7 +217,7 @@ export default function Shell({ children }) {
     if (
       url.origin !== window.location.origin ||
       url.pathname === pathname ||
-      (!isHome && url.pathname !== "/" && !(isProject && url.pathname === "/works"))
+      (!screenshotsVisible && !isHome && url.pathname !== "/" && !(isProject && url.pathname === "/works"))
     ) {
       return;
     }
@@ -261,7 +265,7 @@ export default function Shell({ children }) {
         onClickCapture={followPageLink}
       >
         <Chrome
-          key={isHome ? "home" : "page"}
+          key={isHome ? "home" : fromScreenshots ? `chrome:${pathname}` : "page"}
           inert={screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
@@ -270,6 +274,7 @@ export default function Shell({ children }) {
                 ? homeEntrance === "rise" ? styles.homeChromeReturning : styles.homeChromeEntering
                 : styles.homeChromeWaiting
               : chromeEntering ? styles.chromeEntering : "",
+            !isHome && fromScreenshots ? styles.chromeFromScreenshots : "",
             leavingForHome ? styles.chromeLeavingHome : "",
             screenshotsVisible ? styles.chromeBehindScreenshots : "",
             screenshotsVisible && phase === "closing" ? styles.chromeReturningFromScreenshots : "",
@@ -308,6 +313,7 @@ export default function Shell({ children }) {
         <div
           className={[
             styles.content,
+            !isHome && fromScreenshots ? styles.contentFromScreenshots : "",
             isHome ||
             isWorks ||
             isProject ||

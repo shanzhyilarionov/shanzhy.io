@@ -18,20 +18,20 @@
 }
 
 .mask {
-  composes: videoMask from "../app/(site)/works/[slug]/project.module.css";
+  width: 100%;
   height: 100%;
-  animation-delay: var(--panel-lead);
+  overflow: hidden;
 }
 
 .media {
-  composes: image from "../app/(site)/works/[slug]/project.module.css";
   position: relative;
+  width: 100%;
   height: 100%;
-  animation-delay: var(--panel-lead);
+  animation: fadeIn 0.5s var(--ease-content) var(--panel-lead) both;
 }
 
-.exiting {
-  composes: exiting from "../app/(site)/works/[slug]/project.module.css";
+.exiting .media {
+  animation: fadeOut 0.5s var(--ease-content) both;
 }
 
 .image {
