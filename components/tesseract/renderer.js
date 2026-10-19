@@ -2,6 +2,7 @@
 
 
 import { GLASS_F0, LOOK } from "./look.js";
+import { createHardwareContext } from "./rendering-policy.js";
 import {
   blurFragmentShader,
   brightPassFragmentShader,
@@ -96,9 +97,7 @@ export function createRenderer(canvas) {
     powerPreference: "high-performance",
   };
 
-  const gl =
-    canvas.getContext("webgl", contextOptions) ||
-    canvas.getContext("experimental-webgl", contextOptions);
+  const gl = createHardwareContext(canvas, contextOptions);
 
   if (!gl) return null;
 

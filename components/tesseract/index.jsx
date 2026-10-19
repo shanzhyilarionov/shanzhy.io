@@ -14,6 +14,8 @@ import {
   clamp,
 } from "./geometry.mjs";
 import { createRenderer } from "./renderer.js";
+import { createFallbackRenderer } from "./fallback-renderer.js";
+import { createPerformanceMonitor } from "./rendering-policy.js";
 import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
 import { createScene } from "./scene.js";
 import styles from "./tesseract.module.css";
@@ -29,6 +31,8 @@ export default function GlassTesseract() {
   const pausedRef = useRef(paused);
   const animationControlRef = useRef(null);
   const canvasRef = useRef(null);
+  const fallbackCanvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   const vertices = useMemo(() => buildVertices4D(), []);
   const edges = useMemo(() => buildEdges4D(vertices), [vertices]);
@@ -41,11 +45,21 @@ export default function GlassTesseract() {
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+    const fallbackCanvas = fallbackCanvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !fallbackCanvas || !container) return undefined;
 
     const entranceDuration = returning ? RETURN_ENTRANCE_DURATION : ENTRANCE_DURATION;
     const createFrame = returning ? createScene : createHomeScene;
-    let renderer = createRenderer(canvas);
+    let renderer;
+    try {
+      renderer = createRenderer(canvas);
+    } catch (error) {
+      console.warn("Home WebGL renderer unavailable; using Canvas 2D.", error);
+    }
+    let lightweight = false;
+    let activeCanvas = canvas;
+    const performanceMonitor = createPerformanceMonitor();
     let frameId = 0;
     let pointerFrameId = 0;
     let running = false;
@@ -53,12 +67,30 @@ export default function GlassTesseract() {
     let entranceTime = 0;
     let chromeReported = false;
     let lastFrameTime = null;
+    let lastRenderTime = null;
+
+    function activateFallback() {
+      if (lightweight) return;
+      renderer?.destroy();
+      renderer = createFallbackRenderer(fallbackCanvas);
+      lightweight = true;
+      activeCanvas = fallbackCanvas;
+      canvas.style.display = "none";
+      fallbackCanvas.style.display = "block";
+      canvas.width = canvas.height = 1;
+      container.dataset.renderer = "canvas2d";
+    }
+
+    canvas.style.display = "block";
+    fallbackCanvas.style.display = "none";
+    container.dataset.renderer = "webgl";
+    if (!renderer) activateFallback();
 
     const temporalState = { pointer: { x: 0, y: 0 } };
     const viewport = { width: 1, height: 1 };
     const pointer = { x: 0, y: 0 };
     let pointerOrigin = null;
-    let bounds = canvas.getBoundingClientRect();
+    let bounds = container.getBoundingClientRect();
 
     function renderFrame(time, deltaTime) {
       if (!chromeReported && (returning || entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
@@ -77,12 +109,12 @@ export default function GlassTesseract() {
         deltaTime,
         temporalState,
       );
-      canvas.style.opacity = String(scene.opacity ?? 1);
+      activeCanvas.style.opacity = String(scene.opacity ?? 1);
       renderer.render(scene);
     }
 
     const measure = () => {
-      bounds = canvas.getBoundingClientRect();
+      bounds = container.getBoundingClientRect();
       viewport.width = Math.max(bounds.width, 1);
       viewport.height = Math.max(bounds.height, 1);
     };
@@ -121,18 +153,21 @@ export default function GlassTesseract() {
 
     const handleContextLost = (event) => {
       event.preventDefault();
-      renderer?.destroy?.();
-      renderer = null;
-    };
-
-    const handleContextRestored = () => {
-      renderer = createRenderer(canvas);
+      activateFallback();
       lastFrameTime = null;
-      if (!running) renderFrame(elapsedTime, 1 / 60);
+      lastRenderTime = null;
+      syncAnimation();
     };
 
     const animate = (now) => {
       if (!running) return;
+
+      if (!lightweight && performanceMonitor.sample(now)) activateFallback();
+      if (lightweight && lastRenderTime !== null && now - lastRenderTime < 1000 / 30 - 1) {
+        frameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastRenderTime = now;
 
       const visibleDelta = lastFrameTime == null ? 0 : Math.max(0, (now - lastFrameTime) / 1000);
       const deltaTime =
@@ -162,6 +197,8 @@ export default function GlassTesseract() {
 
       running = shouldRun;
       lastFrameTime = null;
+      lastRenderTime = null;
+      performanceMonitor.reset();
 
       if (running) {
         frameId = requestAnimationFrame(animate);
@@ -182,7 +219,7 @@ export default function GlassTesseract() {
     animationControlRef.current = { sync: syncAnimation };
     syncAnimation();
 
-    resizeObserver?.observe(canvas);
+    resizeObserver?.observe(container);
     window.addEventListener("resize", handleViewportChange);
     window.addEventListener("scroll", measure, { passive: true });
     window.addEventListener("pointermove", handlePointerMove, {
@@ -190,7 +227,6 @@ export default function GlassTesseract() {
     });
     document.addEventListener("visibilitychange", syncAnimation);
     canvas.addEventListener("webglcontextlost", handleContextLost);
-    canvas.addEventListener("webglcontextrestored", handleContextRestored);
 
     return () => {
       running = false;
@@ -203,14 +239,13 @@ export default function GlassTesseract() {
       window.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("visibilitychange", syncAnimation);
       canvas.removeEventListener("webglcontextlost", handleContextLost);
-      canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.destroy();
     };
   }, [edges, faces, vertices, ready, onChromeReady, returning]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={containerRef}
       aria-hidden="true"
       className={returning ? styles.returning : undefined}
       style={{
@@ -220,6 +255,9 @@ export default function GlassTesseract() {
         background: "transparent",
         "--return-duration": `${RETURN_ENTRANCE_DURATION}s`,
       }}
-    />
+    >
+      <canvas ref={canvasRef} className={styles.canvas} />
+      <canvas ref={fallbackCanvasRef} className={styles.canvas} style={{ display: "none" }} />
+    </div>
   );
 }
