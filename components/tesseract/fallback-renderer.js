@@ -1,6 +1,8 @@
 import { project3Dto2D } from "./geometry.mjs";
+import { LOOK } from "./look.js";
 
 const color = (tint) => tint.map((value) => Math.round(110 + Math.sqrt(value) * 145)).join(",");
+const faceColor = (tint) => tint.map((value) => Math.round(255 * Math.sqrt(1 - Math.exp(-value * 8)))).join(",");
 
 export function createFallbackRenderer(canvas) {
   const context = canvas.getContext("2d", { alpha: true });
@@ -13,7 +15,12 @@ export function createFallbackRenderer(canvas) {
     if (canvas.height !== height) canvas.height = height;
     context.clearRect(0, 0, width, height);
 
-    for (const face of scene.faces) {
+    const faces = scene.faces.map((face) => ({
+      face,
+      depth: face.points3D.reduce((sum, point) => sum + point[2], 0) / face.points3D.length,
+    })).sort((first, second) => first.depth - second.depth);
+
+    for (const { face, depth } of faces) {
       context.beginPath();
       face.points3D.forEach((point, index) => {
         const { x, y } = project3Dto2D(
@@ -23,7 +30,10 @@ export function createFallbackRenderer(canvas) {
         else context.lineTo(x, y);
       });
       context.closePath();
-      context.fillStyle = `rgba(${color(face.tint)},${0.025 * (face.visibility ?? 1)})`;
+      const front = Math.max(0, Math.min(1, (depth + scene.projectedRadius) / (2 * scene.projectedRadius)));
+      const density = Math.min(1, face.density / LOOK.glass.tintedDensity);
+      const opacity = (0.04 + density * 0.28) * (0.65 + front * 0.35);
+      context.fillStyle = `rgba(${faceColor(face.tint)},${opacity * (face.visibility ?? 1)})`;
       context.fill();
     }
 
