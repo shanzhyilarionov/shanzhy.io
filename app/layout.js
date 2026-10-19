@@ -3,7 +3,10 @@ import EntryLoading from "../components/entry-loading";
 import "./globals.css";
 
 export const metadata = {
-  title: "Shanzhy",
+  title: {
+    default: "Shanzhy",
+    template: "%s | Shanzhy",
+  },
   description: "Independent developer based in Edmonton, Canada.",
 };
 

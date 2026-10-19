@@ -7,6 +7,15 @@ export function generateStaticParams() {
   return projects.map(({ slug }) => ({ slug }));
 }
 
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const project = findProject(slug);
+
+  if (!project) notFound();
+
+  return { title: project.title };
+}
+
 export default async function ProjectPage({ params }) {
   const { slug } = await params;
   const project = findProject(slug);

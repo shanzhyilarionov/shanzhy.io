@@ -1,6 +1,10 @@
 import Reveal from "../../../components/reveal";
 import styles from "./about.module.css";
 
+export const metadata = {
+  title: "About",
+};
+
 const heading = "Bridging technical structure and human needs.";
 
 const paragraphs = [

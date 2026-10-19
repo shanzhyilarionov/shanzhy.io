@@ -105,9 +105,9 @@ export function preloadSiteRoutes(router) {
     routeData,
     import("../app/page"),
     import("./tesseract"),
-    import("../app/(site)/about/page"),
-    import("../app/(site)/contact/page"),
-    import("../app/(site)/works/page"),
+    import("./reveal"),
+    import("../app/(site)/contact/contact"),
+    import("../app/(site)/works/works"),
     import("../app/(site)/works/[slug]/project-detail"),
     import("../app/(site)/works/[slug]/genesis-video"),
   ]);
