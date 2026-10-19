@@ -5,7 +5,7 @@ const heading = "Bridging technical structure and human needs.";
 
 const paragraphs = [
   "Hello! My name is Shanzhy Ilarionov. I am currently a Computing Science student at the University of Alberta and an independent developer focused on software engineering and user experience design.",
-  "I turn complex requirements into maintainable systems and intuitive interfaces, with strengths in frontend architecture, interaction design, and workflow optimization. I believe every feature should serve a clear purpose, and I aim to balance functionality, clarity, and aesthetics while reducing unnecessary complexity.",
+  "I believe even the most technically complex software deserves a refined interface, and that every element should serve a clear purpose. Good design is not about adding more, but about making every detail count.",
   "I am open to collaborations, freelance work, and other opportunities to build meaningful products.",
 ];
 
