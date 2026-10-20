@@ -26,11 +26,11 @@
 
 .progress {
   min-width: 4ch;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  font-weight: 400;
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  font-weight: var(--text-weight);
   font-variant-numeric: tabular-nums;
-  line-height: var(--body-line-height);
+  line-height: var(--text-line-height);
   text-align: center;
 }
 

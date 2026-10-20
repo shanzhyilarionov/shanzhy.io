@@ -62,7 +62,7 @@ export default function ProjectDetail({ project, children }) {
       as: "h1",
       id: headingId,
       text: project.title,
-      className: [styles.heading, project.longTitle ? styles.longHeading : ""].filter(Boolean).join(" "),
+      className: styles.heading,
     },
     { text: project.description, className: styles.description },
   ];

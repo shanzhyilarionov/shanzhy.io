@@ -91,7 +91,7 @@
 @media (max-width: 768px) {
   .chromeAbovePanel {
     align-items: flex-start;
-    padding-top: 1.5rem;
+    padding-top: var(--chrome-top-mobile);
   }
 
   .chromeOnDark > div:first-child,

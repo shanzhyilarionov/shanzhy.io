@@ -10,10 +10,10 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { GENESIS_VIDEO, preloadGenesisVideo, preloadSiteImages, preloadSiteRoutes } from "./preload-assets";
+import { preloadRouteImages, preloadSiteAssets } from "./preload-assets";
 import styles from "./entry-loading.module.css";
 
-const EntryContext = createContext({ pending: false, ready: () => {}, videoSource: null });
+const EntryContext = createContext({ pending: false, ready: () => {} });
 const LEAVING_TIMEOUT_MS = 600;
 
 export function useEntryLoading() {
@@ -24,16 +24,14 @@ export default function EntryLoading({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [entryPath] = useState(pathname);
-  const [videoSource, setVideoSource] = useState(null);
   const [completed, setCompleted] = useState([]);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState("loading");
   const stageRef = useRef(null);
   const displayedRef = useRef(0);
   const tasks = useMemo(() => [
-    "page", "fonts", "images", "routes", "video",
+    "page", "fonts", "images",
     ...(entryPath === "/" ? ["scene"] : []),
-    ...(entryPath === "/works/genesis" ? ["video-frame"] : []),
   ], [entryPath]);
   const target = Math.round(
     (tasks.filter((task) => completed.includes(task)).length / tasks.length) * 100,
@@ -43,30 +41,20 @@ export default function EntryLoading({ children }) {
   const ready = useCallback((task) => {
     setCompleted((current) => current.includes(task) ? current : [...current, task]);
   }, []);
-  const context = useMemo(() => ({ pending, ready, videoSource }), [pending, ready, videoSource]);
+  const context = useMemo(() => ({ pending, ready }), [pending, ready]);
 
   useEffect(() => {
     let disposed = false;
-    const routes = preloadSiteRoutes(router);
-    routes.ready.then(() => { if (!disposed) ready("routes"); });
-    preloadSiteImages().then(() => { if (!disposed) ready("images"); });
-    preloadGenesisVideo().then(
-      (source) => {
-        if (disposed) return;
-        setVideoSource(source);
-        ready("video");
-      },
-      () => {
-        if (disposed) return;
-        setVideoSource(GENESIS_VIDEO);
-        ready("video");
-      },
-    );
+    preloadRouteImages(entryPath).then(() => { if (!disposed) ready("images"); });
     return () => {
       disposed = true;
-      routes.dispose();
     };
-  }, [entryPath, ready, router]);
+  }, [entryPath, ready]);
+
+  useEffect(() => {
+    if (pending) return;
+    return preloadSiteAssets(router, pathname);
+  }, [pending, pathname, router]);
 
   useEffect(() => {
     let disposed = false;

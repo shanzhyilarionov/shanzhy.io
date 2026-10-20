@@ -13,11 +13,22 @@ import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
 
+function ProjectTitle({ title, aspectRatio, active }) {
+  return (
+    <span className={styles.headingMask} style={{ "--image-ratio": aspectRatio }} aria-hidden="true">
+      <span className={styles.headingLabel} data-active={active}>
+        {title}
+      </span>
+    </span>
+  );
+}
+
 export default function Works() {
   const router = useRouter();
   const hoverEnabled = useHoverEnabled();
-  const [resizing, setResizing] = useState(true);
+  const [resizing, setResizing] = useState(false);
   const [transition, setTransition] = useState(null);
+  const [hoveredProject, setHoveredProject] = useState(null);
   const [projectReturn] = useState(getProjectReturn);
   const pageExiting = usePageExiting();
   const exitSettleMs = usePageExitSettleMs();
@@ -29,37 +40,6 @@ export default function Works() {
     setWasPageExiting(pageExiting);
     setTransition(pageExiting ? { phase: exitSettleMs > 0 ? "settling" : "exiting" } : null);
   }
-
-  useLayoutEffect(() => {
-    const heading = headingRef.current;
-    const row = projectsRef.current;
-    const range = document.createRange();
-    range.selectNodeContents(heading.firstElementChild);
-    let disposed = false;
-    let settled = false;
-
-    const measureHeading = () => {
-      if (disposed) return;
-      const width = Math.max(...Array.from(range.getClientRects(), (rect) => rect.width));
-      if (width > 0) {
-        row.style.setProperty("--projects-width", `${width}px`);
-        if (!settled) {
-          settled = true;
-          setResizing(false);
-        }
-      }
-    };
-
-    measureHeading();
-    const observer = new ResizeObserver(measureHeading);
-    observer.observe(heading);
-    document.fonts.ready.then(measureHeading);
-
-    return () => {
-      disposed = true;
-      observer.disconnect();
-    };
-  }, []);
 
   useLayoutEffect(() => {
     if (!projectReturn) return;
@@ -120,8 +100,15 @@ export default function Works() {
       style={{ "--exit-duration": `${EXIT_STEP_MS}ms` }}
     >
       <section className={styles.content} aria-labelledby="works-heading">
-        <h1 ref={headingRef} className={styles.heading} id="works-heading" data-works-heading>
-          <span className={styles.headingLabel}>Things I’ve built.</span>
+        <h1 ref={headingRef} className={styles.heading} id="works-heading" aria-label="Works" data-works-heading>
+          {projects.map((project) => (
+            <ProjectTitle
+              key={project.slug}
+              title={project.title}
+              aspectRatio={project.aspectRatio}
+              active={hoverEnabled && !transition && hoveredProject === project.slug}
+            />
+          ))}
         </h1>
 
         <div
@@ -131,7 +118,6 @@ export default function Works() {
           className={[
             styles.projects,
             hoverEnabled && !transition ? styles.hoverEnabled : "",
-            transition ? styles.departing : "",
             resizing ? styles.resizing : "",
           ]
             .filter(Boolean)
@@ -144,6 +130,10 @@ export default function Works() {
               <article
                 className={styles.project}
                 data-project-preview
+                onPointerEnter={(event) => {
+                  if (event.pointerType === "mouse") setHoveredProject(project.slug);
+                }}
+                onPointerLeave={() => setHoveredProject((current) => current === project.slug ? null : current)}
                 style={{
                   "--reveal-duration": project.duration,
                   "--image-ratio": project.aspectRatio,
@@ -190,8 +180,6 @@ export default function Works() {
                     </div>
                   </div>
                 </Link>
-
-                <h2 className={styles.title}>{project.title}</h2>
               </article>
             );
           })}

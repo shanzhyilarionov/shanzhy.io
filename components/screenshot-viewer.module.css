@@ -1,9 +1,13 @@
 .viewer {
   position: absolute;
   inset: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  line-height: 1;
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  line-height: var(--text-line-height);
+}
+
+.viewer button:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .viewport {
@@ -92,7 +96,7 @@
 @media (max-width: 768px) {
   .controls {
     align-items: flex-start;
-    padding-top: 1.5rem;
+    padding-top: var(--chrome-top-mobile);
   }
 }
 

@@ -3,24 +3,24 @@
 }
 
 .content {
-  --contact-item-gap: 0.75rem;
   width: max-content;
   max-width: calc(100% - 2 * var(--page-inset));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--contact-item-gap);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  line-height: var(--body-line-height);
+  gap: var(--contact-gap);
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  line-height: var(--text-line-height);
 }
 
 .heading {
-  margin: 0 0 calc(var(--heading-gap) - var(--contact-item-gap));
+  margin: 0 0 calc(var(--heading-gap) - var(--contact-gap));
   max-width: calc(100vw - 2 * var(--page-inset));
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: var(--nav-size);
-  font-weight: 400;
+  font-family: var(--font-family);
+  font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
   text-align: center;
   overflow-wrap: anywhere;
@@ -35,9 +35,9 @@
 .copied {
   position: absolute;
   top: 50%;
-  left: calc(100% + 0.75rem);
+  left: calc(100% + var(--contact-gap));
   transform: translateY(-50%);
-  line-height: var(--body-line-height);
+  line-height: var(--text-line-height);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;

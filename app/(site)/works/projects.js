@@ -29,7 +29,6 @@ export const projects = [
   {
     slug: "commissioning-workspace",
     title: "Commissioning Workspace",
-    longTitle: true,
     description: "Commissioning Workspace is a desktop application for industrial commissioning management. It provides a structured, responsive interface for organizing assets, tracking progress, and managing tasks. The software emphasizes straightforward interactions and efficient workflows while remaining fully operational offline. Developed as a lightweight alternative to conventional engineering software, it aims to reduce unnecessary complexity without compromising practical functionality.",
     repository: "commissioning-workspace",
     alt: "Commissioning Workspace desktop application",

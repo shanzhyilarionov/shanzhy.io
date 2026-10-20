@@ -1,18 +1,17 @@
-import { getImageProps } from "next/image";
-import { isBot } from "next/dist/shared/lib/router/utils/is-bot";
+import { getImageProps } from "next/image.js";
 import {
   findProjectByPath,
   projects,
   projectThumbnailProps,
   PROJECT_IMAGE_QUALITY,
   PROJECT_PAGE_IMAGE_SIZES,
-} from "../app/(site)/works/projects";
+} from "../app/(site)/works/projects.js";
 
 const warmedImages = new Map();
 export const GENESIS_VIDEO = "/videos/genesis.mp4";
 let videoDownload;
 
-const siteRoutes = ["/", "/about", "/contact", "/works", ...projects.map(({ slug }) => `/works/${slug}`)];
+const siteRoutes = ["/works", "/about", "/contact", "/", ...projects.map(({ slug }) => `/works/${slug}`)];
 
 function routeImages(pathname) {
   if (pathname === "/works") {
@@ -31,7 +30,12 @@ function routeImages(pathname) {
 }
 
 function prepareImage(props, priority) {
-  if (warmedImages.has(props.src)) return warmedImages.get(props.src).ready;
+  const key = JSON.stringify([props.src, props.srcSet, props.sizes]);
+  const warmed = warmedImages.get(key);
+  if (warmed) {
+    if (priority === "high") warmed.image.fetchPriority = priority;
+    return warmed.ready;
+  }
 
   const image = new Image();
   image.fetchPriority = priority;
@@ -40,20 +44,20 @@ function prepareImage(props, priority) {
   if (props.srcSet) image.srcset = props.srcSet;
   image.src = props.src;
   const ready = image.decode().catch((error) => {
-    warmedImages.delete(props.src);
+    warmedImages.delete(key);
     throw error;
   });
-  warmedImages.set(props.src, { image, ready });
+  warmedImages.set(key, { image, ready });
   return ready;
 }
 
-export function preloadSiteImages() {
-  return Promise.allSettled(siteRoutes.flatMap(routeImages).map((props) => prepareImage(props, "high")));
+export function preloadRouteImages(pathname) {
+  return Promise.allSettled(routeImages(pathname).map((props) => prepareImage(props, "high")));
 }
 
 export function preloadGenesisVideo() {
   if (!videoDownload) {
-    videoDownload = fetch(GENESIS_VIDEO)
+    videoDownload = fetch(GENESIS_VIDEO, { priority: "low" })
       .then((response) => {
         if (!response.ok) throw new Error(`Video download failed: ${response.status}`);
         return response.blob();
@@ -70,56 +74,56 @@ export function preloadGenesisVideo() {
   return videoDownload;
 }
 
-export function preloadSiteRoutes(router) {
-  const pending = new Set(siteRoutes);
-  let observer;
-  let finish;
-  const routeData = new Promise((resolve) => { finish = resolve; });
-  const settle = () => {
-    observer?.disconnect();
-    finish();
-  };
+export function preloadSiteAssets(router, pathname) {
+  const connection = navigator.connection;
+  if (connection?.saveData || /(^|-)[23]g$/.test(connection?.effectiveType || "")) return;
 
-  const checkResponses = (entries) => {
-    for (const entry of entries) {
-      if (entry.initiatorType !== "fetch") continue;
-      const url = new URL(entry.name);
-      if (url.origin === location.origin) pending.delete(url.pathname);
+  const queue = siteRoutes.filter((path) => path !== pathname);
+  let disposed = false;
+  let inFlight = false;
+  let idle;
+  let timer;
+
+  const schedule = () => {
+    if (disposed || inFlight || document.hidden || !queue.length || idle !== undefined || timer !== undefined) return;
+    if (window.requestIdleCallback) {
+      idle = window.requestIdleCallback(advance, { timeout: 1500 });
+    } else {
+      timer = window.setTimeout(advance, 200);
     }
-    if (!pending.size) settle();
   };
-  if (
-    process.env.NODE_ENV === "production" && !isBot(navigator.userAgent) &&
-    typeof PerformanceObserver !== "undefined" &&
-    PerformanceObserver.supportedEntryTypes?.includes("resource")
-  ) {
-    observer = new PerformanceObserver((list) => checkResponses(list.getEntries()));
-    observer.observe({ type: "resource", buffered: true });
-    checkResponses(performance.getEntriesByType("resource"));
-  } else {
-    settle();
-  }
-  for (const path of pending) router.prefetch(path, { kind: "full" });
 
-  const ready = Promise.allSettled([
-    routeData,
-    import("../app/page"),
-    import("./tesseract"),
-    import("./reveal"),
-    import("../app/(site)/contact/contact"),
-    import("../app/(site)/works/works"),
-    import("../app/(site)/works/[slug]/project-detail"),
-    import("../app/(site)/works/[slug]/genesis-video"),
-  ]);
-  return { ready, dispose: settle };
+  const advance = async () => {
+    idle = timer = undefined;
+    if (disposed || document.hidden) return;
+    inFlight = true;
+    const path = queue.shift();
+    try {
+      router.prefetch(path);
+      await warmRouteAssets(path, { video: false });
+    } catch {
+      return;
+    } finally {
+      inFlight = false;
+      schedule();
+    }
+  };
+
+  document.addEventListener("visibilitychange", schedule);
+  schedule();
+  return () => {
+    disposed = true;
+    if (idle !== undefined) window.cancelIdleCallback(idle);
+    window.clearTimeout(timer);
+    document.removeEventListener("visibilitychange", schedule);
+  };
 }
 
-export function warmRouteAssets(href) {
+export function warmRouteAssets(href, { video = true } = {}) {
   const connection = navigator.connection;
   if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || "")) return;
 
   const pathname = href.split(/[?#]/)[0];
-  for (const props of routeImages(pathname)) {
-    prepareImage(props, "low").catch(() => {});
-  }
+  if (video && pathname === "/works/genesis") preloadGenesisVideo().catch(() => {});
+  return Promise.allSettled(routeImages(pathname).map((props) => prepareImage(props, "low")));
 }

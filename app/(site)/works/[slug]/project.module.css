@@ -5,12 +5,12 @@
 
 .content {
   width: 100%;
-  max-width: 40rem;
+  max-width: var(--column-width);
   min-width: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: var(--body-line-height);
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  font-weight: var(--text-weight);
+  line-height: var(--text-line-height);
   text-align: center;
 }
 
@@ -23,19 +23,19 @@
 }
 
 .heading {
+  min-width: 0;
   margin: 0 0 calc(var(--heading-gap) - var(--paragraph-gap));
-  font-size: var(--nav-size);
-  font-weight: 400;
+  font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .description {
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.longHeading {
-  font-size: min(var(--nav-size), 13vw);
 }
 
 .videoFrame {
@@ -94,7 +94,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--paragraph-gap) 2rem;
+  gap: var(--paragraph-gap) var(--action-gap);
   margin-top: var(--paragraph-gap);
   animation: fadeIn 0.5s ease-out 0.5s both;
 }

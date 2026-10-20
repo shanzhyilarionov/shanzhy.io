@@ -3,39 +3,60 @@
 }
 
 .content {
+  --tile-size: calc((min(var(--projects-width), 100cqw) - 2 * var(--tile-gap)) / 3);
+  container-type: inline-size;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--heading-gap);
-  width: max-content;
+  width: 100%;
   max-width: calc(100% - 2 * var(--page-inset));
 }
 
 .heading {
+  position: absolute;
+  bottom: calc(100% + var(--heading-gap));
+  inset-inline: 0;
+  display: grid;
   margin: 0;
   overflow: hidden;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: var(--nav-size);
-  font-weight: 400;
+  font-family: var(--font-family);
+  font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-letter-spacing);
   line-height: calc(var(--heading-line-height) * 1.15);
   text-align: center;
   overflow-wrap: anywhere;
 }
 
+.headingMask {
+  display: grid;
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: center;
+  width: calc(2 * var(--tile-size) + var(--tile-size) * 1.5 * var(--image-ratio) + 2 * var(--tile-gap));
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .headingLabel {
-  display: block;
-  animation: headingIn 0.5s var(--ease-content) 0.5s both;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.2s linear;
+}
+
+.headingLabel[data-active="true"] {
+  opacity: 1;
+  transition-delay: calc(var(--motion-content) - 0.2s);
 }
 
 .projects {
-  --tile-gap: 0.75rem;
-  --tile-size: calc((100cqw - 2 * var(--tile-gap)) / 3);
-  container-type: inline-size;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   justify-self: center;
   gap: var(--tile-gap);
-  width: var(--projects-width, 100%);
+  width: var(--projects-width);
   max-width: 100%;
 }
 
@@ -43,7 +64,7 @@
   position: relative;
   flex: 0 0 var(--tile-size);
   min-width: 0;
-  transition: flex-basis 0.5s var(--ease-content);
+  transition: flex-basis var(--motion-content) var(--ease-content);
 }
 
 .reveal {
@@ -71,7 +92,7 @@
 .image {
   object-fit: cover;
   filter: grayscale(1);
-  transition: filter 0.5s var(--ease-content);
+  transition: filter var(--motion-content) var(--ease-content);
 }
 
 .imageContent {
@@ -86,20 +107,6 @@
   transform: translateX(-50%);
 }
 
-.title {
-  width: 100%;
-  min-height: 2lh;
-  margin: var(--paragraph-gap) 0 0;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: var(--body-line-height);
-  text-align: center;
-  overflow-wrap: anywhere;
-  opacity: 0;
-  transition: opacity 0.2s ease-out;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .hoverEnabled .project:hover {
     flex-basis: calc(var(--tile-size) * 1.5 * var(--image-ratio));
@@ -108,29 +115,15 @@
   .hoverEnabled .project:hover .image {
     filter: grayscale(0);
   }
-
-  .hoverEnabled .project:hover .title {
-    opacity: 1;
-    transition-delay: 0.3s;
-  }
 }
 
 .resizing .project {
   transition: none;
 }
 
-.departing .title {
-  transition-delay: 0s;
-}
-
-.returning .headingLabel,
 .returning .reveal,
 .returning .revealContent {
   animation: none;
-}
-
-.exiting .headingLabel {
-  animation: headingOut var(--exit-duration) var(--ease-content) both;
 }
 
 .exiting .reveal {
@@ -139,22 +132,6 @@
 
 .exiting .revealContent {
   animation: contentOut var(--exit-duration) var(--ease-panel) both;
-}
-
-@media (max-width: 768px) {
-  .projects {
-    --tile-gap: 2vw;
-  }
-}
-
-@keyframes headingIn {
-  from {
-    transform: translate3d(0, 100%, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
 }
 
 @keyframes revealUp {
@@ -174,16 +151,6 @@
 
   to {
     transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes headingOut {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, -100%, 0);
   }
 }
 

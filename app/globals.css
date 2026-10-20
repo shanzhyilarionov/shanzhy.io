@@ -1,14 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --page-inset: 5vw;
+  --font-family: Arial, Helvetica, sans-serif;
 
-  --nav-size: 50px;
-
-  --body-line-height: 1;
+  --heading-size: 70px;
+  --heading-weight: 400;
   --heading-line-height: 1;
+  --heading-letter-spacing: normal;
+  --nav-line-height: 1;
+
+  --text-size: 1rem;
+  --text-weight: 400;
+  --text-line-height: 1;
+  --text-letter-spacing: normal;
+
+  --page-inset: 5vw;
+  --column-width: 40rem;
+  --chrome-top-mobile: 1.5rem;
+
   --heading-gap: 30px;
   --paragraph-gap: 20px;
+  --action-gap: 2rem;
+  --contact-gap: 0.75rem;
+
+  --projects-width: 25rem;
+  --tile-gap: 0.75rem;
 
   --motion-panel: 1s;
   --motion-content: 0.5s;
@@ -18,13 +34,20 @@
   --ease-content: cubic-bezier(0.62, 0, 0.2, 1);
 }
 
+@media (max-width: 768px) {
+  :root {
+    --tile-gap: 2vw;
+  }
+}
+
 html,
 body {
   width: 100%;
   min-height: 100%;
   background: #FFFFFF;
   color: #000000;
-  line-height: var(--body-line-height);
+  line-height: var(--text-line-height);
+  letter-spacing: var(--text-letter-spacing);
   overflow: hidden;
   overscroll-behavior: none;
 }
