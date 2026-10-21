@@ -86,7 +86,7 @@ export default function Works() {
     const title = headingRef.current.querySelector(
       `[data-project-title="${slug}"][data-active="true"]`,
     );
-    startProjectTransition(page, image, title, slug === "genesis" ? document.querySelector("[data-site-chrome]") : null);
+    startProjectTransition(page, image, title, document.querySelector("[data-site-chrome]"));
     setTransition({ phase: "project" });
     router.push(href);
   };

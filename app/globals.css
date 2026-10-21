@@ -26,11 +26,11 @@
   --projects-width: clamp(20rem, 30vw, 35rem);
   --tile-gap: 0.75rem;
 
-  --project-media-width: 40rem;
+  --project-media-width: 50rem;
   --project-heading-gap: 30px;
   --project-action-gap: 50px;
 
-  --project-description-width: 17rem;
+  --project-description-width: 20rem;
   --project-description-gap: 30px;
   --project-description-action-gap: 20px;
 

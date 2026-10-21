@@ -6,7 +6,7 @@ import Reveal from "../../../../components/reveal";
 import RollingText from "../../../../components/rolling-text";
 import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
-import { PROJECT_IMAGE_QUALITY, PROJECT_PAGE_IMAGE_SIZES } from "../projects";
+import { PROJECT_DETAIL_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../projects";
 import styles from "./project.module.css";
 
 const ProjectArrivalContext = createContext(null);
@@ -57,7 +57,7 @@ export function ProjectImage({ project }) {
             alt={project.alt}
             width={project.width}
             height={project.height}
-            sizes={PROJECT_PAGE_IMAGE_SIZES}
+            sizes={PROJECT_DETAIL_IMAGE_SIZES}
             quality={PROJECT_IMAGE_QUALITY}
             priority
             onLoad={() => arrival?.markMediaReady()}
@@ -73,7 +73,7 @@ export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const [arrival] = useState(getProjectTransition);
   const exiting = usePageExiting();
-  const isGenesis = project.slug === "genesis";
+  const mediaRight = project.slug === "commissioning-workspace";
   const headingId = `${project.slug}-heading`;
 
   useLayoutEffect(() => {
@@ -94,13 +94,18 @@ export default function ProjectDetail({ project, children }) {
         <main
           className={[
             styles.page,
-            isGenesis ? styles.genesis : "",
+            mediaRight ? styles.mediaRight : "",
             exiting ? styles.exiting : "",
             arrival ? styles.fromWorks : "",
             arrival?.title ? styles.titleFromWorks : "",
           ]
             .filter(Boolean)
             .join(" ")}
+          style={{
+            "--project-media-aspect-ratio": project.width
+              ? project.width / project.height
+              : project.aspectRatio,
+          }}
         >
           <article className={styles.content} aria-labelledby={headingId}>
             <h1 id={headingId} className={styles.heading} data-project-heading>
@@ -109,36 +114,30 @@ export default function ProjectDetail({ project, children }) {
 
             {children}
 
-            {isGenesis ? (
-              <Reveal
-                className={styles.projectInfo}
-                blocksClassName={styles.description}
-                blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
-                actionsClassName={styles.action}
-                actions={[
-                  <RollingText
-                    key="github"
-                    as="a"
-                    href={`https://github.com/shanzhyilarionov/${project.repository}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    label="View project on GitHub"
-                    suffix={<ProjectArrow />}
-                  />,
-                  <RollingText
-                    key="works"
-                    as="a"
-                    href="/works"
-                    label="Back to works"
-                    suffix={<ProjectArrow back />}
-                  />,
-                ]}
-              />
-            ) : (
-              <div className={styles.action}>
-                <RollingText type="button" label="About this project" />
-              </div>
-            )}
+            <Reveal
+              className={styles.projectInfo}
+              blocksClassName={styles.description}
+              blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
+              actionsClassName={styles.action}
+              actions={[
+                <RollingText
+                  key="github"
+                  as="a"
+                  href={`https://github.com/shanzhyilarionov/${project.repository}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  label="View project on GitHub"
+                  suffix={<ProjectArrow />}
+                />,
+                <RollingText
+                  key="works"
+                  as="a"
+                  href="/works"
+                  label="Back to works"
+                  suffix={<ProjectArrow back />}
+                />,
+              ]}
+            />
           </article>
         </main>
       </div>

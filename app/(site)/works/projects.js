@@ -1,6 +1,7 @@
 export const PROJECT_IMAGE_SIZES = "22rem";
 export const PROJECT_IMAGE_QUALITY = 90;
 export const PROJECT_PAGE_IMAGE_SIZES = "(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem";
+export const PROJECT_DETAIL_IMAGE_SIZES = "(max-width: 768px) 90vw, (max-width: 1278px) calc(90vw - 20rem - 30px), 50rem";
 
 export const projects = [
   {

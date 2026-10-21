@@ -39,7 +39,7 @@
   animation: fadeIn var(--motion-content) var(--ease-content) both;
 }
 
-.chromeOnGenesis {
+.chromeOnProject {
   opacity: 0;
   animation: none;
 }

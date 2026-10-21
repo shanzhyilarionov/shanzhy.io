@@ -4,7 +4,7 @@ import {
   projects,
   projectThumbnailProps,
   PROJECT_IMAGE_QUALITY,
-  PROJECT_PAGE_IMAGE_SIZES,
+  PROJECT_DETAIL_IMAGE_SIZES,
 } from "../app/(site)/works/projects.js";
 
 const warmedImages = new Map();
@@ -22,7 +22,7 @@ function routeImages(pathname) {
   if (project) {
     return [getImageProps({
       src: project.image, alt: "", width: project.width, height: project.height,
-      sizes: PROJECT_PAGE_IMAGE_SIZES,
+      sizes: PROJECT_DETAIL_IMAGE_SIZES,
       quality: PROJECT_IMAGE_QUALITY,
     }).props];
   }
