@@ -1,11 +1,13 @@
 .page {
   composes: page from "../../../../components/centered-page.module.css";
-  padding-inline: calc(var(--page-inset) + 6rem);
+  padding-inline: var(--page-inset);
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  max-width: var(--column-width);
   min-width: 0;
   font-family: var(--font-family);
   font-size: var(--text-size);
@@ -14,33 +16,23 @@
   text-align: center;
 }
 
-.intro {
-  --reveal-enter-delay: 0.5s;
-  display: flex;
-  flex-direction: column;
-  gap: var(--paragraph-gap);
-  width: 100%;
-}
-
 .heading {
+  display: grid;
+  place-items: center;
   min-width: 0;
-  margin: 0 0 calc(var(--heading-gap) - var(--paragraph-gap));
+  margin: 0 0 var(--project-heading-gap);
   font-size: var(--heading-size);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
   white-space: normal;
   overflow-wrap: anywhere;
-}
-
-.description {
-  margin: 0;
-  overflow-wrap: anywhere;
+  animation: headingIn 0.2s ease-out 0.8s both;
 }
 
 .videoFrame {
-  width: 100%;
-  margin-top: var(--paragraph-gap);
+  width: var(--project-media-width);
+  max-width: calc(100% - 12rem);
   overflow: hidden;
 }
 
@@ -95,12 +87,16 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--paragraph-gap) var(--action-gap);
-  margin-top: var(--paragraph-gap);
+  margin-top: var(--project-action-gap);
   animation: fadeIn 0.5s ease-out 0.5s both;
 }
 
-.fromWorks .intro {
-  --reveal-enter-delay: var(--project-enter-delay);
+.fromWorks .heading {
+  animation-delay: calc(var(--project-enter-delay) + 0.3s);
+}
+
+.titleFromWorks .heading {
+  animation: none;
 }
 
 .fromWorks .action {
@@ -126,6 +122,7 @@
   animation: videoContentOut var(--motion-content) var(--ease-panel) both;
 }
 
+.exiting .heading,
 .exiting .action {
   animation: fadeOut var(--motion-content) ease-in both;
 }
@@ -170,6 +167,18 @@
   }
 }
 
+@keyframes headingIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -191,7 +200,7 @@
 }
 
 @media (max-width: 768px) {
-  .page {
-    padding-inline: var(--page-inset);
+  .videoFrame {
+    max-width: 100%;
   }
 }

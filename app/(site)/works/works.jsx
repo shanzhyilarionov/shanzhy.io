@@ -13,10 +13,10 @@ import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
 
-function ProjectTitle({ title, aspectRatio, active }) {
+function ProjectTitle({ slug, title, aspectRatio, active }) {
   return (
     <span className={styles.headingMask} style={{ "--image-ratio": aspectRatio }} aria-hidden="true">
-      <span className={styles.headingLabel} data-active={active}>
+      <span className={styles.headingLabel} data-project-title={slug} data-active={active}>
         {title}
       </span>
     </span>
@@ -73,7 +73,7 @@ export default function Works() {
     };
   }, []);
 
-  const openProject = (event, href) => {
+  const openProject = (event, slug, href) => {
     router.prefetch(href);
     warmRouteAssets(href);
 
@@ -83,7 +83,10 @@ export default function Works() {
     const image = projectsRef.current.querySelector(
       `a[href="${href}"] .${styles.imageFrame}`,
     );
-    startProjectTransition(page, image);
+    const title = headingRef.current.querySelector(
+      `[data-project-title="${slug}"][data-active="true"]`,
+    );
+    startProjectTransition(page, image, title);
     setTransition({ phase: "project" });
     router.push(href);
   };
@@ -104,6 +107,7 @@ export default function Works() {
           {projects.map((project) => (
             <ProjectTitle
               key={project.slug}
+              slug={project.slug}
               title={project.title}
               aspectRatio={project.aspectRatio}
               active={hoverEnabled && !transition && hoveredProject === project.slug}
@@ -147,7 +151,7 @@ export default function Works() {
                   onPointerEnter={() => warmRouteAssets(href)}
                   onFocus={() => warmRouteAssets(href)}
                   onTouchStart={() => warmRouteAssets(href)}
-                  onNavigate={(event) => openProject(event, href)}
+                  onNavigate={(event) => openProject(event, project.slug, href)}
                 >
                   <div className={styles.revealContent}>
                     <div
@@ -184,6 +188,19 @@ export default function Works() {
             );
           })}
         </div>
+
+        <p className={styles.summary} aria-hidden="true">
+          {projects.map((project) => (
+            <span
+              key={project.slug}
+              className={styles.summaryLabel}
+              style={{ "--image-ratio": project.aspectRatio }}
+              data-active={hoverEnabled && !transition && hoveredProject === project.slug}
+            >
+              {project.summary}
+            </span>
+          ))}
+        </p>
       </section>
     </main>
   );

@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
-import Reveal from "../../../../components/reveal";
 import RollingText from "../../../../components/rolling-text";
-import { usePageExiting, useScreenshots } from "../../../../components/shell-context";
+import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
 import { PROJECT_IMAGE_QUALITY, PROJECT_PAGE_IMAGE_SIZES } from "../projects";
 import styles from "./project.module.css";
@@ -55,17 +54,7 @@ export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const [arrival] = useState(getProjectTransition);
   const exiting = usePageExiting();
-  const openScreenshots = useScreenshots();
   const headingId = `${project.slug}-heading`;
-  const blocks = [
-    {
-      as: "h1",
-      id: headingId,
-      text: project.title,
-      className: styles.heading,
-    },
-    { text: project.description, className: styles.description },
-  ];
 
   useLayoutEffect(() => {
     if (!arrival) return;
@@ -75,6 +64,7 @@ export default function ProjectDetail({ project, children }) {
     return arriveProject(
       arrival,
       container.querySelector("[data-project-media]"),
+      container.querySelector("[data-project-heading]"),
     );
   }, [arrival]);
 
@@ -82,31 +72,24 @@ export default function ProjectDetail({ project, children }) {
     <ProjectArrivalContext.Provider value={arrival}>
       <div ref={containerRef} style={{ display: "contents" }}>
         <main
-          className={[styles.page, exiting ? styles.exiting : "", arrival ? styles.fromWorks : ""]
+          className={[
+            styles.page,
+            exiting ? styles.exiting : "",
+            arrival ? styles.fromWorks : "",
+            arrival?.title ? styles.titleFromWorks : "",
+          ]
             .filter(Boolean)
             .join(" ")}
         >
           <article className={styles.content} aria-labelledby={headingId}>
-            <Reveal className={styles.intro} blocks={blocks} />
+            <h1 id={headingId} className={styles.heading} data-project-heading>
+              {project.title}
+            </h1>
 
             {children}
 
             <div className={styles.action}>
-              {project.screenshots?.length > 0 && (
-                <RollingText
-                  type="button"
-                  label="View screenshots"
-                  aria-haspopup="dialog"
-                  onClick={(event) => openScreenshots(event.currentTarget)}
-                />
-              )}
-              <RollingText
-                as="a"
-                href={`https://github.com/shanzhyilarionov/${project.repository}`}
-                label="View project on GitHub"
-                target="_blank"
-                rel="noopener noreferrer"
-              />
+              <RollingText type="button" label="About this project" />
             </div>
           </article>
         </main>

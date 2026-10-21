@@ -3,7 +3,7 @@
 :root {
   --font-family: Arial, Helvetica, sans-serif;
 
-  --heading-size: 70px;
+  --heading-size: 60px;
   --heading-weight: 400;
   --heading-line-height: 1;
   --heading-letter-spacing: normal;
@@ -23,8 +23,12 @@
   --action-gap: 2rem;
   --contact-gap: 0.75rem;
 
-  --projects-width: 25rem;
+  --projects-width: clamp(20rem, 30vw, 35rem);
   --tile-gap: 0.75rem;
+
+  --project-media-width: 40rem;
+  --project-heading-gap: 50px;
+  --project-action-gap: 50px;
 
   --motion-panel: 1s;
   --motion-content: 0.5s;
