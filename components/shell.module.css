@@ -39,6 +39,11 @@
   animation: fadeIn var(--motion-content) var(--ease-content) both;
 }
 
+.chromeOnGenesis {
+  opacity: 0;
+  animation: none;
+}
+
 .homeChromeWaiting {
   visibility: hidden;
   opacity: 0;

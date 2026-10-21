@@ -91,6 +91,70 @@
   animation: fadeIn 0.5s ease-out 0.5s both;
 }
 
+.genesis .content {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, var(--project-media-width)) var(--project-description-width, 17rem);
+  column-gap: var(--project-description-gap, 3rem);
+  width: calc(var(--project-media-width) + var(--project-description-width, 17rem) + var(--project-description-gap, 3rem));
+  max-width: 100%;
+}
+
+.genesis .heading {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.genesis .videoFrame {
+  width: 100%;
+  max-width: none;
+}
+
+.projectInfo {
+  --reveal-enter-delay: 0.7s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--project-description-action-gap, 20px);
+  min-width: 0;
+  height: calc((100cqw - var(--project-description-width, 17rem) - var(--project-description-gap, 3rem)) * 9 / 16);
+  align-self: start;
+}
+
+.genesis .action {
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--contact-gap);
+  margin-top: 0;
+  animation: none;
+}
+
+.arrow {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
+.description {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  line-height: var(--text-line-height);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.descriptionParagraph {
+  margin: 0;
+}
+
+.fromWorks .projectInfo {
+  --reveal-enter-delay: calc(var(--project-enter-delay) + 0.2s);
+}
+
 .fromWorks .heading {
   animation-delay: calc(var(--project-enter-delay) + 0.3s);
 }
@@ -123,7 +187,7 @@
 }
 
 .exiting .heading,
-.exiting .action {
+.exiting:not(.genesis) .action {
   animation: fadeOut var(--motion-content) ease-in both;
 }
 
@@ -200,6 +264,19 @@
 }
 
 @media (max-width: 768px) {
+  .genesis .content {
+    grid-template-columns: minmax(0, 1fr);
+    width: var(--project-media-width);
+  }
+
+  .genesis .projectInfo {
+    justify-self: center;
+    max-width: 28ch;
+    height: auto;
+    max-height: calc(100cqw * 9 / 16);
+    margin-top: var(--project-description-gap, 3rem);
+  }
+
   .videoFrame {
     max-width: 100%;
   }

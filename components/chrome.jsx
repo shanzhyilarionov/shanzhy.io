@@ -20,7 +20,7 @@ export function HomeTitle() {
 
 export default function Chrome({ left, right, className, inert = false }) {
   return (
-    <div className={[styles.chrome, className].filter(Boolean).join(" ")} inert={inert}>
+    <div className={[styles.chrome, className].filter(Boolean).join(" ")} inert={inert} data-site-chrome>
       <div className={styles.slot}>{left}</div>
       <div className={styles.slot}>{right}</div>
     </div>

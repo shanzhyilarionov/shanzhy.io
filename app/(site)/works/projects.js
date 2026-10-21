@@ -6,7 +6,7 @@ export const projects = [
   {
     slug: "genesis",
     title: "Genesis",
-    summary: "An ecosystem simulator.",
+    summary: "An ecosystem simulation",
     description: "Genesis is an experimental multi-agent ecosystem simulation built around a simple idea: small local decisions can accumulate into complex system-wide behaviour. Individual agents respond to resources, environmental conditions, and one another through a compact set of rules, while reproduction and mutation shape populations over time. The project aims to examine adaptation, resilience, and coordination across both natural and distributed systems.",
     repository: "genesis",
     media: "video",
@@ -17,7 +17,7 @@ export const projects = [
   {
     slug: "shanzhy-io",
     title: "shanzhy.io",
-    summary: "A personal website.",
+    summary: "A portfolio website",
     description: "shanzhy.io is the website you are currently visiting—a personal portfolio created entirely from scratch without the use of templates. Rooted in minimalism, it focuses on essential content, typography, interaction, motion, and adaptability across different screens. At the centre of the homepage is a four-dimensional cube built in JavaScript, conceived as a distinctive visual element and brought to life through geometry, depth, and responsive behaviour. The site functions both as a presentation of my work and an ongoing exploration of frontend engineering.",
     repository: "shanzhy.io",
     alt: "shanzhy.io portfolio displayed on an iMac",
@@ -31,7 +31,7 @@ export const projects = [
   {
     slug: "commissioning-workspace",
     title: "Commissioning Workspace",
-    summary: "A desktop application.",
+    summary: "A commissioning software",
     description: "Commissioning Workspace is a desktop application for industrial commissioning management. It provides a structured, responsive interface for organizing assets, tracking progress, and managing tasks. The software emphasizes straightforward interactions and efficient workflows while remaining fully operational offline. Developed as a lightweight alternative to conventional engineering software, it aims to reduce unnecessary complexity without compromising practical functionality.",
     repository: "commissioning-workspace",
     alt: "Commissioning Workspace desktop application",

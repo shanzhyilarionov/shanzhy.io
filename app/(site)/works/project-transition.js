@@ -117,7 +117,7 @@ export function retainProjectVideo(video) {
   };
 }
 
-export function startProjectTransition(page, frame, heading) {
+export function startProjectTransition(page, frame, heading, chrome) {
   activeReturn?.dispose();
   activeTransition?.dispose();
   const startedAt = performance.now();
@@ -153,12 +153,16 @@ export function startProjectTransition(page, frame, heading) {
   if (title) document.body.append(title);
   page.style.visibility = "hidden";
 
-  const fade = departing.animate([{ opacity: 1 }, { opacity: 0 }], {
+  const fadeTiming = {
     duration: 300,
     easing: "ease-out",
     fill: "both",
-  });
-  fade.currentTime = performance.now() - startedAt;
+  };
+  const fade = departing.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
+  const chromeFade = chrome?.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
+  const fadeStart = document.timeline.currentTime - (performance.now() - startedAt);
+  fade.startTime = fadeStart;
+  if (chromeFade) chromeFade.startTime = fadeStart;
   fade.onfinish = () => departing.remove();
 
   const transition = {
@@ -175,6 +179,7 @@ export function startProjectTransition(page, frame, heading) {
     },
     dispose() {
       fade.cancel();
+      chromeFade?.cancel();
       departing.remove();
       preview.remove();
       title?.remove();

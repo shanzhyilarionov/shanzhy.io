@@ -16,6 +16,9 @@ function timing(index, count) {
 export default function Reveal({
   as: Element = "div",
   blocks,
+  blocksClassName,
+  actions = [],
+  actionsClassName,
   className,
   ...props
 }) {
@@ -25,7 +28,8 @@ export default function Reveal({
   const [entered, setEntered] = useState(false);
   const exiting = usePageExiting();
   const [wasExiting, setWasExiting] = useState(exiting);
-  const lineCount = lines.reduce((count, block) => count + block.length, 0);
+  const textLineCount = lines.reduce((count, block) => count + block.length, 0);
+  const lineCount = textLineCount + actions.length;
   let lineIndex = 0;
 
   if (wasExiting !== exiting) {
@@ -78,6 +82,36 @@ export default function Reveal({
     };
   }, [entered, exiting]);
 
+  const blockContent = blocks.map(
+    ({ as: Tag = "p", id, text, className }, blockIndex) => (
+      <Tag
+        id={id}
+        className={[styles.block, className].filter(Boolean).join(" ")}
+        ref={(element) => {
+          blockRefs.current[blockIndex] = element;
+        }}
+        key={blockIndex}
+      >
+        <span className={styles.source}>{text}</span>
+        {!entered &&
+          lines[blockIndex]?.map((line, index) => (
+            <span
+              className={`${styles.line} ${styles.moving}`}
+              aria-hidden="true"
+              style={{
+                "--clip-top": `${line.top}px`,
+                "--clip-bottom": `${line.bottom}px`,
+                ...timing(lineIndex++, lineCount),
+              }}
+              key={index}
+            >
+              {text}
+            </span>
+          ))}
+      </Tag>
+    ),
+  );
+
   return (
     <Element
       {...props}
@@ -85,37 +119,24 @@ export default function Reveal({
       className={[styles.content, className].filter(Boolean).join(" ")}
       data-entered={entered}
       data-exiting={exiting}
-      onAnimationEnd={() => {
-        if (!exiting) setEntered(true);
+      onAnimationEnd={(event) => {
+        if (!exiting && event.target.classList.contains(styles.moving)) setEntered(true);
       }}
     >
-      {blocks.map(({ as: Tag = "p", id, text, className }, blockIndex) => (
-        <Tag
-          id={id}
-          className={[styles.block, className].filter(Boolean).join(" ")}
-          ref={(element) => {
-            blockRefs.current[blockIndex] = element;
-          }}
-          key={blockIndex}
-        >
-          <span className={styles.source}>{text}</span>
-          {!entered &&
-            lines[blockIndex]?.map((line, index) => (
-              <span
-                className={`${styles.line} ${styles.moving}`}
-                aria-hidden="true"
-                style={{
-                  "--clip-top": `${line.top}px`,
-                  "--clip-bottom": `${line.bottom}px`,
-                  ...timing(lineIndex++, lineCount),
-                }}
-                key={index}
-              >
-                {text}
-              </span>
-            ))}
-        </Tag>
-      ))}
+      {blocksClassName ? <div className={blocksClassName}>{blockContent}</div> : blockContent}
+      {actions.length > 0 && (
+        <div className={actionsClassName}>
+          {actions.map((action, index) => (
+            <div
+              className={styles.moving}
+              style={timing(textLineCount + index, lineCount)}
+              key={action.key ?? index}
+            >
+              {action}
+            </div>
+          ))}
+        </div>
+      )}
     </Element>
   );
 }

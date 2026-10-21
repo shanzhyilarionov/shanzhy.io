@@ -32,6 +32,12 @@
   white-space: nowrap;
 }
 
+.suffix {
+  display: inline-flex;
+  margin-inline-start: 0.35em;
+  vertical-align: -0.15em;
+}
+
 .rolling .track {
   animation: rollUp 0.2s ease-out both;
 }

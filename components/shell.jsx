@@ -31,6 +31,7 @@ export default function Shell({ children }) {
   const isWorks = pathname === "/works";
   const project = findProjectByPath(pathname);
   const isProject = Boolean(project);
+  const isGenesis = project?.slug === "genesis";
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
   const chromeEnterDelayMs = isWorks || isProject ? CONTENT_MS : 0;
@@ -89,7 +90,7 @@ export default function Shell({ children }) {
 
   if (viewPath !== pathname) {
     setFromScreenshots(screenshotsVisible);
-    setChromeEntering(screenshotsVisible || (viewPath === "/" && !menuVisible));
+    setChromeEntering(screenshotsVisible || ((viewPath === "/" || viewPath === "/works/genesis") && !menuVisible));
     setViewPath(pathname);
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
@@ -266,7 +267,7 @@ export default function Shell({ children }) {
       >
         <Chrome
           key={isHome ? "home" : fromScreenshots ? `chrome:${pathname}` : "page"}
-          inert={screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
+          inert={isGenesis || screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
             isHome
@@ -278,6 +279,7 @@ export default function Shell({ children }) {
             leavingForHome ? styles.chromeLeavingHome : "",
             screenshotsVisible ? styles.chromeBehindScreenshots : "",
             screenshotsVisible && phase === "closing" ? styles.chromeReturningFromScreenshots : "",
+            isGenesis ? styles.chromeOnGenesis : "",
           ]
             .filter(Boolean)
             .join(" ")}

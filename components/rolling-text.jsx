@@ -7,6 +7,7 @@ import styles from "./rolling-text.module.css";
 export default function RollingText({
   as: Element = "button",
   label,
+  suffix,
   className,
   animateLabelChange = true,
   ...props
@@ -60,9 +61,12 @@ export default function RollingText({
     >
       <span className={styles.mask} aria-hidden="true">
         <span className={styles.track} onAnimationEnd={() => setRolling(false)}>
-          <span className={styles.line}>{shown}</span>
-          <span className={styles.line}>{shown}</span>
-          <span className={styles.line}>{shown}</span>
+          {[0, 1, 2].map((index) => (
+            <span className={styles.line} key={index}>
+              {shown}
+              {suffix && <span className={styles.suffix}>{suffix}</span>}
+            </span>
+          ))}
         </span>
       </span>
     </Element>

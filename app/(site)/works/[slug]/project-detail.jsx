@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
+import Reveal from "../../../../components/reveal";
 import RollingText from "../../../../components/rolling-text";
 import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
@@ -9,6 +10,24 @@ import { PROJECT_IMAGE_QUALITY, PROJECT_PAGE_IMAGE_SIZES } from "../projects";
 import styles from "./project.module.css";
 
 const ProjectArrivalContext = createContext(null);
+
+function ProjectArrow({ back = false }) {
+  return (
+    <svg
+      className={styles.arrow}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 12 12 4M5 4h7v7" transform={back ? "translate(16 0) scale(-1 1)" : undefined} />
+    </svg>
+  );
+}
 
 export function useProjectArrival() {
   return useContext(ProjectArrivalContext);
@@ -54,6 +73,7 @@ export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const [arrival] = useState(getProjectTransition);
   const exiting = usePageExiting();
+  const isGenesis = project.slug === "genesis";
   const headingId = `${project.slug}-heading`;
 
   useLayoutEffect(() => {
@@ -74,6 +94,7 @@ export default function ProjectDetail({ project, children }) {
         <main
           className={[
             styles.page,
+            isGenesis ? styles.genesis : "",
             exiting ? styles.exiting : "",
             arrival ? styles.fromWorks : "",
             arrival?.title ? styles.titleFromWorks : "",
@@ -88,9 +109,36 @@ export default function ProjectDetail({ project, children }) {
 
             {children}
 
-            <div className={styles.action}>
-              <RollingText type="button" label="About this project" />
-            </div>
+            {isGenesis ? (
+              <Reveal
+                className={styles.projectInfo}
+                blocksClassName={styles.description}
+                blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
+                actionsClassName={styles.action}
+                actions={[
+                  <RollingText
+                    key="github"
+                    as="a"
+                    href={`https://github.com/shanzhyilarionov/${project.repository}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    label="View project on GitHub"
+                    suffix={<ProjectArrow />}
+                  />,
+                  <RollingText
+                    key="works"
+                    as="a"
+                    href="/works"
+                    label="Back to works"
+                    suffix={<ProjectArrow back />}
+                  />,
+                ]}
+              />
+            ) : (
+              <div className={styles.action}>
+                <RollingText type="button" label="About this project" />
+              </div>
+            )}
           </article>
         </main>
       </div>
