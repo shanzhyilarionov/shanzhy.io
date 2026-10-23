@@ -160,6 +160,15 @@
   min-height: 0;
 }
 
+.stacked .description {
+  text-align: center;
+}
+
+.stacked .action {
+  align-items: center;
+  padding-inline-start: calc(1cap + 0.35em);
+}
+
 .fromWorks .projectInfo {
   --reveal-enter-delay: calc(var(--project-enter-delay) + 0.2s);
 }
@@ -193,6 +202,17 @@
 
 .exiting .heading {
   animation: fadeOut var(--motion-content) ease-in both;
+}
+
+@media (max-width: 768px) {
+  .page::before,
+  .page::after {
+    min-height: calc(
+      var(--chrome-top-mobile) +
+      var(--text-size) * max(var(--text-line-height), var(--control-line-height)) +
+      var(--heading-gap)
+    );
+  }
 }
 
 @keyframes videoMaskIn {

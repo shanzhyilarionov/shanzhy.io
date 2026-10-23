@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { usePageExiting } from "./shell-context";
+import FitText from "./fit-text";
 import styles from "./reveal.module.css";
 
 function timing(index, count) {
@@ -84,7 +85,9 @@ export default function Reveal({
 
   const blockContent = blocks.map(
     ({ as: Tag = "p", id, text, className }, blockIndex) => (
-      <Tag
+      <FitText
+        as={Tag}
+        text={text}
         id={id}
         className={[styles.block, className].filter(Boolean).join(" ")}
         ref={(element) => {
@@ -108,7 +111,7 @@ export default function Reveal({
               {text}
             </span>
           ))}
-      </Tag>
+      </FitText>
     ),
   );
 

@@ -1,6 +1,6 @@
 .page {
   composes: page from "../../../components/centered-page.module.css";
-  padding-inline: calc(var(--page-inset) + 6rem);
+  padding-inline: var(--page-inset);
 }
 
 .content {
@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: var(--paragraph-gap);
   width: 100%;
-  max-width: var(--column-width);
+  max-width: var(--about-content-width);
   font-family: var(--font-family);
   font-size: var(--text-size);
   font-weight: var(--text-weight);
@@ -31,10 +31,4 @@
   letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 768px) {
-  .page {
-    padding-inline: var(--page-inset);
-  }
 }

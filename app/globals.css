@@ -12,11 +12,12 @@
   --text-size: 1rem;
   --text-weight: 400;
   --text-line-height: 1.1;
+  --control-line-height: 1.15;
   --text-letter-spacing: normal;
 
   --content-width: 90vw;
   --page-inset: calc((100vw - var(--content-width)) / 2);
-  --column-width: 40rem;
+  --about-content-width: clamp(30rem, 40vw, 40rem);
   --chrome-top-mobile: 1.5rem;
 
   --heading-gap: 30px;
@@ -39,6 +40,7 @@
 
 @media (max-width: 768px) {
   :root {
+    --about-content-width: 100%;
     --tile-gap: 2vw;
   }
 }

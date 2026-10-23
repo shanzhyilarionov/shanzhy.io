@@ -101,8 +101,8 @@ export default function Shell({ children }) {
     setChromeEntering(screenshotsVisible || (!continuous && (viewPath === "/" || findProjectByPath(viewPath)) && !menuVisible));
     setViewPath(pathname);
     setMenuEntry({
-      key: menuEntry.key + (menuVisible && !continuous ? 1 : 0),
-      animate: menuVisible && !screenshotsVisible && !continuous,
+      key: menuEntry.key + (menuVisible ? 1 : 0),
+      animate: menuVisible && !screenshotsVisible,
     });
     setPhase("closed");
     setScreenshotAnchor(null);
@@ -299,7 +299,7 @@ export default function Shell({ children }) {
               className={
                 isHome
                   ? undefined
-                  : navigationLeaving && !leavingForHome && !chromeContinuous
+                  : navigationLeaving && !leavingForHome
                     ? styles.menuLeaving
                     : menuEntry.animate
                       ? styles.menuEntering

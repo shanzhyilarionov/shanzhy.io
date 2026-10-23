@@ -32,18 +32,14 @@
   max-width: 100%;
 }
 
-.copied {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + var(--contact-gap));
-  transform: translateY(-50%);
-  line-height: var(--text-line-height);
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  pointer-events: none;
+.link {
+  padding-inline-start: calc(1cap + 0.35em);
 }
 
-.copiedVisible {
-  opacity: 1;
+.arrow {
+  display: block;
+  width: 1cap;
+  height: 1cap;
+  overflow: visible;
+  stroke-width: calc(var(--text-weight) / 200 * 1px);
 }

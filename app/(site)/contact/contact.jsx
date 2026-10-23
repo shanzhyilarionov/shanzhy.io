@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { RevealItem } from "../../../components/reveal";
+import FitText from "../../../components/fit-text";
 import RollingText from "../../../components/rolling-text";
 import styles from "./contact.module.css";
 
@@ -24,78 +24,40 @@ const socialLinks = [
 
 const itemCount = socialLinks.length + 2;
 
+function ContactArrow() {
+  return (
+    <svg
+      className={styles.arrow}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M1 1h14v14M1 15 15 1" />
+    </svg>
+  );
+}
+
 export default function Contact() {
-  const [copied, setCopied] = useState(false);
-  const copiedTimer = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (copiedTimer.current !== null) {
-        window.clearTimeout(copiedTimer.current);
-      }
-    };
-  }, []);
-
-  const copyEmail = async () => {
-    let copySucceeded = false;
-
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(email);
-        copySucceeded = true;
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = email;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        copySucceeded = document.execCommand("copy");
-        textarea.remove();
-      }
-    } catch {
-      copySucceeded = false;
-    }
-
-    if (!copySucceeded) {
-      return;
-    }
-
-    setCopied(true);
-
-    if (copiedTimer.current !== null) {
-      window.clearTimeout(copiedTimer.current);
-    }
-
-    copiedTimer.current = window.setTimeout(() => {
-      setCopied(false);
-      copiedTimer.current = null;
-    }, 2000);
-  };
-
   return (
     <main className={styles.contactPage}>
       <section className={styles.content} aria-label="Contact information">
         <RevealItem className={styles.item} index={0} count={itemCount}>
-          <h1 className={styles.heading}>Start a conversation.</h1>
+          <FitText as="h1" className={styles.heading} text="Start a conversation." />
         </RevealItem>
 
         <RevealItem className={styles.item} index={1} count={itemCount}>
           <RollingText
-            type="button"
+            as="a"
+            href={`mailto:${email}`}
+            className={styles.link}
             label={email}
-            aria-label={copied ? "Email copied" : `Copy ${email}`}
-            onClick={copyEmail}
+            aria-label={`Send an email to ${email}`}
+            suffix={<ContactArrow />}
           />
-          <span
-            className={[styles.copied, copied ? styles.copiedVisible : ""]
-              .filter(Boolean)
-              .join(" ")}
-            aria-hidden={!copied}
-          >
-            Copied!
-          </span>
         </RevealItem>
 
         {socialLinks.map((link, index) => (
@@ -108,7 +70,9 @@ export default function Contact() {
             <RollingText
               as="a"
               href={link.href}
+              className={styles.link}
               label={link.label}
+              suffix={<ContactArrow />}
               target="_blank"
               rel="noreferrer"
             />
