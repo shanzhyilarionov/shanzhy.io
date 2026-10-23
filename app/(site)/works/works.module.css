@@ -19,12 +19,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   margin: 0;
-  overflow: hidden;
   font-family: var(--font-family);
   font-size: var(--heading-size);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-letter-spacing);
-  line-height: calc(var(--heading-line-height) * 1.15);
+  line-height: var(--heading-line-height);
   text-align: center;
   overflow-wrap: anywhere;
 }
@@ -40,7 +39,6 @@
 .headingMask {
   display: grid;
   align-self: end;
-  overflow: hidden;
 }
 
 .summary {

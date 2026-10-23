@@ -1,7 +1,7 @@
 export const PROJECT_IMAGE_SIZES = "22rem";
 export const PROJECT_IMAGE_QUALITY = 90;
 export const PROJECT_PAGE_IMAGE_SIZES = "(max-width: 768px) 90vw, (max-width: 1058px) calc(90vw - 12rem), 40rem";
-export const PROJECT_DETAIL_IMAGE_SIZES = "(max-width: 768px) 90vw, (max-width: 1278px) calc(90vw - 20rem - 30px), 50rem";
+export const PROJECT_DETAIL_IMAGE_SIZES = "100vw";
 
 export const projects = [
   {
@@ -32,6 +32,7 @@ export const projects = [
   {
     slug: "commissioning-workspace",
     title: "Commissioning Workspace",
+    titleLines: ["Commissioning", "Workspace"],
     summary: "A commissioning software",
     description: "Commissioning Workspace is a desktop application for industrial commissioning management. It provides a structured, responsive interface for organizing assets, tracking progress, and managing tasks. The software emphasizes straightforward interactions and efficient workflows while remaining fully operational offline. Developed as a lightweight alternative to conventional engineering software, it aims to reduce unnecessary complexity without compromising practical functionality.",
     repository: "commissioning-workspace",

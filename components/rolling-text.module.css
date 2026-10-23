@@ -35,7 +35,7 @@
 .suffix {
   display: inline-flex;
   margin-inline-start: 0.35em;
-  vertical-align: -0.15em;
+  vertical-align: baseline;
 }
 
 .rolling .track {

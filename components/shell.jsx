@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Chrome, { Brand, HomeTitle } from "./chrome";
+import { hasSharedHeader } from "./chrome-transition";
 import Navigation from "./navigation";
 import ScreenshotViewer from "./screenshot-viewer";
 import RollingText from "./rolling-text";
@@ -51,6 +52,7 @@ export default function Shell({ children }) {
   const [viewPath, setViewPath] = useState(pathname);
   const [fromScreenshots, setFromScreenshots] = useState(false);
   const [chromeEntering, setChromeEntering] = useState(true);
+  const [chromeContinuous, setChromeContinuous] = useState(false);
   const [menuEntry, setMenuEntry] = useState({ key: 0, animate: false });
   const [projectReturning, setProjectReturning] = useState(false);
   const scenePaused = covered || entryPending || homeEntranceWaiting;
@@ -80,6 +82,11 @@ export default function Shell({ children }) {
   if (projectReturnStarting && !projectReturning) setProjectReturning(true);
 
   useLayoutEffect(() => {
+    if (!historyExit) return;
+    setChromeContinuous(!screenshotsVisible && hasSharedHeader(pathname, historyExit.to));
+  }, [historyExit, pathname, screenshotsVisible]);
+
+  useLayoutEffect(() => {
     if (!projectReturnStarting) return;
     const media = document.querySelector("[data-project-media]");
     if (!media) return;
@@ -88,12 +95,14 @@ export default function Shell({ children }) {
   }, [projectReturnStarting, pathname]);
 
   if (viewPath !== pathname) {
+    const continuous = !screenshotsVisible && hasSharedHeader(viewPath, pathname);
     setFromScreenshots(screenshotsVisible);
-    setChromeEntering(screenshotsVisible || ((viewPath === "/" || findProjectByPath(viewPath)) && !menuVisible));
+    setChromeContinuous(continuous);
+    setChromeEntering(screenshotsVisible || (!continuous && (viewPath === "/" || findProjectByPath(viewPath)) && !menuVisible));
     setViewPath(pathname);
     setMenuEntry({
-      key: menuEntry.key + (menuVisible ? 1 : 0),
-      animate: menuVisible && !screenshotsVisible,
+      key: menuEntry.key + (menuVisible && !continuous ? 1 : 0),
+      animate: menuVisible && !screenshotsVisible && !continuous,
     });
     setPhase("closed");
     setScreenshotAnchor(null);
@@ -152,6 +161,7 @@ export default function Shell({ children }) {
   const departTo = (href, nextPhase) => {
     router.prefetch(href);
     warmRouteAssets(href);
+    setChromeContinuous(!screenshotsVisible && hasSharedHeader(pathname, href));
     setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
     setTarget(href);
     setPhase(nextPhase);
@@ -266,7 +276,7 @@ export default function Shell({ children }) {
       >
         <Chrome
           key={isHome ? "home" : fromScreenshots ? `chrome:${pathname}` : "page"}
-          inert={isProject || screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
+          inert={screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
             isHome
@@ -289,7 +299,7 @@ export default function Shell({ children }) {
               className={
                 isHome
                   ? undefined
-                  : navigationLeaving && !leavingForHome
+                  : navigationLeaving && !leavingForHome && !chromeContinuous
                     ? styles.menuLeaving
                     : menuEntry.animate
                       ? styles.menuEntering
@@ -297,7 +307,7 @@ export default function Shell({ children }) {
               }
             >
               <RollingText
-                animateLabelChange={!navigationLeaving}
+                animateLabelChange={!navigationLeaving && !(chromeContinuous && phase === "closed")}
                 type="button"
                 label={chromeLabel}
                 aria-label={

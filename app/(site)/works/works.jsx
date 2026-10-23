@@ -5,19 +5,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
+import { hasSharedHeader } from "../../../components/chrome-transition";
 import { usePageExiting, usePageExitSettleMs } from "../../../components/shell-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, projectThumbnailProps } from "./projects";
+import ProjectTitleText from "./project-title";
 import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
 import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
 
-function ProjectTitle({ slug, title, aspectRatio, active }) {
+function ProjectTitle({ slug, title, lines, aspectRatio, active }) {
   return (
     <span className={styles.headingMask} style={{ "--image-ratio": aspectRatio }} aria-hidden="true">
       <span className={styles.headingLabel} data-project-title={slug} data-active={active}>
-        {title}
+        <ProjectTitleText title={title} lines={lines} />
       </span>
     </span>
   );
@@ -86,7 +88,12 @@ export default function Works() {
     const title = headingRef.current.querySelector(
       `[data-project-title="${slug}"][data-active="true"]`,
     );
-    startProjectTransition(page, image, title, document.querySelector("[data-site-chrome]"));
+    startProjectTransition(
+      page,
+      image,
+      title,
+      hasSharedHeader("/works", href) ? null : document.querySelector("[data-site-chrome]"),
+    );
     setTransition({ phase: "project" });
     router.push(href);
   };
@@ -109,6 +116,7 @@ export default function Works() {
               key={project.slug}
               slug={project.slug}
               title={project.title}
+              lines={project.titleLines}
               aspectRatio={project.aspectRatio}
               active={hoverEnabled && !transition && hoveredProject === project.slug}
             />

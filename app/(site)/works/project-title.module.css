@@ -1,0 +1,11 @@
+.title {
+  container-type: inline-size;
+  display: block;
+  width: 100%;
+}
+
+.line {
+  display: block;
+  font-size: min(var(--heading-size), 14cqw);
+  white-space: nowrap;
+}

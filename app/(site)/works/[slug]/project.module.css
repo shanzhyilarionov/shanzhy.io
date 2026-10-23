@@ -5,31 +5,35 @@
 
 .content {
   container-type: inline-size;
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, var(--project-media-width)) var(--project-description-width, 17rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(100% * 2 / 3));
   column-gap: var(--project-description-gap, 3rem);
-  align-items: center;
-  width: calc(var(--project-media-width) + var(--project-description-width, 17rem) + var(--project-description-gap, 3rem));
+  row-gap: var(--heading-gap);
+  align-items: start;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   font-family: var(--font-family);
   font-size: var(--text-size);
   font-weight: var(--text-weight);
   line-height: var(--text-line-height);
-  text-align: center;
+  text-align: left;
 }
 
 .heading {
   grid-column: 1 / -1;
   justify-self: center;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  width: 100%;
   min-width: 0;
-  margin: 0 0 var(--project-heading-gap);
+  margin: 0;
   font-size: var(--heading-size);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
+  text-align: center;
   white-space: normal;
   overflow-wrap: anywhere;
   animation: headingIn 0.2s ease-out 0.8s both;
@@ -95,42 +99,34 @@
   gap: var(--contact-gap);
 }
 
-.mediaRight .content {
-  grid-template-columns: var(--project-description-width, 17rem) minmax(0, var(--project-media-width));
-}
-
-.mediaRight .videoFrame {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.mediaRight .projectInfo {
-  grid-column: 1;
-  grid-row: 2;
-}
-
 .projectInfo {
   --reveal-enter-delay: 0.7s;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--project-description-action-gap, 20px);
+  gap: var(--contact-gap);
   min-width: 0;
-  height: calc((100cqw - var(--project-description-width, 17rem) - var(--project-description-gap, 3rem)) / var(--project-media-aspect-ratio));
-  align-self: start;
+  min-height: calc(100cqw * 2 / 3 / var(--project-media-aspect-ratio));
+}
+
+.projectBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--contact-gap);
 }
 
 .arrow {
   display: block;
-  width: 1em;
-  height: 1em;
+  width: 1cap;
+  height: 1cap;
+  overflow: visible;
+  stroke-width: calc(var(--text-weight) / 200 * 1px);
 }
 
 .description {
   min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  flex-shrink: 0;
   line-height: var(--text-line-height);
   text-align: left;
   overflow-wrap: anywhere;
@@ -138,6 +134,30 @@
 
 .descriptionParagraph {
   margin: 0;
+}
+
+.layoutMeasure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max(0px, calc(100% / 3 - var(--project-description-gap, 3rem)));
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stacked .content {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--project-description-gap, 3rem);
+}
+
+.stacked .videoFrame {
+  grid-row: 2;
+}
+
+.stacked .projectInfo {
+  min-height: 0;
 }
 
 .fromWorks .projectInfo {
@@ -234,27 +254,5 @@
 
   to {
     opacity: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .content,
-  .mediaRight .content {
-    grid-template-columns: minmax(0, 1fr);
-    width: var(--project-media-width);
-  }
-
-  .projectInfo {
-    justify-self: center;
-    max-width: 28ch;
-    height: auto;
-    max-height: calc(100cqw / var(--project-media-aspect-ratio));
-    margin-top: var(--project-description-gap, 3rem);
-  }
-
-  .mediaRight .videoFrame,
-  .mediaRight .projectInfo {
-    grid-column: auto;
-    grid-row: auto;
   }
 }
