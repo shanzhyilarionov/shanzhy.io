@@ -117,7 +117,7 @@ export function retainProjectVideo(video) {
   };
 }
 
-export function startProjectTransition(page, frame, heading, chrome) {
+export function startProjectTransition(page, frame, chrome) {
   activeReturn?.dispose();
   activeTransition?.dispose();
   const startedAt = performance.now();
@@ -127,13 +127,6 @@ export function startProjectTransition(page, frame, heading, chrome) {
   const frames = Array.from(page.querySelectorAll("img"));
   departing.querySelectorAll("img")[frames.indexOf(frame.querySelector("img"))]
     .parentElement.style.opacity = "0";
-  let title = null;
-  if (heading) {
-    departing.querySelectorAll("*")[Array.from(page.querySelectorAll("*")).indexOf(heading)].style.opacity = "0";
-    title = snapshot(heading);
-    Object.assign(title.style, { gridTemplateColumns: "none", gridTemplateRows: "none" });
-    place(title, heading.getBoundingClientRect());
-  }
   place(departing, page.getBoundingClientRect());
   place(preview, bounds);
   const image = preview.querySelector("img");
@@ -150,7 +143,6 @@ export function startProjectTransition(page, frame, heading, chrome) {
     });
   }
   document.body.append(departing, preview);
-  if (title) document.body.append(title);
   page.style.visibility = "hidden";
 
   const fadeTiming = {
@@ -169,8 +161,6 @@ export function startProjectTransition(page, frame, heading, chrome) {
     startedAt,
     preview,
     bounds,
-    title,
-    titleBounds: heading?.getBoundingClientRect(),
     cropped,
     mediaReady: false,
     markMediaReady() {
@@ -182,7 +172,6 @@ export function startProjectTransition(page, frame, heading, chrome) {
       chromeFade?.cancel();
       departing.remove();
       preview.remove();
-      title?.remove();
       page.style.visibility = "";
       if (activeTransition === transition) activeTransition = null;
     },
@@ -374,7 +363,7 @@ export function getProjectTransition() {
   return activeTransition;
 }
 
-export function arriveProject(transition, target, heading) {
+export function arriveProject(transition, target) {
   cancelAnimationFrame(transition.cleanupFrame);
   const { preview, bounds, startedAt } = transition;
   const destination = target.getBoundingClientRect();
@@ -401,30 +390,6 @@ export function arriveProject(transition, target, heading) {
   color.currentTime = elapsed;
   if (crop) crop.currentTime = elapsed;
 
-  const { title, titleBounds } = transition;
-  const headingVisibility = heading?.style.visibility;
-  let titleMovement;
-  let titleFade;
-  if (title && heading) {
-    heading.style.visibility = "hidden";
-    heading.style.maxWidth = `${titleBounds.width}px`;
-    titleMovement = title.animate([
-      { ...geometry(titleBounds), lineHeight: getComputedStyle(title).lineHeight },
-      { ...geometry(heading.getBoundingClientRect()), lineHeight: getComputedStyle(heading).lineHeight },
-    ], timing);
-    titleFade = title.animate([{ opacity: getComputedStyle(title).opacity }, { opacity: 1 }], {
-      duration: 200,
-      easing: "ease-out",
-      fill: "both",
-    });
-    titleMovement.currentTime = elapsed;
-    titleFade.currentTime = elapsed;
-    titleMovement.onfinish = () => {
-      heading.style.visibility = headingVisibility;
-      title.remove();
-    };
-  }
-
   let arrived = false;
   let disposed = false;
   let handoff;
@@ -448,11 +413,8 @@ export function arriveProject(transition, target, heading) {
     disposed = true;
     transition.onMediaReady = null;
     target.style.visibility = visibility;
-    if (titleMovement) heading.style.visibility = headingVisibility;
     movement.cancel();
     color.cancel();
-    titleMovement?.cancel();
-    titleFade?.cancel();
     crop?.cancel();
     handoff?.cancel();
     transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());

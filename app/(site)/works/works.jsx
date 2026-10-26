@@ -75,7 +75,7 @@ export default function Works() {
     };
   }, []);
 
-  const openProject = (event, slug, href) => {
+  const openProject = (event, href) => {
     router.prefetch(href);
     warmRouteAssets(href);
 
@@ -85,13 +85,9 @@ export default function Works() {
     const image = projectsRef.current.querySelector(
       `a[href="${href}"] .${styles.imageFrame}`,
     );
-    const title = headingRef.current.querySelector(
-      `[data-project-title="${slug}"][data-active="true"]`,
-    );
     startProjectTransition(
       page,
       image,
-      title,
       hasSharedHeader("/works", href) ? null : document.querySelector("[data-site-chrome]"),
     );
     setTransition({ phase: "project" });
@@ -159,7 +155,7 @@ export default function Works() {
                   onPointerEnter={() => warmRouteAssets(href)}
                   onFocus={() => warmRouteAssets(href)}
                   onTouchStart={() => warmRouteAssets(href)}
-                  onNavigate={(event) => openProject(event, project.slug, href)}
+                  onNavigate={(event) => openProject(event, href)}
                 >
                   <div className={styles.revealContent}>
                     <div

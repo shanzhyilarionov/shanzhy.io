@@ -39,8 +39,20 @@
   animation: fadeIn var(--motion-content) var(--ease-content) both;
 }
 
-.chromeOnProject {
+.shell .chromeOnProject {
+  display: flex;
+  align-items: flex-start;
+  padding-block: var(--page-inset);
+}
+
+.shell:has([data-project-layout="wide"]) .chromeOnProject > div:last-child {
   display: none;
+}
+
+.shell:has([data-project-layout="stacked"]) .chromeOnProject {
+  display: flex;
+  align-items: flex-start;
+  padding-top: var(--chrome-top-mobile);
 }
 
 .homeChromeWaiting {
@@ -93,10 +105,6 @@
 }
 
 @media (max-width: 768px) {
-  .chromeOnProject {
-    display: flex;
-  }
-
   .chromeAbovePanel {
     align-items: flex-start;
     padding-top: var(--chrome-top-mobile);

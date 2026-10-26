@@ -24,23 +24,6 @@ const socialLinks = [
 
 const itemCount = socialLinks.length + 2;
 
-function ContactArrow() {
-  return (
-    <svg
-      className={styles.arrow}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="butt"
-      strokeLinejoin="miter"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M1 1h14v14M1 15 15 1" />
-    </svg>
-  );
-}
-
 export default function Contact() {
   return (
     <main className={styles.contactPage}>
@@ -53,10 +36,8 @@ export default function Contact() {
           <RollingText
             as="a"
             href={`mailto:${email}`}
-            className={styles.link}
             label={email}
             aria-label={`Send an email to ${email}`}
-            suffix={<ContactArrow />}
           />
         </RevealItem>
 
@@ -70,9 +51,7 @@ export default function Contact() {
             <RollingText
               as="a"
               href={link.href}
-              className={styles.link}
               label={link.label}
-              suffix={<ContactArrow />}
               target="_blank"
               rel="noreferrer"
             />

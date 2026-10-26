@@ -31,15 +31,3 @@
   width: max-content;
   max-width: 100%;
 }
-
-.link {
-  padding-inline-start: calc(1cap + 0.35em);
-}
-
-.arrow {
-  display: block;
-  width: 1cap;
-  height: 1cap;
-  overflow: visible;
-  stroke-width: calc(var(--text-weight) / 200 * 1px);
-}

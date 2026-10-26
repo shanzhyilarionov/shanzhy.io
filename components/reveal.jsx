@@ -18,6 +18,8 @@ export default function Reveal({
   as: Element = "div",
   blocks,
   blocksClassName,
+  leadingActions = [],
+  leadingActionsClassName,
   actions = [],
   actionsClassName,
   className,
@@ -30,8 +32,8 @@ export default function Reveal({
   const exiting = usePageExiting();
   const [wasExiting, setWasExiting] = useState(exiting);
   const textLineCount = lines.reduce((count, block) => count + block.length, 0);
-  const lineCount = textLineCount + actions.length;
-  let lineIndex = 0;
+  const lineCount = leadingActions.length + textLineCount + actions.length;
+  let lineIndex = leadingActions.length;
 
   if (wasExiting !== exiting) {
     setWasExiting(exiting);
@@ -126,13 +128,26 @@ export default function Reveal({
         if (!exiting && event.target.classList.contains(styles.moving)) setEntered(true);
       }}
     >
+      {leadingActions.length > 0 && (
+        <div className={leadingActionsClassName}>
+          {leadingActions.map((action, index) => (
+            <div
+              className={styles.moving}
+              style={timing(index, lineCount)}
+              key={action.key ?? index}
+            >
+              {action}
+            </div>
+          ))}
+        </div>
+      )}
       {blocksClassName ? <div className={blocksClassName}>{blockContent}</div> : blockContent}
       {actions.length > 0 && (
         <div className={actionsClassName}>
           {actions.map((action, index) => (
             <div
               className={styles.moving}
-              style={timing(textLineCount + index, lineCount)}
+              style={timing(leadingActions.length + textLineCount + index, lineCount)}
               key={action.key ?? index}
             >
               {action}

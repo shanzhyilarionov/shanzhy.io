@@ -7,7 +7,6 @@ import styles from "./rolling-text.module.css";
 export default function RollingText({
   as: Element = "button",
   label,
-  suffix,
   className,
   animateLabelChange = true,
   ...props
@@ -64,7 +63,6 @@ export default function RollingText({
           {[0, 1, 2].map((index) => (
             <span className={styles.line} key={index}>
               {shown}
-              {suffix && <span className={styles.suffix}>{suffix}</span>}
             </span>
           ))}
         </span>

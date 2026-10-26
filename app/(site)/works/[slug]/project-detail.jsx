@@ -7,27 +7,9 @@ import RollingText from "../../../../components/rolling-text";
 import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
 import { PROJECT_DETAIL_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../projects";
-import ProjectTitle from "../project-title";
 import styles from "./project.module.css";
 
 const ProjectArrivalContext = createContext(null);
-
-function ProjectArrow({ back = false }) {
-  return (
-    <svg
-      className={styles.arrow}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="butt"
-      strokeLinejoin="miter"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M1 1h14v14M1 15 15 1" transform={back ? "translate(16 0) scale(-1 1)" : undefined} />
-    </svg>
-  );
-}
 
 export function useProjectArrival() {
   return useContext(ProjectArrivalContext);
@@ -72,45 +54,41 @@ export function ProjectImage({ project }) {
 export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const contentRef = useRef(null);
-  const descriptionMeasureRef = useRef(null);
+  const layoutMeasureRef = useRef(null);
   const [arrival] = useState(getProjectTransition);
   const [stacked, setStacked] = useState(null);
   const exiting = usePageExiting();
-  const headingId = `${project.slug}-heading`;
   const mediaAspectRatio = project.width ? project.width / project.height : project.aspectRatio;
   const layoutReady = stacked !== null;
 
   useLayoutEffect(() => {
     const content = contentRef.current;
-    const description = descriptionMeasureRef.current;
+    const layoutMeasure = layoutMeasureRef.current;
     const actions = content.querySelector(`.${styles.action}`);
-    const narrowScreen = window.matchMedia("(max-width: 768px)");
+    const buttons = Array.from(actions.querySelectorAll("a"));
     let disposed = false;
 
     const measure = () => {
       if (disposed) return;
-      const mediaHeight = content.getBoundingClientRect().width * 2 / 3 / mediaAspectRatio;
-      const descriptionHeight = description.getBoundingClientRect().height;
-      const actionsHeight = actions.getBoundingClientRect().height;
-      const buttonGap = parseFloat(getComputedStyle(actions).rowGap);
+      const mediaOffset = layoutMeasure.getBoundingClientRect().width;
+      const buttonWidth = Math.max(...buttons.map((button) => button.getBoundingClientRect().width));
+      const headingGap = parseFloat(getComputedStyle(layoutMeasure).paddingRight);
 
-      setStacked(narrowScreen.matches || mediaHeight - descriptionHeight - actionsHeight < buttonGap);
+      setStacked(mediaOffset - buttonWidth < headingGap);
     };
 
     const observer = new ResizeObserver(measure);
     observer.observe(content);
-    observer.observe(description);
-    observer.observe(actions);
-    narrowScreen.addEventListener("change", measure);
+    observer.observe(layoutMeasure);
+    buttons.forEach((button) => observer.observe(button));
     measure();
     document.fonts.ready.then(measure);
 
     return () => {
       disposed = true;
       observer.disconnect();
-      narrowScreen.removeEventListener("change", measure);
     };
-  }, [mediaAspectRatio, project.description]);
+  }, [project.slug]);
 
   useLayoutEffect(() => {
     if (!arrival || !layoutReady) return;
@@ -120,7 +98,6 @@ export default function ProjectDetail({ project, children }) {
     return arriveProject(
       arrival,
       container.querySelector("[data-project-media]"),
-      container.querySelector("[data-project-heading]"),
     );
   }, [arrival, layoutReady]);
 
@@ -128,12 +105,12 @@ export default function ProjectDetail({ project, children }) {
     <ProjectArrivalContext.Provider value={arrival}>
       <div ref={containerRef} style={{ display: "contents" }}>
         <main
+          data-project-layout={stacked !== false ? "stacked" : "wide"}
           className={[
             styles.page,
             stacked !== false ? styles.stacked : "",
             exiting ? styles.exiting : "",
             arrival ? styles.fromWorks : "",
-            arrival?.title ? styles.titleFromWorks : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -141,18 +118,19 @@ export default function ProjectDetail({ project, children }) {
             "--project-media-aspect-ratio": mediaAspectRatio,
           }}
         >
-          <article ref={contentRef} className={styles.content} aria-labelledby={headingId}>
-            <h1
-              id={headingId}
-              className={styles.heading}
-              data-project-heading
-            >
-              <ProjectTitle title={project.title} lines={project.titleLines} />
-            </h1>
-
+          <article ref={contentRef} className={styles.content} aria-label={project.title}>
             <div className={styles.projectInfo}>
               <Reveal
                 className={styles.projectBody}
+                leadingActionsClassName={styles.backAction}
+                leadingActions={[
+                  <RollingText
+                    key="works"
+                    as="a"
+                    href="/works"
+                    label="Back to works"
+                  />,
+                ]}
                 blocksClassName={styles.description}
                 blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
                 actionsClassName={styles.action}
@@ -164,14 +142,6 @@ export default function ProjectDetail({ project, children }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     label="View project on GitHub"
-                    suffix={<ProjectArrow />}
-                  />,
-                  <RollingText
-                    key="works"
-                    as="a"
-                    href="/works"
-                    label="Back to works"
-                    suffix={<ProjectArrow back />}
                   />,
                 ]}
               />
@@ -179,14 +149,7 @@ export default function ProjectDetail({ project, children }) {
 
             {children}
 
-            <div className={styles.layoutMeasure} aria-hidden="true">
-              <p
-                ref={descriptionMeasureRef}
-                className={`${styles.description} ${styles.descriptionParagraph}`}
-              >
-                {project.description}
-              </p>
-            </div>
+            <div ref={layoutMeasureRef} className={styles.layoutMeasure} aria-hidden="true" />
           </article>
         </main>
       </div>

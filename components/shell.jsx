@@ -98,7 +98,7 @@ export default function Shell({ children }) {
     const continuous = !screenshotsVisible && hasSharedHeader(viewPath, pathname);
     setFromScreenshots(screenshotsVisible);
     setChromeContinuous(continuous);
-    setChromeEntering(screenshotsVisible || (!continuous && (viewPath === "/" || findProjectByPath(viewPath)) && !menuVisible));
+    setChromeEntering(screenshotsVisible || (!menuVisible && (isProject || (!continuous && (viewPath === "/" || findProjectByPath(viewPath))))));
     setViewPath(pathname);
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
@@ -275,7 +275,7 @@ export default function Shell({ children }) {
         onClickCapture={followPageLink}
       >
         <Chrome
-          key={isHome ? "home" : fromScreenshots ? `chrome:${pathname}` : "page"}
+          key={isHome ? "home" : isProject ? `project:${pathname}` : fromScreenshots ? `chrome:${pathname}` : "page"}
           inert={screenshotsVisible || leavingHome || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
@@ -292,7 +292,7 @@ export default function Shell({ children }) {
           ]
             .filter(Boolean)
             .join(" ")}
-          left={isHome ? <HomeTitle key={pathname} /> : <Brand />}
+          left={isHome ? <HomeTitle key={pathname} /> : isProject ? null : <Brand />}
           right={
             <span
               key={isHome ? "home" : menuEntry.key}
