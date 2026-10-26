@@ -38,7 +38,7 @@
 
 .video {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--project-media-aspect-ratio);
   background: url("/images/genesis.jpg") center / cover no-repeat;
   animation: videoContentIn 0.7s var(--ease-panel) both;
 }
@@ -47,7 +47,7 @@
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--project-media-aspect-ratio);
   object-fit: cover;
 }
 
@@ -61,6 +61,29 @@
   display: block;
   width: 100%;
   height: auto;
+}
+
+.cover {
+  align-self: stretch;
+  contain: size;
+}
+
+.cover .videoMask,
+.cover .video,
+.cover .videoElement,
+.cover .image,
+.cover .imageElement {
+  height: 100%;
+}
+
+.cover .video,
+.cover .videoElement,
+.cover .image {
+  aspect-ratio: auto;
+}
+
+.cover .imageElement {
+  object-fit: cover;
 }
 
 .videoElement[data-ready="false"] {
@@ -157,6 +180,22 @@
 
 .stacked .videoFrame {
   grid-row: 1;
+}
+
+.stacked .cover {
+  align-self: auto;
+  contain: none;
+}
+
+.stacked .cover .videoMask,
+.stacked .cover .video,
+.stacked .cover .image {
+  height: auto;
+}
+
+.stacked .cover .video,
+.stacked .cover .image {
+  aspect-ratio: 16 / 10;
 }
 
 .stacked .projectInfo {

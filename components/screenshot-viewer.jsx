@@ -126,8 +126,8 @@ export default function ScreenshotViewer({ project, phase, anchor, onClose }) {
                     ].filter(Boolean).join(" ")}
                     src={screenshot.image}
                     alt={screenshot.alt}
-                    width={project.width}
-                    height={project.height}
+                    width={project.screenshotWidth}
+                    height={project.screenshotHeight}
                     sizes={PROJECT_PAGE_IMAGE_SIZES}
                     quality={PROJECT_IMAGE_QUALITY}
                     loading="eager"

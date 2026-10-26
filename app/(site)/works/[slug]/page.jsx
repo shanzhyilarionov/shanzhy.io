@@ -24,7 +24,7 @@ export default async function ProjectPage({ params }) {
 
   return (
     <ProjectDetail project={project}>
-      {project.media === "video" ? <GenesisVideo /> : <ProjectImage project={project} />}
+      {project.media === "video" ? <GenesisVideo project={project} /> : <ProjectImage project={project} />}
     </ProjectDetail>
   );
 }

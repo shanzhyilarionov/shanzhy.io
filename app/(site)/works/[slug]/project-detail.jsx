@@ -26,7 +26,7 @@ export function ProjectImage({ project }) {
 
   return (
     <div
-      className={styles.videoFrame}
+      className={[styles.videoFrame, project.cover ? styles.cover : ""].filter(Boolean).join(" ")}
       data-project-media
       data-project-crop={project.crop ? "true" : undefined}
     >

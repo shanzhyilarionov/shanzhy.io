@@ -5,7 +5,7 @@ import { GENESIS_VIDEO, preloadGenesisVideo, preloadRouteImages } from "../../..
 import { useProjectArrival } from "./project-detail";
 import styles from "./project.module.css";
 
-export default function GenesisVideo() {
+export default function GenesisVideo({ project }) {
   const arrival = useProjectArrival();
   const videoRef = useRef(null);
   const [videoSource, setVideoSource] = useState(null);
@@ -107,7 +107,11 @@ export default function GenesisVideo() {
   }, [arrival, videoSource]);
 
   return (
-    <div className={styles.videoFrame} data-project-media>
+    <div
+      className={[styles.videoFrame, project.cover ? styles.cover : ""].filter(Boolean).join(" ")}
+      data-project-media
+      data-project-crop={project.crop ? "true" : undefined}
+    >
       <div className={styles.videoMask}>
         <div className={styles.video}>
           <video
@@ -116,8 +120,8 @@ export default function GenesisVideo() {
             data-ready={playback === "playing" || playback === "blocked"}
             src={videoSource ?? undefined}
             poster="/images/genesis.jpg"
-            width="1600"
-            height="900"
+            width={project.width}
+            height={project.height}
             controls={playback === "blocked"}
             muted
             loop

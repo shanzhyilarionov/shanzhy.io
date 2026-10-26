@@ -223,6 +223,10 @@ export function startProjectReturn(page, frame, slug) {
   preview.style.overflow = "hidden";
   const video = frame.querySelector("video");
   const sourceImage = frame.querySelector("img");
+  const sourceBounds = (video ?? sourceImage).getBoundingClientRect();
+  const mediaAspectRatio = video
+    ? (video.videoWidth || video.width) / (video.videoHeight || video.height)
+    : (sourceImage.naturalWidth || sourceImage.width) / (sourceImage.naturalHeight || sourceImage.height);
   let bitmap;
   let restoreVideo;
   if (video) {
@@ -242,8 +246,8 @@ export function startProjectReturn(page, frame, slug) {
     height: "100%",
     objectFit: "cover",
   });
-  if (!video && frame.dataset.projectCrop === "true") {
-    placeImage(bitmap, sourceImage.getBoundingClientRect(), bounds);
+  if (frame.dataset.projectCrop === "true") {
+    placeImage(bitmap, coverBounds(sourceBounds, mediaAspectRatio), bounds);
   }
   preview.append(bitmap);
   document.body.append(departing, preview);
@@ -258,9 +262,7 @@ export function startProjectReturn(page, frame, slug) {
     bounds,
     preview,
     cropped: frame.dataset.projectCrop === "true",
-    mediaAspectRatio: video
-      ? (video.videoWidth || 1600) / (video.videoHeight || 900)
-      : (sourceImage.naturalWidth || sourceImage.width) / (sourceImage.naturalHeight || sourceImage.height),
+    mediaAspectRatio,
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -408,9 +410,10 @@ export function arriveProject(transition, target) {
     { filter: image.style.filter },
     { filter: "grayscale(0)" },
   ], timing);
+  const imageBounds = image.getBoundingClientRect();
   const crop = transition.cropped ? image.animate([
-    geometry(image.getBoundingClientRect(), bounds),
-    geometry(destination, destination),
+    geometry(imageBounds, bounds),
+    geometry(coverBounds(destination, imageBounds.width / imageBounds.height), destination),
   ], timing) : null;
   const elapsed = performance.now() - startedAt;
   movement.currentTime = elapsed;
