@@ -140,7 +140,10 @@
   }
 }
 
-.resizing .project {
+.resizing .project,
+.resizing .image,
+.resizing .headingLabel,
+.resizing .summaryLabel {
   transition: none;
 }
 

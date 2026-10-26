@@ -1,3 +1,6 @@
+import { findProjectByPath } from "./projects.js";
+import { hasSharedHeader } from "../../../components/chrome-transition.js";
+
 let activeTransition = null;
 let activeReturn = null;
 
@@ -123,6 +126,7 @@ export function startProjectTransition(page, frame, chrome) {
   const startedAt = performance.now();
   const bounds = frame.getBoundingClientRect();
   const departing = snapshot(page);
+  const departingChrome = chrome ? snapshot(chrome) : null;
   const preview = snapshot(frame);
   const frames = Array.from(page.querySelectorAll("img"));
   departing.querySelectorAll("img")[frames.indexOf(frame.querySelector("img"))]
@@ -144,6 +148,10 @@ export function startProjectTransition(page, frame, chrome) {
   }
   document.body.append(departing, preview);
   page.style.visibility = "hidden";
+  if (departingChrome) {
+    document.body.append(departingChrome);
+    chrome.style.visibility = "hidden";
+  }
 
   const fadeTiming = {
     duration: 300,
@@ -151,11 +159,14 @@ export function startProjectTransition(page, frame, chrome) {
     fill: "both",
   };
   const fade = departing.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
-  const chromeFade = chrome?.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
+  const chromeFade = departingChrome?.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
   const fadeStart = document.timeline.currentTime - (performance.now() - startedAt);
   fade.startTime = fadeStart;
   if (chromeFade) chromeFade.startTime = fadeStart;
-  fade.onfinish = () => departing.remove();
+  fade.onfinish = () => {
+    departing.remove();
+    departingChrome?.remove();
+  };
 
   const transition = {
     startedAt,
@@ -171,12 +182,28 @@ export function startProjectTransition(page, frame, chrome) {
       fade.cancel();
       chromeFade?.cancel();
       departing.remove();
+      departingChrome?.remove();
+      if (chrome) chrome.style.visibility = "";
       preview.remove();
       page.style.visibility = "";
       if (activeTransition === transition) activeTransition = null;
     },
   };
   activeTransition = transition;
+}
+
+export function startWorksProjectTransition(from, to) {
+  if (from !== "/works") return false;
+  const project = findProjectByPath(to.split(/[?#]/)[0]);
+  if (!project) return false;
+  const frame = document.querySelector(`[data-project-thumbnail="${project.slug}"]`);
+  if (!frame) return false;
+  startProjectTransition(
+    frame.closest("main"),
+    frame,
+    hasSharedHeader(from, to) ? null : document.querySelector("[data-site-chrome]"),
+  );
+  return true;
 }
 
 export function startProjectReturn(page, frame, slug) {

@@ -2,15 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
-import { hasSharedHeader } from "../../../components/chrome-transition";
 import { usePageExiting, usePageExitSettleMs } from "../../../components/shell-context";
 import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, projectThumbnailProps } from "./projects";
 import ProjectTitleText from "./project-title";
-import { arriveWorks, getProjectReturn, startProjectTransition } from "./project-transition";
+import { arriveWorks, getProjectReturn } from "./project-transition";
 import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
@@ -26,7 +24,6 @@ function ProjectTitle({ slug, title, lines, aspectRatio, active }) {
 }
 
 export default function Works() {
-  const router = useRouter();
   const hoverEnabled = useHoverEnabled();
   const [resizing, setResizing] = useState(false);
   const [transition, setTransition] = useState(null);
@@ -75,29 +72,11 @@ export default function Works() {
     };
   }, []);
 
-  const openProject = (event, href) => {
-    router.prefetch(href);
-    warmRouteAssets(href);
-
-    event.preventDefault();
-    if (transition) return;
-    const page = headingRef.current.closest("main");
-    const image = projectsRef.current.querySelector(
-      `a[href="${href}"] .${styles.imageFrame}`,
-    );
-    startProjectTransition(
-      page,
-      image,
-      hasSharedHeader("/works", href) ? null : document.querySelector("[data-site-chrome]"),
-    );
-    setTransition({ phase: "project" });
-    router.push(href);
-  };
-
   return (
     <main
       className={[
         styles.page,
+        resizing ? styles.resizing : "",
         projectReturn ? styles.returning : "",
         transition?.phase === "exiting" ? styles.exiting : "",
       ]
@@ -126,7 +105,6 @@ export default function Works() {
           className={[
             styles.projects,
             hoverEnabled && !transition ? styles.hoverEnabled : "",
-            resizing ? styles.resizing : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -155,7 +133,6 @@ export default function Works() {
                   onPointerEnter={() => warmRouteAssets(href)}
                   onFocus={() => warmRouteAssets(href)}
                   onTouchStart={() => warmRouteAssets(href)}
-                  onNavigate={(event) => openProject(event, href)}
                 >
                   <div className={styles.revealContent}>
                     <div

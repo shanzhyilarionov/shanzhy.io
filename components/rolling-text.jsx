@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { useHoverEnabled } from "./hover-boundary";
 import styles from "./rolling-text.module.css";
 
@@ -15,6 +15,16 @@ export default function RollingText({
   const [shown, setShown] = useState(label);
   const [swap, setSwap] = useState("");
   const [rolling, setRolling] = useState(false);
+  const settleOnResize = useEffectEvent(() => {
+    setShown(label);
+    setSwap("");
+    setRolling(false);
+  });
+
+  useEffect(() => {
+    window.addEventListener("resize", settleOnResize);
+    return () => window.removeEventListener("resize", settleOnResize);
+  }, []);
 
   if (!hoverEnabled && rolling) {
     setRolling(false);

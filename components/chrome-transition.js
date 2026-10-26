@@ -1,4 +1,4 @@
-import { findProjectByPath } from "../app/(site)/works/projects";
+import { findProjectByPath } from "../app/(site)/works/projects.js";
 
 export function hasSharedHeader(from, to) {
   const source = from.split(/[?#]/)[0];

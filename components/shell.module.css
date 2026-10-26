@@ -45,7 +45,7 @@
   padding-block: var(--page-inset);
 }
 
-.shell:has([data-project-layout="wide"]) .chromeOnProject > div:last-child {
+.shell:has([data-project-layout="wide"]) .chromeOnProject > div {
   display: none;
 }
 
@@ -72,6 +72,12 @@
 
 .chromeLeavingHome {
   animation: fadeOut var(--chrome-exit-duration) ease-in both;
+  pointer-events: none;
+}
+
+.chromeLeavingForProject,
+.contentLeavingForProject {
+  animation: fadeOut var(--motion-content) ease-out both;
   pointer-events: none;
 }
 

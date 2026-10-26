@@ -95,7 +95,7 @@
 }
 
 .projectInfo {
-  --reveal-enter-delay: 0.7s;
+  --reveal-enter-delay: 0s;
   display: flex;
   flex-direction: column;
   gap: var(--contact-gap);
@@ -167,17 +167,19 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: var(--page-inset);
 }
 
 .stacked .description {
   text-align: center;
 }
 
-.stacked .backAction {
-  top: var(--chrome-top-mobile);
-}
-
 .stacked .action {
+  position: fixed;
+  right: var(--page-inset);
+  bottom: var(--chrome-top-mobile);
+  left: var(--page-inset);
+  z-index: 50;
   align-self: auto;
   align-items: center;
 }

@@ -55,6 +55,8 @@ export default function ProjectDetail({ project, children }) {
   const containerRef = useRef(null);
   const contentRef = useRef(null);
   const layoutMeasureRef = useRef(null);
+  const previousLayoutRef = useRef(null);
+  const layoutChangedRef = useRef(false);
   const [arrival] = useState(getProjectTransition);
   const [stacked, setStacked] = useState(null);
   const exiting = usePageExiting();
@@ -91,7 +93,16 @@ export default function ProjectDetail({ project, children }) {
   }, [project.slug]);
 
   useLayoutEffect(() => {
-    if (!arrival || !layoutReady) return;
+    const previous = previousLayoutRef.current;
+    previousLayoutRef.current = stacked;
+    if (previous === null || stacked === null || previous === stacked) return;
+    layoutChangedRef.current = true;
+    containerRef.current.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
+    arrival?.dispose();
+  }, [arrival, stacked]);
+
+  useLayoutEffect(() => {
+    if (!arrival || !layoutReady || layoutChangedRef.current) return;
     const container = containerRef.current;
     const elapsed = performance.now() - arrival.startedAt;
     container.style.setProperty("--project-enter-delay", `${700 - elapsed}ms`);
@@ -99,7 +110,7 @@ export default function ProjectDetail({ project, children }) {
       arrival,
       container.querySelector("[data-project-media]"),
     );
-  }, [arrival, layoutReady]);
+  }, [arrival, layoutReady, stacked]);
 
   return (
     <ProjectArrivalContext.Provider value={arrival}>
@@ -123,14 +134,14 @@ export default function ProjectDetail({ project, children }) {
               <Reveal
                 className={styles.projectBody}
                 leadingActionsClassName={styles.backAction}
-                leadingActions={[
+                leadingActions={stacked === false ? [
                   <RollingText
                     key="works"
                     as="a"
                     href="/works"
                     label="Back to works"
                   />,
-                ]}
+                ] : []}
                 blocksClassName={styles.description}
                 blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
                 actionsClassName={styles.action}
