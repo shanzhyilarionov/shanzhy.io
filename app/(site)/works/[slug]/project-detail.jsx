@@ -139,7 +139,7 @@ export default function ProjectDetail({ project, children }) {
                     key="works"
                     as="a"
                     href="/works"
-                    label="Back to works"
+                    label="Back"
                   />,
                 ] : []}
                 blocksClassName={styles.description}

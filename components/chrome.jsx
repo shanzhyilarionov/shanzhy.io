@@ -11,7 +11,7 @@ export function Brand({ onNavigate, back = false }) {
         href={back ? "/works" : "/"}
         className={styles.brandButton}
         onNavigate={onNavigate}
-        label={back ? "Back to works" : "Shanzhy"}
+        label={back ? "Back" : "Shanzhy"}
       />
     </>
   );

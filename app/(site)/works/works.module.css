@@ -140,6 +140,36 @@
   }
 }
 
+@media (max-width: 768px) {
+  .page {
+    overflow-y: hidden;
+    touch-action: pinch-zoom;
+  }
+
+  .projects {
+    --mobile-edge-shift: max(0px, calc((2 * var(--tile-size) + var(--tile-size) * 1.5 * var(--mobile-image-ratio, 1) + 2 * var(--tile-gap) - 100cqw) / 2));
+    transform: translateX(0);
+    transition: transform var(--motion-content) var(--ease-content);
+  }
+
+  .projects:has(.project:first-child[data-mobile-active="true"]) {
+    transform: translateX(var(--mobile-edge-shift));
+  }
+
+  .projects:has(.project:last-child[data-mobile-active="true"]) {
+    transform: translateX(calc(-1 * var(--mobile-edge-shift)));
+  }
+
+  .project[data-mobile-active="true"] {
+    flex-basis: calc(var(--tile-size) * 1.5 * var(--image-ratio));
+  }
+
+  .project[data-mobile-active="true"] .image {
+    filter: grayscale(0);
+  }
+}
+
+.resizing .projects,
 .resizing .project,
 .resizing .image,
 .resizing .headingLabel,
