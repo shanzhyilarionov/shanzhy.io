@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { getWorksExitDelay } from "../app/(site)/works/exit-timing.js";
 
-function setup(t, { hovered = false, mobileHovered = false, enabled = true, mouse = true, animations = [] } = {}) {
+function setup(t, { hovered = false, scrollHovered = false, enabled = true, mouse = true, animations = [] } = {}) {
   const original = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
@@ -15,7 +15,7 @@ function setup(t, { hovered = false, mobileHovered = false, enabled = true, mous
 
   return {
     dataset: { hoverEnabled: String(enabled) },
-    querySelector: (selector) => (selector.includes("data-mobile-active") ? mobileHovered : hovered) ? {} : null,
+    querySelector: (selector) => (selector.includes("data-scroll-active") ? scrollHovered : hovered) ? {} : null,
     getAnimations: () => animations,
   };
 }
@@ -38,8 +38,8 @@ test("touch hover does not delay exit", (t) => {
   assert.equal(getWorksExitDelay(setup(t, { hovered: true, mouse: false })), 0);
 });
 
-test("an active mobile preview restores before leaving works", (t) => {
-  assert.equal(getWorksExitDelay(setup(t, { mobileHovered: true, enabled: false, mouse: false })), 500);
+test("an active scroll preview restores before leaving works", (t) => {
+  assert.equal(getWorksExitDelay(setup(t, { scrollHovered: true, enabled: false, mouse: false })), 500);
 });
 
 test("cards still restoring after pointer leave keep the restoration step", (t) => {

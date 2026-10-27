@@ -9,7 +9,7 @@ import { warmRouteAssets } from "../../../components/preload-assets";
 import { projects, projectThumbnailProps } from "./projects";
 import ProjectTitleText from "./project-title";
 import { arriveWorks, getProjectReturn } from "./project-transition";
-import { bindMobileWorksHover } from "./mobile-hover";
+import { bindWorksScrollHover } from "./scroll-hover";
 import styles from "./works.module.css";
 
 const EXIT_STEP_MS = 500;
@@ -29,7 +29,7 @@ export default function Works() {
   const [resizing, setResizing] = useState(false);
   const [transition, setTransition] = useState(null);
   const [hoveredProject, setHoveredProject] = useState(null);
-  const [mobileHoveredProject, setMobileHoveredProject] = useState(null);
+  const [scrollHoveredProject, setScrollHoveredProject] = useState(null);
   const [projectReturn] = useState(getProjectReturn);
   const pageExiting = usePageExiting();
   const exitSettleMs = usePageExitSettleMs();
@@ -37,11 +37,11 @@ export default function Works() {
   const headingRef = useRef(null);
   const projectsRef = useRef(null);
   const pageRef = useRef(null);
-  const activeProject = !transition ? mobileHoveredProject ?? (hoverEnabled ? hoveredProject : null) : null;
+  const activeProject = !transition ? scrollHoveredProject ?? (hoverEnabled ? hoveredProject : null) : null;
 
   if (wasPageExiting !== pageExiting) {
     setWasPageExiting(pageExiting);
-    setMobileHoveredProject(null);
+    setScrollHoveredProject(null);
     setTransition(pageExiting ? { phase: exitSettleMs > 0 ? "settling" : "exiting" } : null);
   }
 
@@ -53,7 +53,10 @@ export default function Works() {
 
   useEffect(() => {
     if (transition) return;
-    return bindMobileWorksHover(pageRef.current, setMobileHoveredProject);
+    return bindWorksScrollHover(pageRef.current, (slug) => {
+      setScrollHoveredProject(slug);
+      if (slug) setHoveredProject(null);
+    });
   }, [transition]);
 
   useEffect(() => {
@@ -85,6 +88,11 @@ export default function Works() {
   return (
     <main
       ref={pageRef}
+      onPointerMove={(event) => {
+        if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
+          setHoveredProject(event.target.closest("[data-project-preview]")?.dataset.projectPreview ?? null);
+        }
+      }}
       className={[
         styles.page,
         resizing ? styles.resizing : "",
@@ -113,13 +121,8 @@ export default function Works() {
           ref={projectsRef}
           data-works-projects
           data-hover-enabled={hoverEnabled && !transition}
-          style={{ "--mobile-image-ratio": projects.find((project) => project.slug === mobileHoveredProject)?.aspectRatio }}
-          className={[
-            styles.projects,
-            hoverEnabled && !transition ? styles.hoverEnabled : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          style={{ "--active-image-ratio": projects.find((project) => project.slug === activeProject)?.aspectRatio }}
+          className={styles.projects}
         >
           {projects.map((project) => {
             const href = `/works/${project.slug}`;
@@ -127,11 +130,9 @@ export default function Works() {
             return (
               <article
                 className={styles.project}
-                data-project-preview
-                data-mobile-active={!transition && mobileHoveredProject === project.slug}
-                onPointerEnter={(event) => {
-                  if (event.pointerType === "mouse") setHoveredProject(project.slug);
-                }}
+                data-project-preview={project.slug}
+                data-active={activeProject === project.slug}
+                data-scroll-active={!transition && scrollHoveredProject === project.slug}
                 onPointerLeave={() => setHoveredProject((current) => current === project.slug ? null : current)}
                 style={{
                   "--reveal-duration": project.duration,

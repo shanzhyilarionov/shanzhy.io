@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bindMobileWorksHover } from "../app/(site)/works/mobile-hover.js";
+import { bindWorksScrollHover } from "../app/(site)/works/scroll-hover.js";
 
-function setup(t, mobile = true) {
+function setup(t, width = 390) {
   let now = 0;
   let timerId = 0;
   const timers = new Map();
@@ -10,14 +10,11 @@ function setup(t, mobile = true) {
   let dispose = () => {};
   t.after(() => dispose());
   const page = new EventTarget();
-  const media = new EventTarget();
-  media.matches = mobile;
   page.clientHeight = 800;
-  page.clientWidth = 390;
+  page.clientWidth = width;
   const globals = {
     performance: { now: () => now },
     window: {
-      matchMedia: () => media,
       setTimeout: (callback, delay) => {
         timers.set(++timerId, { callback, at: now + delay });
         return timerId;
@@ -33,7 +30,7 @@ function setup(t, mobile = true) {
       else delete globalThis[name];
     });
   }
-  dispose = bindMobileWorksHover(page, (slug) => changes.push(slug));
+  dispose = bindWorksScrollHover(page, (slug) => changes.push(slug));
 
   const dispatch = (type, props) => {
     const event = new Event(type, { cancelable: true });
@@ -57,7 +54,7 @@ function setup(t, mobile = true) {
     dispatch("touchend", { touches: [] });
   };
   const wheel = (deltaY, props = {}) => dispatch("wheel", { deltaY, deltaX: 0, deltaMode: 0, ...props });
-  return { changes, page, media, timers, dispose, dispatch, point, advance, swipe, wheel };
+  return { changes, page, timers, dispose, dispatch, point, advance, swipe, wheel };
 }
 
 test("the first swipe opens shanzhy.io in either direction after the threshold", (t) => {
@@ -93,7 +90,7 @@ test("each hover animation completes before another swipe can select a project",
   assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
 });
 
-test("continuous touch movement accumulates until a complete transition is triggered", (t) => {
+test("one touch accumulates to the threshold and triggers only one transition", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   ui.dispatch("touchmove", { touches: [ui.point(180)] });
@@ -103,6 +100,9 @@ test("continuous touch movement accumulates until a complete transition is trigg
   assert.deepEqual(ui.changes, ["shanzhy-io"]);
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(120)] });
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  ui.dispatch("touchend", { touches: [] });
+  ui.swipe(-40);
   assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
 });
 
@@ -117,7 +117,7 @@ test("activity renews the five second timeout even without switching projects", 
   assert.deepEqual(ui.changes, ["shanzhy-io", null]);
 });
 
-test("reversing direction during one touch switches back after the animation", (t) => {
+test("reversing direction within one touch does not trigger another hover", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   ui.dispatch("touchmove", { touches: [ui.point(240)] });
@@ -127,14 +127,17 @@ test("reversing direction during one touch switches back after the animation", (
   ui.dispatch("touchmove", { touches: [ui.point(240)] });
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(200)] });
-  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  ui.dispatch("touchend", { touches: [] });
+  ui.swipe(40);
+  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
 });
 
 test("wheel movement uses scroll direction and a distance threshold", (t) => {
   const ui = setup(t);
-  ui.wheel(20);
+  ui.wheel(4);
   assert.deepEqual(ui.changes, []);
-  ui.wheel(20);
+  ui.wheel(4);
   ui.advance(500);
   ui.wheel(-40);
   assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
@@ -156,7 +159,7 @@ test("horizontal swipes open shanzhy.io first and switch in both directions", (t
   assert.equal(ui.changes.at(-1), "shanzhy-io");
 });
 
-test("a horizontal gesture can reverse without lifting and waits for each animation", (t) => {
+test("a horizontal gesture switches once even when it continues or reverses", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   const move = ui.dispatch("touchmove", { touches: [ui.point(200, 140)] });
@@ -169,26 +172,94 @@ test("a horizontal gesture can reverse without lifting and waits for each animat
   ui.dispatch("touchmove", { touches: [ui.point(200, 180)] });
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(200, 140)] });
-  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  ui.dispatch("touchend", { touches: [] });
+  ui.swipe(-40, "horizontal");
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
+});
+
+for (const axis of ["vertical", "horizontal"]) {
+  test(`${axis} wheel inertia triggers one hover until scrolling stops`, (t) => {
+    const ui = setup(t);
+    const scroll = (amount) => axis === "vertical" ? ui.wheel(amount) : ui.wheel(0, { deltaX: amount });
+    scroll(1000);
+    for (let step = 0; step < 20; step += 1) {
+      ui.advance(100);
+      scroll(step < 10 ? 300 : -300);
+    }
+    assert.deepEqual(ui.changes, ["shanzhy-io"]);
+    ui.advance(241);
+    scroll(-1000);
+    assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
+  });
+}
+
+test("a new wheel gesture during animation is queued once without repeating on inertia", (t) => {
+  const ui = setup(t);
+  ui.wheel(1000);
+  ui.advance(300);
+  ui.wheel(1000);
+  for (let step = 0; step < 6; step += 1) {
+    ui.advance(100);
+    ui.wheel(1000);
+  }
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
+  ui.advance(241);
+  ui.wheel(-1000);
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace", "shanzhy-io"]);
 });
 
 test("horizontal wheel input uses the dominant axis and normalizes page distances", (t) => {
   const ui = setup(t);
-  ui.wheel(2, { deltaX: 20 });
+  ui.wheel(2, { deltaX: 4 });
   assert.deepEqual(ui.changes, []);
-  ui.wheel(2, { deltaX: 20 });
+  ui.wheel(2, { deltaX: 4 });
   ui.advance(500);
   ui.wheel(0, { deltaX: -0.1, deltaMode: 2 });
   assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
 });
 
-test("desktop and pinch zoom preserve their default behavior", (t) => {
-  const ui = setup(t, false);
-  ui.swipe(80);
-  ui.swipe(80, "horizontal");
-  assert.equal(ui.wheel(80).defaultPrevented, false);
-  assert.equal(ui.wheel(0, { deltaX: 80 }).defaultPrevented, false);
-  ui.media.matches = true;
+for (const [mode, amount] of [[0, 8], [1, 1]]) {
+  test(`small desktop wheel steps in delta mode ${mode} switch without repeated attempts`, (t) => {
+    const ui = setup(t, 1920);
+    ui.wheel(amount, { deltaMode: mode });
+    assert.deepEqual(ui.changes, ["shanzhy-io"]);
+    ui.advance(150);
+    ui.wheel(-amount, { deltaMode: mode });
+    assert.deepEqual(ui.changes, ["shanzhy-io"]);
+    ui.advance(350);
+    assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
+    ui.advance(500);
+    ui.wheel(amount, { deltaMode: mode });
+    assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io"]);
+  });
+}
+
+test("mouse takeover cancels a queued wheel transition", (t) => {
+  const ui = setup(t);
+  ui.wheel(100);
+  ui.advance(150);
+  ui.wheel(100);
+  ui.dispatch("pointermove", { pointerType: "mouse", movementX: 1, movementY: 0 });
+  ui.advance(500);
+  assert.deepEqual(ui.changes, ["shanzhy-io", null]);
+  assert.equal(ui.timers.size, 0);
+});
+
+test("wide touchscreens and desktop wheels use the same project sequence", (t) => {
+  const ui = setup(t, 1920);
+  ui.swipe(40);
+  ui.advance(500);
+  ui.swipe(40, "horizontal");
+  ui.advance(500);
+  assert.equal(ui.wheel(40).defaultPrevented, true);
+  ui.advance(500);
+  ui.wheel(0, { deltaX: 40 });
+  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
+});
+
+test("pinch zoom preserves its default behavior", (t) => {
+  const ui = setup(t, 1920);
   assert.equal(ui.wheel(80, { ctrlKey: true }).defaultPrevented, false);
   assert.equal(ui.wheel(0, { deltaX: 80, ctrlKey: true }).defaultPrevented, false);
   ui.dispatch("touchstart", { touches: [ui.point(200), { ...ui.point(200), identifier: 2 }] });
@@ -196,17 +267,26 @@ test("desktop and pinch zoom preserve their default behavior", (t) => {
   assert.deepEqual(ui.changes, []);
 });
 
-test("resizing clears mobile hover and disposal removes listeners and timers", (t) => {
+test("mouse movement takes over a scroll preview while touch movement leaves it active", (t) => {
   const ui = setup(t);
   ui.swipe(40);
-  ui.media.matches = false;
-  ui.media.dispatchEvent(new Event("change"));
+  ui.dispatch("pointermove", { pointerType: "touch", movementX: 10, movementY: 10 });
+  ui.dispatch("pointermove", { pointerType: "mouse", movementX: 0, movementY: 0 });
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  ui.dispatch("pointermove", { pointerType: "mouse", movementX: 1, movementY: 0 });
   assert.deepEqual(ui.changes, ["shanzhy-io", null]);
-  ui.media.matches = true;
+  assert.equal(ui.timers.size, 0);
+  ui.wheel(-40);
+  assert.deepEqual(ui.changes, ["shanzhy-io", null, "shanzhy-io"]);
+});
+
+test("disposal removes listeners and idle timers", (t) => {
+  const ui = setup(t);
   ui.swipe(40);
   ui.dispose();
   assert.equal(ui.timers.size, 0);
   ui.swipe(80);
   ui.wheel(80);
-  assert.deepEqual(ui.changes, ["shanzhy-io", null, "shanzhy-io"]);
+  ui.dispatch("pointermove", { pointerType: "mouse", movementX: 1, movementY: 0 });
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
 });

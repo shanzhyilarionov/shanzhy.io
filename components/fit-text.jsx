@@ -10,6 +10,7 @@ export default function FitText({ as: Element = "span", text, children, ref, ...
     const element = elementRef.current;
     const originalSize = element.style.fontSize;
     let disposed = false;
+    let measuredWidth = null;
 
     const restore = () => {
       if (originalSize) element.style.fontSize = originalSize;
@@ -18,6 +19,8 @@ export default function FitText({ as: Element = "span", text, children, ref, ...
 
     const measure = () => {
       if (disposed) return;
+      const width = element.getBoundingClientRect().width;
+      if (measuredWidth !== null && Math.abs(width - measuredWidth) < 0.01) return;
       restore();
 
       const computed = getComputedStyle(element);
@@ -46,36 +49,39 @@ export default function FitText({ as: Element = "span", text, children, ref, ...
 
       const wordWidth = probe.getBoundingClientRect().width;
       if (wordWidth > available) {
-        let lower = 0;
-        let upper = fontSize;
-        while (upper - lower > 0.01) {
-          const candidate = (lower + upper) / 2;
-          element.style.fontSize = `${candidate}px`;
-          if (probe.getBoundingClientRect().width <= available) lower = candidate;
-          else upper = candidate;
+        const fittedSize = Math.max(0, fontSize * available / wordWidth - 0.02);
+        element.style.fontSize = `${fittedSize}px`;
+        const fittedWidth = probe.getBoundingClientRect().width;
+        if (fittedWidth > available) {
+          element.style.fontSize = `${Math.max(0, fittedSize * available / fittedWidth - 0.02)}px`;
         }
-        element.style.fontSize = `${lower}px`;
       }
       probe.remove();
+      measuredWidth = element.getBoundingClientRect().width;
+    };
+
+    const invalidate = () => {
+      measuredWidth = null;
+      measure();
     };
 
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     if (element.parentElement) observer.observe(element.parentElement);
-    const stylesObserver = new MutationObserver(measure);
+    const stylesObserver = new MutationObserver(invalidate);
     stylesObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
     stylesObserver.observe(document.head, { childList: true, subtree: true, characterData: true, attributes: true });
-    window.addEventListener("resize", measure);
-    document.fonts.addEventListener("loadingdone", measure);
+    window.addEventListener("resize", invalidate);
+    document.fonts.addEventListener("loadingdone", invalidate);
     measure();
-    document.fonts.ready.then(measure);
+    document.fonts.ready.then(invalidate);
 
     return () => {
       disposed = true;
       observer.disconnect();
       stylesObserver.disconnect();
-      window.removeEventListener("resize", measure);
-      document.fonts.removeEventListener("loadingdone", measure);
+      window.removeEventListener("resize", invalidate);
+      document.fonts.removeEventListener("loadingdone", invalidate);
       restore();
     };
   }, [Element, text]);
