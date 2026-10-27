@@ -4,11 +4,9 @@
 
 .line {
   position: absolute;
-  top: var(--line-top);
-  left: var(--line-left);
+  inset: 0;
   display: block;
-  width: max-content;
-  white-space: pre;
+  clip-path: inset(var(--clip-top) 0 var(--clip-bottom) 0);
   pointer-events: none;
   user-select: none;
 }
@@ -18,20 +16,12 @@
 }
 
 .moving {
-  will-change: opacity, transform;
   animation: enter var(--duration) ease-out
     calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
 }
 
-.content[data-entered="true"] .moving,
-.moving[data-entered="true"] {
-  animation: none;
-  will-change: auto;
-}
-
 .content[data-exiting="true"] .moving,
 .moving[data-exiting="true"] {
-  will-change: opacity, transform;
   animation: exit var(--duration) ease-in both;
 }
 

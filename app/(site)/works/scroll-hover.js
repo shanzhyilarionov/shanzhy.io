@@ -3,7 +3,7 @@ import { projects } from "./projects.js";
 const SWIPE_THRESHOLD = 36;
 const WHEEL_THRESHOLD = 8;
 const ANIMATION_MS = 500;
-const WHEEL_GESTURE_IDLE_MS = 100;
+const WHEEL_GESTURE_IDLE_MS = 160;
 const IDLE_MS = 5000;
 
 export function bindWorksScrollHover(page, onChange) {
@@ -13,25 +13,18 @@ export function bindWorksScrollHover(page, onChange) {
   let idleTimer;
   let touch = null;
   let lastWheelAt = null;
-  let wheelConsumed = false;
   let wheelDistance = 0;
-  let pendingWheelTimer;
-  let pendingWheelDirection = null;
-
-  const cancelPendingWheel = () => {
-    window.clearTimeout(pendingWheelTimer);
-    pendingWheelTimer = undefined;
-    pendingWheelDirection = null;
-  };
+  let lastWheelDelta = 0;
+  let fallingSamples = 0;
+  let risingSamples = 0;
+  let wheelInertia = false;
 
   const reset = () => {
     window.clearTimeout(idleTimer);
-    cancelPendingWheel();
     activeIndex = null;
     distance = 0;
     wheelDistance = 0;
     lockedUntil = 0;
-    touch = null;
     onChange(null);
   };
 
@@ -55,14 +48,13 @@ export function bindWorksScrollHover(page, onChange) {
   const advance = (delta) => {
     if (performance.now() < lockedUntil) {
       distance = 0;
-      return false;
+      return;
     }
     distance = Math.sign(distance) === Math.sign(delta) ? distance + delta : delta;
-    if (Math.abs(distance) < SWIPE_THRESHOLD) return false;
+    if (Math.abs(distance) < SWIPE_THRESHOLD) return;
     const direction = Math.sign(distance);
     distance = 0;
     select(direction);
-    return true;
   };
 
   const handleTouchStart = (event) => {
@@ -71,15 +63,13 @@ export function bindWorksScrollHover(page, onChange) {
       return;
     }
     const point = event.touches[0];
-    cancelPendingWheel();
     touch = {
       id: point.identifier,
       x: point.clientX,
       y: point.clientY,
       lastX: point.clientX,
       lastY: point.clientY,
-      axis: null,
-      consumed: performance.now() < lockedUntil,
+      moving: false,
     };
     distance = 0;
     recordActivity();
@@ -94,15 +84,15 @@ export function bindWorksScrollHover(page, onChange) {
     touch.lastX = point.clientX;
     touch.lastY = point.clientY;
     recordActivity();
-    if (!touch.axis) {
+    if (!touch.moving) {
       const x = Math.abs(point.clientX - touch.x);
       const y = Math.abs(point.clientY - touch.y);
       if (Math.max(x, y) < 8) return;
-      touch.axis = y > x ? "vertical" : "horizontal";
+      touch.moving = true;
     }
-    const delta = touch.axis === "horizontal" ? deltaX : deltaY;
+    const delta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
     if (event.cancelable) event.preventDefault();
-    if (delta !== 0 && !touch.consumed) touch.consumed = advance(delta);
+    if (delta !== 0) advance(delta);
   };
 
   const handleTouchEnd = () => {
@@ -115,36 +105,47 @@ export function bindWorksScrollHover(page, onChange) {
     if (event.ctrlKey || (event.deltaX === 0 && event.deltaY === 0)) return;
     if (event.cancelable) event.preventDefault();
     const now = performance.now();
-    if (lastWheelAt === null || now - lastWheelAt > WHEEL_GESTURE_IDLE_MS) {
-      wheelDistance = 0;
-      wheelConsumed = false;
-    }
-    lastWheelAt = now;
-    recordActivity();
-    if (wheelConsumed) return;
     const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
     const pageSize = horizontal ? page.clientWidth : page.clientHeight;
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? pageSize : 1;
     const delta = (horizontal ? event.deltaX : event.deltaY) * unit;
+    const magnitude = Math.abs(delta);
+    const previousMagnitude = Math.abs(lastWheelDelta);
+    if (
+      lastWheelAt === null || now - lastWheelAt > WHEEL_GESTURE_IDLE_MS ||
+      Math.sign(delta) !== Math.sign(lastWheelDelta) || event.deltaMode !== 0
+    ) {
+      wheelDistance = 0;
+      fallingSamples = 0;
+      risingSamples = 0;
+      wheelInertia = false;
+    } else if (magnitude < previousMagnitude - 0.5) {
+      fallingSamples += 1;
+      risingSamples = 0;
+      if (fallingSamples >= 2) wheelInertia = true;
+    } else if (magnitude > previousMagnitude + 0.5) {
+      risingSamples += 1;
+      fallingSamples = 0;
+      if (risingSamples >= 2) wheelInertia = false;
+    } else {
+      risingSamples = 0;
+    }
+    lastWheelAt = now;
+    lastWheelDelta = delta;
+    if (wheelInertia) {
+      wheelDistance = 0;
+      return;
+    }
+    recordActivity();
+    if (now < lockedUntil) {
+      wheelDistance = 0;
+      return;
+    }
     wheelDistance = Math.sign(wheelDistance) === Math.sign(delta) ? wheelDistance + delta : delta;
     if (Math.abs(wheelDistance) < WHEEL_THRESHOLD) return;
-    wheelConsumed = true;
     const direction = Math.sign(wheelDistance);
     wheelDistance = 0;
-    if (now < lockedUntil) {
-      pendingWheelDirection = direction;
-      if (pendingWheelTimer === undefined) {
-        pendingWheelTimer = window.setTimeout(() => {
-          const nextDirection = pendingWheelDirection;
-          pendingWheelTimer = undefined;
-          pendingWheelDirection = null;
-          select(nextDirection);
-        }, lockedUntil - now);
-      }
-    } else {
-      cancelPendingWheel();
-      select(direction);
-    }
+    select(direction);
   };
 
   const handlePointerMove = (event) => {
@@ -164,7 +165,6 @@ export function bindWorksScrollHover(page, onChange) {
 
   return () => {
     window.clearTimeout(idleTimer);
-    cancelPendingWheel();
     page.removeEventListener("pointermove", handlePointerMove);
     page.removeEventListener("touchstart", handleTouchStart);
     page.removeEventListener("touchmove", handleTouchMove);

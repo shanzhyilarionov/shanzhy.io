@@ -90,7 +90,7 @@ test("each hover animation completes before another swipe can select a project",
   assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
 });
 
-test("one touch accumulates to the threshold and triggers only one transition", (t) => {
+test("one continuous touch can trigger more transitions after each full animation", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   ui.dispatch("touchmove", { touches: [ui.point(180)] });
@@ -100,9 +100,10 @@ test("one touch accumulates to the threshold and triggers only one transition", 
   assert.deepEqual(ui.changes, ["shanzhy-io"]);
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(120)] });
-  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
   ui.dispatch("touchend", { touches: [] });
-  ui.swipe(-40);
+  ui.advance(500);
+  ui.dispatch("touchmove", { touches: [ui.point(80)] });
   assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
 });
 
@@ -117,7 +118,7 @@ test("activity renews the five second timeout even without switching projects", 
   assert.deepEqual(ui.changes, ["shanzhy-io", null]);
 });
 
-test("reversing direction within one touch does not trigger another hover", (t) => {
+test("a continuous vertical touch can move both ways through all projects", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   ui.dispatch("touchmove", { touches: [ui.point(240)] });
@@ -127,10 +128,7 @@ test("reversing direction within one touch does not trigger another hover", (t) 
   ui.dispatch("touchmove", { touches: [ui.point(240)] });
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(200)] });
-  assert.deepEqual(ui.changes, ["shanzhy-io"]);
-  ui.dispatch("touchend", { touches: [] });
-  ui.swipe(40);
-  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
+  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
 });
 
 test("wheel movement uses scroll direction and a distance threshold", (t) => {
@@ -159,7 +157,7 @@ test("horizontal swipes open shanzhy.io first and switch in both directions", (t
   assert.equal(ui.changes.at(-1), "shanzhy-io");
 });
 
-test("a horizontal gesture switches once even when it continues or reverses", (t) => {
+test("a continuous horizontal touch can keep moving and reverse direction", (t) => {
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   const move = ui.dispatch("touchmove", { touches: [ui.point(200, 140)] });
@@ -172,41 +170,97 @@ test("a horizontal gesture switches once even when it continues or reverses", (t
   ui.dispatch("touchmove", { touches: [ui.point(200, 180)] });
   ui.advance(500);
   ui.dispatch("touchmove", { touches: [ui.point(200, 140)] });
-  assert.deepEqual(ui.changes, ["shanzhy-io"]);
-  ui.dispatch("touchend", { touches: [] });
-  ui.swipe(-40, "horizontal");
-  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
+  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
 });
 
 for (const axis of ["vertical", "horizontal"]) {
-  test(`${axis} wheel inertia triggers one hover until scrolling stops`, (t) => {
+  test(`${axis} decaying wheel inertia cannot trigger additional previews`, (t) => {
     const ui = setup(t);
     const scroll = (amount) => axis === "vertical" ? ui.wheel(amount) : ui.wheel(0, { deltaX: amount });
-    scroll(1000);
+    scroll(80);
     for (let step = 0; step < 20; step += 1) {
-      ui.advance(100);
-      scroll(step < 10 ? 300 : -300);
+      ui.advance(50);
+      scroll(60 * 0.85 ** step);
     }
     assert.deepEqual(ui.changes, ["shanzhy-io"]);
-    ui.advance(241);
-    scroll(-1000);
+    ui.advance(200);
+    scroll(-80);
     assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
   });
 }
 
-test("a new wheel gesture during animation is queued once without repeating on inertia", (t) => {
+test("active wheel movement can continue switching without waiting for a new gesture", (t) => {
   const ui = setup(t);
-  ui.wheel(1000);
-  ui.advance(300);
-  ui.wheel(1000);
-  for (let step = 0; step < 6; step += 1) {
+  ui.wheel(40);
+  for (let step = 0; step < 5; step += 1) {
     ui.advance(100);
-    ui.wheel(1000);
+    ui.wheel(40);
   }
   assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
-  ui.advance(241);
-  ui.wheel(-1000);
-  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace", "shanzhy-io"]);
+  for (let step = 0; step < 10; step += 1) {
+    ui.advance(100);
+    ui.wheel(-40);
+  }
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace", "shanzhy-io", "genesis"]);
+});
+
+test("wheel input during an animation never schedules a transition after input stops", (t) => {
+  const ui = setup(t);
+  ui.wheel(100);
+  ui.advance(150);
+  ui.wheel(100);
+  ui.advance(1000);
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+});
+
+test("inertial spikes are ignored and renewed acceleration can resume switching", (t) => {
+  const ui = setup(t);
+  ui.wheel(80);
+  for (const amount of [70, 60, 50, 40, 30, 24, 18, 14, 12, 10, 60, 8, 7]) {
+    ui.advance(50);
+    ui.wheel(amount);
+  }
+  assert.deepEqual(ui.changes, ["shanzhy-io"]);
+  for (const amount of [12, 24]) {
+    ui.advance(50);
+    ui.wheel(amount);
+  }
+  assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
+});
+
+test("inertia does not keep an idle hover visible or reopen it after timeout", (t) => {
+  const ui = setup(t);
+  ui.wheel(80);
+  for (let step = 0; step < 60; step += 1) {
+    ui.advance(100);
+    ui.wheel(70 * 0.9 ** step);
+  }
+  assert.deepEqual(ui.changes, ["shanzhy-io", null]);
+});
+
+test("a continuous touch can change axes and ignores moves after release or cancel", (t) => {
+  const ui = setup(t);
+  ui.dispatch("touchstart", { touches: [ui.point(200)] });
+  ui.dispatch("touchmove", { touches: [ui.point(160)] });
+  ui.advance(500);
+  ui.dispatch("touchmove", { touches: [ui.point(160, 140)] });
+  ui.advance(500);
+  ui.dispatch("touchmove", { touches: [ui.point(160, 100)] });
+  ui.advance(500);
+  ui.dispatch("touchmove", { touches: [ui.point(120, 100)] });
+  ui.dispatch("touchcancel", { touches: [] });
+  ui.advance(500);
+  ui.dispatch("touchmove", { touches: [ui.point(160, 100)] });
+  assert.deepEqual(ui.changes, ["shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace"]);
+});
+
+test("a finger remaining on screen can restart previews after the idle timeout", (t) => {
+  const ui = setup(t);
+  ui.dispatch("touchstart", { touches: [ui.point(200)] });
+  ui.dispatch("touchmove", { touches: [ui.point(160)] });
+  ui.advance(5000);
+  ui.dispatch("touchmove", { touches: [ui.point(120)] });
+  assert.deepEqual(ui.changes, ["shanzhy-io", null, "shanzhy-io"]);
 });
 
 test("horizontal wheel input uses the dominant axis and normalizes page distances", (t) => {
@@ -228,6 +282,8 @@ for (const [mode, amount] of [[0, 8], [1, 1]]) {
     ui.wheel(-amount, { deltaMode: mode });
     assert.deepEqual(ui.changes, ["shanzhy-io"]);
     ui.advance(350);
+    assert.deepEqual(ui.changes, ["shanzhy-io"]);
+    ui.wheel(-amount, { deltaMode: mode });
     assert.deepEqual(ui.changes, ["shanzhy-io", "genesis"]);
     ui.advance(500);
     ui.wheel(amount, { deltaMode: mode });
@@ -235,7 +291,7 @@ for (const [mode, amount] of [[0, 8], [1, 1]]) {
   });
 }
 
-test("mouse takeover cancels a queued wheel transition", (t) => {
+test("mouse takeover clears a scroll preview without delayed wheel transitions", (t) => {
   const ui = setup(t);
   ui.wheel(100);
   ui.advance(150);
