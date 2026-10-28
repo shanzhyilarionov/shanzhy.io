@@ -4,7 +4,7 @@ const SWIPE_THRESHOLD = 36;
 const WHEEL_THRESHOLD = 8;
 const ANIMATION_MS = 500;
 const WHEEL_GESTURE_IDLE_MS = 160;
-const IDLE_MS = 5000;
+const IDLE_MS = 3000;
 
 export function bindWorksScrollHover(page, onChange) {
   let activeIndex = null;

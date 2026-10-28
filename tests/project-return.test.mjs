@@ -68,7 +68,9 @@ function setup(t, { cropped = false, aspectRatio = 1.6, thumbnailReady = true, g
   const page = { querySelectorAll: () => [sibling, selected] };
   const transition = {
     preview, bounds, cropped, mediaAspectRatio: aspectRatio,
-    startedAt: performance.now() - lateMs, dispose: t.mock.fn(),
+    startedAt: performance.now() - lateMs,
+    disposed: false,
+    dispose: t.mock.fn(() => { transition.disposed = true; }),
   };
   const cleanup = arriveWorks(transition, page, target);
   const clippingFrame = preview.append.mock.calls[0].arguments[0];
@@ -158,6 +160,26 @@ test("interrupting or replaying a return restores visibility and cleans up every
   frames.get(transition.cleanupFrame)();
   assert.equal(transition.dispose.mock.callCount(), 1);
 });
+
+for (const completed of [false, true]) {
+  test(`cleanup after a ${completed ? "completed" : "disposed"} return preserves the restored video for reuse`, (t) => {
+    const { animations, bitmap, clippingFrame, thumbnail, preview, transition, target, cleanup, frames } = setup(t);
+    if (completed) animations[0].onfinish();
+    else transition.dispose();
+    bitmap.style = {};
+
+    cleanup();
+
+    assert.deepEqual(bitmap.style, {});
+    assert.equal(preview.append.mock.callCount(), 1);
+    assert.equal(transition.dispose.mock.callCount(), 1);
+    assert.equal(frames.size, 0);
+    assert.equal(target.style.visibility, "");
+    assert.equal(thumbnail.remove.mock.callCount(), 1);
+    assert.equal(clippingFrame.remove.mock.callCount(), 1);
+    animations.forEach((animation) => assert.equal(animation.cancel.mock.callCount(), 1));
+  });
+}
 
 function transformAt(animation, progress) {
   const values = animation.keyframes.map(({ transform }) => {

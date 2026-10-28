@@ -254,18 +254,17 @@ export function startProjectReturn(page, frame, slug) {
   departing.scrollTop = page.scrollTop;
   page.style.visibility = "hidden";
   const exitTimer = window.setTimeout(() => departing.remove(), 500 - (performance.now() - startedAt));
-  let disposed = false;
-
   const transition = {
     slug,
     startedAt,
     bounds,
     preview,
+    disposed: false,
     cropped: frame.dataset.projectCrop === "true",
     mediaAspectRatio,
     dispose() {
-      if (disposed) return;
-      disposed = true;
+      if (transition.disposed) return;
+      transition.disposed = true;
       window.clearTimeout(exitTimer);
       departing.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       departing.remove();
@@ -381,10 +380,12 @@ export function arriveWorks(transition, page, target) {
     target.style.visibility = visibility;
     animations.forEach((animation) => animation.cancel());
     thumbnail.remove();
-    preview.append(bitmap);
     clippingFrame.remove();
-    placeImage(bitmap, imageFrom, bounds);
-    transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
+    if (!transition.disposed) {
+      preview.append(bitmap);
+      placeImage(bitmap, imageFrom, bounds);
+      transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
+    }
   };
 }
 

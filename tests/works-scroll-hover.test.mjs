@@ -63,7 +63,7 @@ test("the first swipe opens shanzhy.io in either direction after the threshold",
   assert.deepEqual(ui.changes, []);
   ui.swipe(40);
   assert.deepEqual(ui.changes, ["shanzhy-io"]);
-  ui.advance(5000);
+  ui.advance(3000);
   ui.swipe(-40);
   assert.deepEqual(ui.changes, ["shanzhy-io", null, "shanzhy-io"]);
 });
@@ -107,12 +107,12 @@ test("one continuous touch can trigger more transitions after each full animatio
   assert.deepEqual(ui.changes, ["shanzhy-io", "commissioning-workspace"]);
 });
 
-test("activity renews the five second timeout even without switching projects", (t) => {
+test("activity renews the three second timeout even without switching projects", (t) => {
   const ui = setup(t);
   ui.swipe(40);
-  ui.advance(4500);
+  ui.advance(2500);
   ui.swipe(10);
-  ui.advance(4999);
+  ui.advance(2999);
   assert.deepEqual(ui.changes, ["shanzhy-io"]);
   ui.advance(1);
   assert.deepEqual(ui.changes, ["shanzhy-io", null]);
@@ -152,7 +152,7 @@ test("horizontal swipes open shanzhy.io first and switch in both directions", (t
   assert.deepEqual(ui.changes, [
     "shanzhy-io", "genesis", "shanzhy-io", "commissioning-workspace", "shanzhy-io", "genesis",
   ]);
-  ui.advance(5000);
+  ui.advance(3000);
   ui.swipe(-40, "horizontal");
   assert.equal(ui.changes.at(-1), "shanzhy-io");
 });
@@ -258,7 +258,7 @@ test("a finger remaining on screen can restart previews after the idle timeout",
   const ui = setup(t);
   ui.dispatch("touchstart", { touches: [ui.point(200)] });
   ui.dispatch("touchmove", { touches: [ui.point(160)] });
-  ui.advance(5000);
+  ui.advance(3000);
   ui.dispatch("touchmove", { touches: [ui.point(120)] });
   assert.deepEqual(ui.changes, ["shanzhy-io", null, "shanzhy-io"]);
 });
