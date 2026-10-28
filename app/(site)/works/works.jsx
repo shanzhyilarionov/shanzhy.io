@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHoverEnabled } from "../../../components/hover-boundary";
 import { usePageExiting, usePageExitSettleMs } from "../../../components/shell-context";
-import { warmRouteAssets } from "../../../components/preload-assets";
+import { preloadVisibleGenesisVideo, warmRouteAssets } from "../../../components/preload-assets";
+import { useEntryLoading } from "../../../components/entry-loading";
 import { projects, projectThumbnailProps } from "./projects";
 import ProjectTitleText from "./project-title";
 import { arriveWorks, getProjectReturn } from "./project-transition";
@@ -25,6 +26,7 @@ function ProjectTitle({ slug, title, lines, aspectRatio, active }) {
 }
 
 export default function Works() {
+  const { pending: entryPending } = useEntryLoading();
   const hoverEnabled = useHoverEnabled();
   const [resizing, setResizing] = useState(false);
   const [transition, setTransition] = useState(null);
@@ -38,6 +40,13 @@ export default function Works() {
   const projectsRef = useRef(null);
   const pageRef = useRef(null);
   const activeProject = !transition ? scrollHoveredProject ?? (hoverEnabled ? hoveredProject : null) : null;
+
+  useEffect(() => {
+    if (entryPending || transition) return;
+    return preloadVisibleGenesisVideo(
+      projectsRef.current.querySelector('[data-project-preview="genesis"]'),
+    );
+  }, [entryPending, transition]);
 
   if (wasPageExiting !== pageExiting) {
     setWasPageExiting(pageExiting);

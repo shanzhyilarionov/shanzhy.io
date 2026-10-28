@@ -9,7 +9,10 @@ import {
 
 const warmedImages = new Map();
 export const GENESIS_VIDEO = "/videos/genesis.mp4";
-let videoDownload;
+let genesisVideo;
+
+export const GENESIS_BUFFER_SECONDS = 3;
+export const GENESIS_BUFFER_TIMEOUT_MS = 3500;
 
 const siteRoutes = ["/works", "/about", "/contact", "/", ...projects.map(({ slug }) => `/works/${slug}`)];
 
@@ -56,22 +59,114 @@ export function preloadRouteImages(pathname) {
 }
 
 export function preloadGenesisVideo() {
-  if (!videoDownload) {
-    videoDownload = fetch(GENESIS_VIDEO, { priority: "low" })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Video download failed: ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) => {
-        if (!blob.size) throw new Error("Video download was empty");
-        return URL.createObjectURL(blob);
-      })
-      .catch((error) => {
-        videoDownload = undefined;
-        throw error;
-      });
+  if (!genesisVideo) {
+    genesisVideo = document.createElement("video");
+    genesisVideo.muted = true;
+    genesisVideo.defaultMuted = true;
+    genesisVideo.loop = true;
+    genesisVideo.playsInline = true;
+    genesisVideo.preload = "auto";
+    genesisVideo.poster = "/images/genesis.jpg";
+    genesisVideo.setAttribute("aria-label", "Genesis ecosystem simulation demo");
   }
-  return videoDownload;
+  if (genesisVideo.getAttribute("src") !== GENESIS_VIDEO) {
+    genesisVideo.src = GENESIS_VIDEO;
+    genesisVideo.load();
+  } else if (genesisVideo.error) {
+    genesisVideo.load();
+  }
+  return genesisVideo;
+}
+
+export function waitForVideoBuffer(video, {
+  seconds = GENESIS_BUFFER_SECONDS,
+  timeout = GENESIS_BUFFER_TIMEOUT_MS,
+  signal,
+} = {}) {
+  return new Promise((resolve) => {
+    let timer;
+    const events = ["loadeddata", "progress", "canplay", "durationchange", "suspend"];
+    const finish = (status) => {
+      window.clearTimeout(timer);
+      events.forEach((event) => video.removeEventListener(event, check));
+      video.removeEventListener("error", fail);
+      signal?.removeEventListener("abort", abort);
+      resolve(status);
+    };
+    const fail = () => finish("error");
+    const abort = () => finish("aborted");
+    const check = () => {
+      if (video.error) return fail();
+      if (video.readyState < 2) return;
+      const start = video.currentTime;
+      const remaining = Number.isFinite(video.duration) ? video.duration - start : seconds;
+      const required = Math.min(seconds, remaining);
+      for (let index = 0; index < video.buffered.length; index++) {
+        if (
+          video.buffered.start(index) <= start + 0.05 &&
+          video.buffered.end(index) - start >= required
+        ) {
+          finish("ready");
+          return;
+        }
+      }
+    };
+
+    if (signal?.aborted) return abort();
+    events.forEach((event) => video.addEventListener(event, check));
+    video.addEventListener("error", fail);
+    signal?.addEventListener("abort", abort, { once: true });
+    timer = window.setTimeout(() => finish("timeout"), timeout);
+    check();
+  });
+}
+
+export function preloadVisibleGenesisVideo(target) {
+  const connection = navigator.connection;
+  if (
+    !target || !window.IntersectionObserver || connection?.saveData ||
+    /(^|-)[23]g$/.test(connection?.effectiveType || "")
+  ) return;
+
+  let visible = false;
+  let disposed = false;
+  let warmed = false;
+  let idle;
+  let timer;
+
+  const prepare = () => {
+    idle = timer = undefined;
+    if (disposed || !visible || document.hidden) return;
+    preloadGenesisVideo();
+    warmed = true;
+    observer.disconnect();
+    document.removeEventListener("visibilitychange", schedule);
+  };
+  const schedule = () => {
+    if (
+      disposed || warmed || !visible || document.hidden ||
+      idle !== undefined || timer !== undefined
+    ) return;
+    if (window.requestIdleCallback) {
+      idle = window.requestIdleCallback(prepare, { timeout: 1500 });
+    } else {
+      timer = window.setTimeout(prepare, 200);
+    }
+  };
+  const observer = new window.IntersectionObserver((entries) => {
+    visible = entries.some((entry) => entry.isIntersecting);
+    schedule();
+  });
+  observer.observe(target);
+  document.addEventListener("visibilitychange", schedule);
+
+  return () => {
+    disposed = true;
+    observer.disconnect();
+    if (idle !== undefined) window.cancelIdleCallback(idle);
+    window.clearTimeout(timer);
+    document.removeEventListener("visibilitychange", schedule);
+  };
 }
 
 export function preloadSiteAssets(router, pathname) {
@@ -124,6 +219,6 @@ export function warmRouteAssets(href, { video = true } = {}) {
   if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || "")) return;
 
   const pathname = href.split(/[?#]/)[0];
-  if (video && pathname === "/works/genesis") preloadGenesisVideo().catch(() => {});
+  if (video && pathname === "/works/genesis") preloadGenesisVideo();
   return Promise.allSettled(routeImages(pathname).map((props) => prepareImage(props, "low")));
 }

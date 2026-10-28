@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { preloadRouteImages, preloadSiteAssets } from "./preload-assets";
+import { preloadGenesisVideo, preloadRouteImages, preloadSiteAssets, waitForVideoBuffer } from "./preload-assets";
 import styles from "./entry-loading.module.css";
 
 const EntryContext = createContext({ pending: false, ready: () => {} });
@@ -32,6 +32,7 @@ export default function EntryLoading({ children }) {
   const tasks = useMemo(() => [
     "page", "fonts", "images",
     ...(entryPath === "/" ? ["scene"] : []),
+    ...(entryPath === "/works/genesis" ? ["video"] : []),
   ], [entryPath]);
   const target = Math.round(
     (tasks.filter((task) => completed.includes(task)).length / tasks.length) * 100,
@@ -49,6 +50,15 @@ export default function EntryLoading({ children }) {
     return () => {
       disposed = true;
     };
+  }, [entryPath, ready]);
+
+  useEffect(() => {
+    if (entryPath !== "/works/genesis") return;
+    const controller = new AbortController();
+    waitForVideoBuffer(preloadGenesisVideo(), { signal: controller.signal }).then(() => {
+      if (!controller.signal.aborted) ready("video");
+    });
+    return () => controller.abort();
   }, [entryPath, ready]);
 
   useEffect(() => {

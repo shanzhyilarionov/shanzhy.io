@@ -15,6 +15,28 @@ async function setup(t, { connection = {}, hidden = false, idle = true, decode =
   const listeners = new Map();
   const routes = [];
   const downloads = [];
+  const videos = [];
+  const observers = [];
+  class Video extends EventTarget {
+    attributes = new Map();
+    currentTime = 0;
+    duration = 41.4;
+    readyState = 0;
+    error = null;
+    ranges = [];
+    buffered = {
+      get length() { return this.video.ranges.length; },
+      start(index) { return this.video.ranges[index][0]; },
+      end(index) { return this.video.ranges[index][1]; },
+      video: this,
+    };
+    load = t.mock.fn(() => { this.error = null; });
+    get src() { return this.getAttribute("src"); }
+    set src(value) { this.setAttribute("src", value); }
+    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    setAttribute(name, value) { this.attributes.set(name, value); }
+    removeAttribute(name) { this.attributes.delete(name); }
+  }
   let callbackId = 0;
   const schedule = (callback) => {
     callbacks.set(++callbackId, callback);
@@ -28,6 +50,12 @@ async function setup(t, { connection = {}, hidden = false, idle = true, decode =
     },
     document: {
       hidden,
+      createElement: (tag) => {
+        assert.equal(tag, "video");
+        const video = new Video();
+        videos.push(video);
+        return video;
+      },
       addEventListener: (event, callback) => listeners.set(event, callback),
       removeEventListener: (event) => listeners.delete(event),
     },
@@ -36,6 +64,14 @@ async function setup(t, { connection = {}, hidden = false, idle = true, decode =
       ...(idle ? { requestIdleCallback: schedule, cancelIdleCallback: (id) => callbacks.delete(id) } : {}),
       setTimeout: schedule,
       clearTimeout: (id) => callbacks.delete(id),
+      IntersectionObserver: class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
+        observe = t.mock.fn();
+        disconnect = t.mock.fn();
+      },
     },
     Image: class {
       constructor() { images.push(this); }
@@ -56,7 +92,7 @@ async function setup(t, { connection = {}, hidden = false, idle = true, decode =
     callbacks.delete(id);
     await callback();
   };
-  return { ...assets, images, callbacks, listeners, routes, downloads, advance, router: { prefetch: (path) => routes.push(path) } };
+  return { ...assets, images, videos, observers, callbacks, listeners, routes, downloads, advance, router: { prefetch: (path) => routes.push(path) } };
 }
 
 test("home and text pages prepare without downloading project images or video", async (t) => {
@@ -175,31 +211,133 @@ test("save-data and slow connections avoid speculative background work", async (
   assert.equal(assets.images.length, 1);
 });
 
-test("Genesis intent starts one reusable video download without blocking image readiness", async (t) => {
+test("Genesis intent preloads one reusable native player without fetching a complete blob", async (t) => {
   const assets = await setup(t);
   await assets.warmRouteAssets("/works/genesis");
   await assets.warmRouteAssets("/works/genesis");
   const first = assets.preloadGenesisVideo();
   assert.equal(first, assets.preloadGenesisVideo());
-  const source = await first;
-  assert.ok(source.startsWith("blob:"));
-  URL.revokeObjectURL(source);
-  assert.equal(assets.downloads.length, 1);
-  assert.equal(assets.downloads[0].url, assets.GENESIS_VIDEO);
-  assert.equal(assets.downloads[0].options.priority, "low");
+  assert.equal(assets.videos.length, 1);
+  assert.equal(first.src, assets.GENESIS_VIDEO);
+  assert.equal(first.preload, "auto");
+  assert.equal(first.muted, true);
+  assert.equal(first.playsInline, true);
+  assert.equal(first.load.mock.callCount(), 1);
+  assert.equal(assets.downloads.length, 0);
 });
 
-test("failed and empty video downloads can be retried", async (t) => {
+test("failed or released media can restart on the same native player", async (t) => {
   const assets = await setup(t);
-  const responses = [
-    { ok: false, status: 503 },
-    { ok: true, blob: async () => new Blob() },
-    { ok: true, blob: async () => new Blob(["video"]) },
-  ];
-  globalThis.fetch = async () => responses.shift();
-  await assert.rejects(assets.preloadGenesisVideo(), /503/);
-  await assert.rejects(assets.preloadGenesisVideo(), /empty/);
-  const source = await assets.preloadGenesisVideo();
-  assert.ok(source.startsWith("blob:"));
-  URL.revokeObjectURL(source);
+  const video = assets.preloadGenesisVideo();
+  video.error = new Error("offline");
+  assert.equal(assets.preloadGenesisVideo(), video);
+  assert.equal(video.load.mock.callCount(), 2);
+  video.removeAttribute("src");
+  assert.equal(assets.preloadGenesisVideo(), video);
+  assert.equal(video.src, assets.GENESIS_VIDEO);
+  assert.equal(video.load.mock.callCount(), 3);
+  assert.equal(assets.videos.length, 1);
+});
+
+test("initial readiness needs a decoded frame and three contiguous seconds, not the full video", async (t) => {
+  const assets = await setup(t);
+  const video = assets.preloadGenesisVideo();
+  let settled = false;
+  const ready = assets.waitForVideoBuffer(video).then((status) => {
+    settled = true;
+    return status;
+  });
+  video.ranges = [[0, 4]];
+  video.dispatchEvent(new Event("progress"));
+  await Promise.resolve();
+  assert.equal(settled, false);
+  video.readyState = 2;
+  video.ranges = [[0, 2], [5, 10]];
+  video.dispatchEvent(new Event("loadeddata"));
+  await Promise.resolve();
+  assert.equal(settled, false);
+  video.ranges = [[0, 3.1]];
+  video.dispatchEvent(new Event("progress"));
+  assert.equal(await ready, "ready");
+  assert.ok(video.ranges[0][1] < video.duration);
+  assert.equal(assets.callbacks.size, 0);
+});
+
+test("a warm buffer and clips shorter than the buffer target are ready immediately", async (t) => {
+  const assets = await setup(t);
+  const video = assets.preloadGenesisVideo();
+  video.readyState = 2;
+  video.currentTime = 2;
+  video.ranges = [[0, 5]];
+  assert.equal(await assets.waitForVideoBuffer(video), "ready");
+  video.currentTime = 0;
+  video.duration = 1.5;
+  video.ranges = [[0, 1.5]];
+  assert.equal(await assets.waitForVideoBuffer(video), "ready");
+  assert.equal(assets.callbacks.size, 0);
+});
+
+test("slow buffering releases the loading gate at the deadline without stopping the download", async (t) => {
+  const assets = await setup(t);
+  const video = assets.preloadGenesisVideo();
+  const ready = assets.waitForVideoBuffer(video);
+  await assets.advance();
+  assert.equal(await ready, "timeout");
+  assert.equal(video.src, assets.GENESIS_VIDEO);
+  assert.equal(video.preload, "auto");
+  assert.equal(video.load.mock.callCount(), 1);
+  assert.equal(assets.callbacks.size, 0);
+});
+
+test("errors and navigation cancellation release buffer listeners and timers", async (t) => {
+  const assets = await setup(t);
+  const video = assets.preloadGenesisVideo();
+  const failed = assets.waitForVideoBuffer(video);
+  video.error = new Error("offline");
+  video.dispatchEvent(new Event("error"));
+  assert.equal(await failed, "error");
+  video.error = null;
+  const controller = new AbortController();
+  const cancelled = assets.waitForVideoBuffer(video, { signal: controller.signal });
+  controller.abort();
+  assert.equal(await cancelled, "aborted");
+  assert.equal(await assets.waitForVideoBuffer(video, { signal: controller.signal }), "aborted");
+  assert.equal(assets.callbacks.size, 0);
+});
+
+test("visible Genesis cards warm during idle and reuse the player on later intent", async (t) => {
+  const assets = await setup(t);
+  const target = {};
+  const dispose = assets.preloadVisibleGenesisVideo(target);
+  const observer = assets.observers[0];
+  assert.equal(observer.observe.mock.calls[0].arguments[0], target);
+  assert.equal(assets.videos.length, 0);
+  observer.callback([{ isIntersecting: true }]);
+  assert.equal(assets.videos.length, 0);
+  await assets.advance();
+  assert.equal(assets.videos.length, 1);
+  await assets.warmRouteAssets("/works/genesis");
+  assert.equal(assets.videos.length, 1);
+  assert.equal(assets.videos[0].load.mock.callCount(), 1);
+  assert.equal(assets.listeners.size, 0);
+  dispose();
+});
+
+test("card preloading respects visibility, cancellation, save-data and slow connections", async (t) => {
+  const assets = await setup(t, { hidden: true });
+  const dispose = assets.preloadVisibleGenesisVideo({});
+  assets.observers[0].callback([{ isIntersecting: true }]);
+  assert.equal(assets.callbacks.size, 0);
+  document.hidden = false;
+  assets.listeners.get("visibilitychange")();
+  assert.equal(assets.callbacks.size, 1);
+  dispose();
+  assert.equal(assets.callbacks.size, 0);
+  assert.equal(assets.listeners.size, 0);
+  assert.equal(assets.videos.length, 0);
+  for (const connection of [{ saveData: true }, { effectiveType: "slow-2g" }, { effectiveType: "2g" }, { effectiveType: "3g" }]) {
+    navigator.connection = connection;
+    assert.equal(assets.preloadVisibleGenesisVideo({}), undefined);
+  }
+  assert.equal(assets.observers.length, 1);
 });

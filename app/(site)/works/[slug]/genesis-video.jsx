@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { GENESIS_VIDEO, preloadGenesisVideo, preloadRouteImages } from "../../../../components/preload-assets";
+import { preloadGenesisVideo, preloadRouteImages, waitForVideoBuffer } from "../../../../components/preload-assets";
+import { useEntryLoading } from "../../../../components/entry-loading";
 import { useProjectArrival } from "./project-detail";
 import styles from "./project.module.css";
 
 export default function GenesisVideo({ project }) {
   const arrival = useProjectArrival();
+  const { pending: entryPending } = useEntryLoading();
+  const videoHostRef = useRef(null);
   const videoRef = useRef(null);
-  const [videoSource, setVideoSource] = useState(null);
+  const [bufferSettled, setBufferSettled] = useState(false);
   const [posterReady, setPosterReady] = useState(false);
   const [playback, setPlayback] = useState("loading");
 
@@ -21,22 +24,26 @@ export default function GenesisVideo({ project }) {
     preloadRouteImages("/works/genesis").then(() => {
       if (!disposed) setPosterReady(true);
     });
-    preloadGenesisVideo().then(
-      (source) => { if (!disposed) setVideoSource(source); },
-      () => { if (!disposed) setVideoSource(GENESIS_VIDEO); },
-    );
     return () => { disposed = true; };
   }, []);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!videoSource) return;
+    const host = videoHostRef.current;
+    const video = preloadGenesisVideo();
+    const controller = new AbortController();
+    videoRef.current = video;
+    video.pause();
+    if (video.readyState >= 1 && video.currentTime !== 0) video.currentTime = 0;
+    video.className = styles.videoElement;
+    video.width = project.width;
+    video.height = project.height;
+    video.controls = false;
+    video.dataset.ready = "false";
+    host.append(video);
     let disposed = false;
     let presented = false;
     let frameCallback;
     let paintFrame;
-    let playTimer;
-    let frameTimer;
 
     const cancelFrame = () => {
       if (frameCallback !== undefined) {
@@ -52,7 +59,6 @@ export default function GenesisVideo({ project }) {
         video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
       ) return;
       presented = true;
-      window.clearTimeout(frameTimer);
       setPlayback("playing");
     };
 
@@ -72,39 +78,51 @@ export default function GenesisVideo({ project }) {
     };
 
     const showPoster = () => {
-      window.clearTimeout(frameTimer);
       cancelFrame();
       setPlayback("error");
     };
 
     video.addEventListener("playing", onPlaying);
     video.addEventListener("error", showPoster);
-    frameTimer = window.setTimeout(showPoster, 8000);
     if (video.error) showPoster();
-    else {
-      const play = () => video.play().catch(() => {
-        if (disposed || video.error) return;
-        cancelFrame();
-        window.clearTimeout(frameTimer);
-        setPlayback("blocked");
-      });
-      if (arrival) {
-        playTimer = window.setTimeout(play, Math.max(0, 900 - (performance.now() - arrival.startedAt)));
-      } else {
-        play();
-      }
-    }
+    waitForVideoBuffer(video, { signal: controller.signal }).then(() => {
+      if (!disposed) setBufferSettled(true);
+    });
 
     return () => {
       disposed = true;
-      window.clearTimeout(playTimer);
-      window.clearTimeout(frameTimer);
+      controller.abort();
       cancelFrame();
       video.pause();
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("error", showPoster);
+      if (video.parentNode === host) video.remove();
+      videoRef.current = null;
     };
-  }, [arrival, videoSource]);
+  }, [project.height, project.width]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || entryPending || !bufferSettled) return;
+    let disposed = false;
+    const timer = window.setTimeout(() => {
+      video.play().catch((error) => {
+        if (!disposed && !video.error && error.name !== "AbortError") setPlayback("blocked");
+      });
+    }, arrival ? Math.max(0, 900 - (performance.now() - arrival.startedAt)) : 0);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      video.pause();
+    };
+  }, [arrival, bufferSettled, entryPending]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.dataset.ready = String(playback === "playing" || playback === "blocked");
+    video.controls = playback === "blocked";
+  }, [playback]);
 
   return (
     <div
@@ -113,23 +131,7 @@ export default function GenesisVideo({ project }) {
       data-project-crop={project.crop ? "true" : undefined}
     >
       <div className={styles.videoMask}>
-        <div className={styles.video}>
-          <video
-            ref={videoRef}
-            className={styles.videoElement}
-            data-ready={playback === "playing" || playback === "blocked"}
-            src={videoSource ?? undefined}
-            poster="/images/genesis.jpg"
-            width={project.width}
-            height={project.height}
-            controls={playback === "blocked"}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-label="Genesis ecosystem simulation demo"
-          />
-        </div>
+        <div ref={videoHostRef} className={styles.video} />
       </div>
     </div>
   );
