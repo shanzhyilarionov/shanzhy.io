@@ -100,6 +100,7 @@
   text-decoration: none;
   font-family: var(--font-family);
   font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
   letter-spacing: var(--heading-letter-spacing);
   line-height: var(--nav-line-height);
   white-space: normal;

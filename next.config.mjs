@@ -3,6 +3,10 @@ const nextConfig = {
   devIndicators: false,
   images: {
     qualities: [75, 90],
+    localPatterns: [
+      { pathname: "/**", search: "" },
+      { pathname: "/images/shanzhy.png" },
+    ],
   },
 };
 

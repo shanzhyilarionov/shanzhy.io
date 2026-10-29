@@ -1,15 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import "next/image.js";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
+import nextConfigLoader from "next/dist/server/config.js";
 import { imageConfigDefault } from "next/dist/shared/lib/image-config.js";
-import nextConfig from "../next.config.mjs";
+
+const nextConfig = await nextConfigLoader.default(PHASE_DEVELOPMENT_SERVER, fileURLToPath(new URL("..", import.meta.url)));
 
 let moduleId = 0;
 
 async function setup(t, { connection = {}, hidden = false, idle = true, decode = () => Promise.resolve() } = {}) {
   const qualities = imageConfigDefault.qualities;
+  const localPatterns = imageConfigDefault.localPatterns;
   imageConfigDefault.qualities = nextConfig.images.qualities;
-  t.after(() => { imageConfigDefault.qualities = qualities; });
+  imageConfigDefault.localPatterns = nextConfig.images.localPatterns;
+  t.after(() => {
+    imageConfigDefault.qualities = qualities;
+    imageConfigDefault.localPatterns = localPatterns;
+  });
   const images = [];
   const callbacks = new Map();
   const listeners = new Map();
