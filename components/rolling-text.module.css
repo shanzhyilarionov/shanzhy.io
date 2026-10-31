@@ -14,7 +14,7 @@
 
 .mask {
   display: block;
-  height: calc(var(--control-line-height) * 1em);
+  height: calc(var(--text-line-height) * 1em);
   overflow: hidden;
 }
 
@@ -27,8 +27,8 @@
 
 .line {
   display: block;
-  height: calc(var(--control-line-height) * 1em);
-  line-height: var(--control-line-height);
+  height: calc(var(--text-line-height) * 1em);
+  line-height: var(--text-line-height);
   white-space: nowrap;
 }
 

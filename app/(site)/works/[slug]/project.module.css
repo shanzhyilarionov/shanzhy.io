@@ -165,7 +165,7 @@
   display: block;
   min-height: calc(
     var(--chrome-top-mobile) +
-    var(--text-size) * max(var(--text-line-height), var(--control-line-height)) +
+    var(--text-size) * var(--text-line-height) +
     var(--heading-gap)
   );
 }

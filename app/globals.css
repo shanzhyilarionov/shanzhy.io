@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --font-family: Arial, Helvetica, sans-serif;
+  --font-family: var(--font-inter, "Inter", Arial, Helvetica, sans-serif);
 
-  --heading-size: 60px;
-  --heading-weight: 600;
+  --heading-size: 65px;
+  --heading-weight: 500;
   --heading-line-height: 1;
   --heading-letter-spacing: normal;
   --nav-line-height: 1;
@@ -12,7 +12,6 @@
   --text-size: 1rem;
   --text-weight: 400;
   --text-line-height: 1.2;
-  --control-line-height: 1.15;
   --text-letter-spacing: normal;
 
   --content-width: 90vw;
@@ -51,6 +50,9 @@ body {
   min-height: 100%;
   background: #FFFFFF;
   color: #000000;
+  font-family: var(--font-family);
+  font-size: var(--text-size);
+  font-weight: var(--text-weight);
   line-height: var(--text-line-height);
   letter-spacing: var(--text-letter-spacing);
   overflow: hidden;

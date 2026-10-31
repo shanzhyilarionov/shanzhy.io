@@ -53,7 +53,7 @@
   font-size: var(--text-size);
   font-weight: var(--text-weight);
   letter-spacing: var(--text-letter-spacing);
-  line-height: 1.4;
+  line-height: var(--text-line-height);
   text-align: center;
 }
 
