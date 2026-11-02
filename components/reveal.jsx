@@ -45,22 +45,28 @@ export default function Reveal({
       if (disposed) return;
 
       const nextLines = blockRefs.current.map((block) => {
-        const bounds = block.getBoundingClientRect();
+        const node = block.firstElementChild.firstChild;
+        const length = node?.textContent.length ?? 0;
         const range = document.createRange();
-        range.selectNodeContents(block.firstElementChild);
-        const rects = Array.from(range.getClientRects()).filter(
-          (rect) => rect.width > 0 && rect.height > 0,
-        );
+        const starts = [];
+        let previousTop = null;
 
-        return rects.map((rect, index) => ({
-          top:
-            index === 0
-              ? Math.min(-1, rect.top - bounds.top - 1)
-              : (rects[index - 1].bottom + rect.top) / 2 - bounds.top,
-          bottom:
-            index === rects.length - 1
-              ? Math.min(-1, bounds.bottom - rect.bottom - 1)
-              : bounds.bottom - (rect.bottom + rects[index + 1].top) / 2,
+        for (let index = 0; index < length; index++) {
+          range.setStart(node, index);
+          range.setEnd(node, index + 1);
+          const rect = Array.from(range.getClientRects()).find(
+            (candidate) => candidate.width > 0 && candidate.height > 0,
+          );
+          if (!rect) continue;
+          if (previousTop === null || Math.abs(rect.top - previousTop) > rect.height / 2) {
+            starts.push(starts.length === 0 ? 0 : index);
+          }
+          previousTop = rect.top;
+        }
+
+        return starts.map((start, index) => ({
+          start,
+          end: starts[index + 1] ?? length,
         }));
       });
 
@@ -100,14 +106,12 @@ export default function Reveal({
             <span
               className={`${styles.line} ${styles.moving}`}
               aria-hidden="true"
-              style={{
-                "--clip-top": `${line.top}px`,
-                "--clip-bottom": `${line.bottom}px`,
-                ...timing(lineIndex++, lineCount),
-              }}
+              style={timing(lineIndex++, lineCount)}
               key={index}
             >
-              {text}
+              <span className={styles.hidden}>{text.slice(0, line.start)}</span>
+              {text.slice(line.start, line.end)}
+              <span className={styles.hidden}>{text.slice(line.end)}</span>
             </span>
           ))}
       </FitText>

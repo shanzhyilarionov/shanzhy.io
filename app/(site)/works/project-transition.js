@@ -100,6 +100,26 @@ function releaseArrival(transition, target, visibility, animations) {
   }
 }
 
+function retainProjectImage(image) {
+  const parent = image.parentElement;
+  const sibling = image.nextSibling;
+  const style = image.getAttribute("style");
+  const computed = getComputedStyle(image);
+  const properties = Array.from(computed, (property) => [property, computed.getPropertyValue(property)]);
+  let restored = false;
+  properties.forEach(([property, value]) => image.style.setProperty(property, value));
+  image.style.animation = "none";
+  image.style.transition = "none";
+
+  return () => {
+    if (restored) return;
+    restored = true;
+    parent.insertBefore(image, sibling?.parentNode === parent ? sibling : null);
+    if (style === null) image.removeAttribute("style");
+    else image.setAttribute("style", style);
+  };
+}
+
 export function retainProjectVideo(video) {
   const parent = video.parentElement;
   const sibling = video.nextSibling;
@@ -139,11 +159,13 @@ export function startProjectTransition(page, frame, chrome) {
     .parentElement.style.opacity = "0";
   place(departing, page.getBoundingClientRect());
   place(preview, bounds);
-  const image = preview.querySelector("img");
+  const image = frame.querySelector("img");
+  const imageBounds = image.getBoundingClientRect();
+  const restoreImage = retainProjectImage(image);
   const cropped = frame.dataset.projectCrop === "true";
   preview.replaceChildren(image);
   if (cropped) {
-    placeImage(image, frame.querySelector("img").getBoundingClientRect(), bounds);
+    placeImage(image, imageBounds, bounds);
   } else {
     Object.assign(image.style, {
       position: "absolute",
@@ -193,6 +215,7 @@ export function startProjectTransition(page, frame, chrome) {
       departing.remove();
       departingChrome?.remove();
       if (chrome) chrome.style.visibility = "";
+      restoreImage();
       preview.remove();
       page.style.visibility = "";
       if (activeTransition === transition) activeTransition = null;
@@ -238,6 +261,7 @@ export function startProjectReturn(page, frame, slug) {
     : (sourceImage.naturalWidth || sourceImage.width) / (sourceImage.naturalHeight || sourceImage.height);
   let bitmap;
   let restoreVideo;
+  let restoreImage;
   if (video) {
     if (video.readyState >= 2) {
       bitmap = video;
@@ -247,7 +271,8 @@ export function startProjectReturn(page, frame, slug) {
       bitmap.src = video.poster;
     }
   } else {
-    bitmap = snapshot(sourceImage);
+    bitmap = sourceImage;
+    restoreImage = retainProjectImage(sourceImage);
   }
   Object.assign(bitmap.style, {
     display: "block",
@@ -278,6 +303,7 @@ export function startProjectReturn(page, frame, slug) {
       departing.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       departing.remove();
       restoreVideo?.();
+      restoreImage?.();
       preview.remove();
       page.style.visibility = "";
       if (activeReturn === transition) activeReturn = null;

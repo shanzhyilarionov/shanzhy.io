@@ -7,8 +7,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--paragraph-gap);
-  width: 100%;
-  max-width: var(--about-content-width);
+  width: max-content;
+  max-width: 100%;
   font-family: var(--font-family);
   font-size: var(--text-size);
   font-weight: var(--text-weight);
@@ -20,15 +20,20 @@
   position: relative;
   margin: 0;
   overflow-wrap: anywhere;
+  contain: inline-size;
 }
 
 .heading {
   position: relative;
+  align-self: center;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--page-inset));
   margin: 0 0 calc(var(--heading-gap) - var(--paragraph-gap));
   font-family: var(--font-family);
   font-size: var(--heading-size);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-letter-spacing);
   line-height: var(--heading-line-height);
+  white-space: pre-line;
   overflow-wrap: anywhere;
 }

@@ -5,12 +5,11 @@ export const metadata = {
   title: "About",
 };
 
-const heading = "Bridging technical structure and human needs.";
+const heading = "Function refined\nthrough design.";
 
 const paragraphs = [
-  "Hello! My name is Shanzhy Ilarionov. I am currently a Computing Science student at the University of Alberta and an independent developer focused on software engineering and user experience design.",
-  "I believe even the most technically complex software deserves a refined interface, and that every element should serve a clear purpose. Good design is not about adding more, but about making every detail count.",
-  "I am open to collaborations, freelance work, and other opportunities to build meaningful products.",
+  "My name is Shanzhy Ilarionov. I'm a Computing Science student at the University of Alberta and an independent developer focused on software engineering and user experience design.",
+  "I value usability, creativity, and attention to detail. I'm also looking forward to opportunities where I can put these principles into practice.",
 ];
 
 const blocks = [

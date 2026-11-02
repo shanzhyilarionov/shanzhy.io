@@ -14,12 +14,11 @@
 
   --content-width: 90vw;
   --page-inset: calc((100vw - var(--content-width)) / 2);
-  --about-content-width: clamp(30rem, 40vw, 40rem);
   --chrome-top-mobile: 1.5rem;
   --page-spacer: 3rem;
   --page-spacer-min: 0.5rem;
 
-  --heading-gap: 30px;
+  --heading-gap: 50px;
   --paragraph-gap: 20px;
   --contact-gap: 0.75rem;
 
@@ -37,7 +36,6 @@
 
 @media (max-width: 768px) {
   :root {
-    --about-content-width: 100%;
     --tile-gap: 2vw;
     --page-spacer: 5rem;
     --page-spacer-min: 4rem;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { hasSharedHeader } from "../components/chrome-transition.js";
-import { getProjectTransition, startWorksProjectTransition } from "../app/(site)/works/project-transition.js";
+import { getProjectReturn, getProjectTransition, startProjectReturn, startWorksProjectTransition } from "../app/(site)/works/project-transition.js";
 import { projects } from "../app/(site)/works/projects.js";
 
 function setup(t, slug = "genesis", { narrow = false } = {}) {
@@ -11,6 +11,7 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
       this.tag = tag;
       this.children = [];
       this.dataset = {};
+      this.attributes = new Map();
       this.style = { setProperty(name, value) { this[name] = value; } };
     }
     append(...children) {
@@ -25,9 +26,19 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
       if (parent) parent.children = parent.children.filter((child) => child !== this);
       this.parentElement = null;
     }
+    insertBefore(child, sibling) {
+      child.remove();
+      child.parentElement = this;
+      const index = this.children.indexOf(sibling);
+      this.children.splice(index < 0 ? this.children.length : index, 0, child);
+    }
+    get nextSibling() {
+      return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] ?? null;
+    }
     querySelectorAll(selector) {
       const descendants = this.children.flatMap((child) => [child, ...child.querySelectorAll("*")]);
-      return descendants.filter((child) => selector === "*" || child.tag === selector);
+      return descendants.filter((child) => selector === "*" || child.tag === selector ||
+        (selector === "[data-project-media]" && child.dataset.projectMedia !== undefined));
     }
     querySelector(selector) { return this.querySelectorAll(selector)[0]; }
     cloneNode() {
@@ -41,8 +52,10 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
       this.append(...children);
     }
     closest() { return page; }
-    setAttribute() {}
-    removeAttribute() {}
+    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    setAttribute(name, value) { this.attributes.set(name, value); }
+    removeAttribute(name) { this.attributes.delete(name); }
+    getAnimations() { return []; }
     getBoundingClientRect() { return { top: 20, left: 30, width: 160, height: 90 }; }
     animate(keyframes, timing) {
       const animation = { target: this, keyframes, timing, cancel: t.mock.fn() };
@@ -54,6 +67,8 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
     constructor() {
       super("img");
       this.currentSrc = "/preview.png";
+      this.naturalWidth = 1600;
+      this.naturalHeight = 1000;
     }
   }
   const body = new Element("body");
@@ -65,11 +80,12 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
   chrome.append(new Element("brand"), new Element("button"));
   body.append(page, chrome);
   const globals = {
-    window: { matchMedia: () => ({ matches: narrow }) },
+    window: { matchMedia: () => ({ matches: narrow }), setTimeout: t.mock.fn(), clearTimeout: t.mock.fn() },
     HTMLImageElement: Image,
     document: {
       body,
       timeline: { currentTime: 500 },
+      createElement: (tag) => new Element(tag),
       querySelector: (selector) => selector === "[data-site-chrome]" ? chrome :
         selector === `[data-project-thumbnail="${slug}"]` ? frame : null,
     },
@@ -86,13 +102,14 @@ function setup(t, slug = "genesis", { narrow = false } = {}) {
     Object.defineProperty(globalThis, name, { configurable: true, value });
   }
   t.after(() => {
+    getProjectReturn()?.dispose();
     getProjectTransition()?.dispose();
     for (const [name, descriptor] of Object.entries(originals)) {
       if (descriptor) Object.defineProperty(globalThis, name, descriptor);
       else delete globalThis[name];
     }
   });
-  return { animations, body, page, chrome };
+  return { animations, body, page, chrome, frame };
 }
 
 for (const { slug } of projects) {
@@ -100,6 +117,50 @@ for (const { slug } of projects) {
     setup(t, slug);
     assert.equal(startWorksProjectTransition("/works", `/works/${slug}?preview=1#demo`), true);
     assert.deepEqual(getProjectTransition().bounds, { top: 20, left: 30, width: 160, height: 90 });
+  });
+}
+
+for (const narrow of [false, true]) {
+  test(`project entry on a ${narrow ? "narrow" : "wide"} viewport reuses the displayed image without changing its responsive source`, (t) => {
+    const { frame, page } = setup(t, "genesis", { narrow });
+    const image = frame.querySelector("img");
+    image.setAttribute("srcset", "/preview-small.png 400w, /preview.png 800w");
+    image.setAttribute("sizes", "22rem");
+    image.setAttribute("style", "object-fit: cover");
+    frame.dataset.projectCrop = "true";
+    startWorksProjectTransition("/works", "/works/genesis");
+    const transition = getProjectTransition();
+    assert.equal(transition.preview.querySelector("img"), image);
+    assert.equal(image.getAttribute("srcset"), "/preview-small.png 400w, /preview.png 800w");
+    assert.equal(image.getAttribute("sizes"), "22rem");
+    assert.equal(image.currentSrc, "/preview.png");
+    assert.equal(image.style.visibility, "visible");
+    assert.equal(page.style.visibility, "hidden");
+    transition.dispose();
+    transition.dispose();
+    assert.equal(frame.querySelector("img"), image);
+    assert.equal(image.getAttribute("style"), "object-fit: cover");
+  });
+
+  test(`project return on a ${narrow ? "narrow" : "wide"} viewport keeps the displayed image until the transition ends`, (t) => {
+    const { page, frame } = setup(t, "genesis", { narrow });
+    frame.dataset.projectMedia = "";
+    frame.dataset.projectCrop = "true";
+    const image = frame.querySelector("img");
+    image.setAttribute("srcset", "/preview-small.png 400w, /preview.png 800w");
+    image.setAttribute("sizes", "100vw");
+    const transition = startProjectReturn(page, frame, "genesis");
+    assert.equal(transition.preview.querySelector("img"), image);
+    assert.equal(image.getAttribute("srcset"), "/preview-small.png 400w, /preview.png 800w");
+    assert.equal(image.getAttribute("sizes"), "100vw");
+    assert.equal(image.currentSrc, "/preview.png");
+    assert.equal(image.style.visibility, "visible");
+    assert.equal(page.style.visibility, "hidden");
+    transition.dispose();
+    transition.dispose();
+    assert.equal(frame.querySelector("img"), image);
+    assert.equal(image.getAttribute("style"), null);
+    assert.equal(page.style.visibility, "");
   });
 }
 

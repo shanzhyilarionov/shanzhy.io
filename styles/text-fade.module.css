@@ -6,9 +6,12 @@
   position: absolute;
   inset: 0;
   display: block;
-  clip-path: inset(var(--clip-top) 0 var(--clip-bottom) 0);
   pointer-events: none;
   user-select: none;
+}
+
+.hidden {
+  visibility: hidden;
 }
 
 .content[data-entered="false"] .source {
