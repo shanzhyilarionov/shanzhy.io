@@ -17,10 +17,7 @@ import { createRenderer } from "./renderer.js";
 import { createFallbackRenderer } from "./fallback-renderer.js";
 import { createPerformanceMonitor } from "./rendering-policy.js";
 import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
-import { createScene } from "./scene.js";
 import styles from "./tesseract.module.css";
-
-const RETURN_ENTRANCE_DURATION = 1;
 
 export default function GlassTesseract() {
   const { ready } = useEntryLoading();
@@ -49,8 +46,6 @@ export default function GlassTesseract() {
     const container = containerRef.current;
     if (!canvas || !fallbackCanvas || !container) return undefined;
 
-    const entranceDuration = returning ? RETURN_ENTRANCE_DURATION : ENTRANCE_DURATION;
-    const createFrame = returning ? createScene : createHomeScene;
     let renderer;
     try {
       renderer = createRenderer(canvas);
@@ -99,7 +94,7 @@ export default function GlassTesseract() {
       }
       if (!renderer) return;
 
-      const scene = createFrame(
+      const scene = createHomeScene(
         vertices,
         edges,
         faces,
@@ -110,6 +105,7 @@ export default function GlassTesseract() {
         temporalState,
       );
       activeCanvas.style.opacity = String(scene.opacity ?? 1);
+      activeCanvas.style.transform = `scale(${scene.entranceScale ?? 1})`;
       renderer.render(scene);
     }
 
@@ -125,7 +121,7 @@ export default function GlassTesseract() {
     };
 
     const handlePointerMove = (event) => {
-      if (pausedRef.current || document.hidden || entranceTime < entranceDuration) return;
+      if (pausedRef.current || document.hidden || entranceTime < ENTRANCE_DURATION) return;
       if (
         event.pointerType === "mouse" &&
         event.movementX === 0 && event.movementY === 0
@@ -176,9 +172,8 @@ export default function GlassTesseract() {
           : clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
 
       lastFrameTime = now;
-      if (entranceTime < entranceDuration) {
-        entranceTime = Math.min(entranceDuration, entranceTime + visibleDelta);
-        if (returning && entranceTime === entranceDuration) measure();
+      if (entranceTime < ENTRANCE_DURATION) {
+        entranceTime = Math.min(ENTRANCE_DURATION, entranceTime + visibleDelta);
       } else {
         elapsedTime += deltaTime;
       }
@@ -247,13 +242,11 @@ export default function GlassTesseract() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className={returning ? styles.returning : undefined}
       style={{
         display: "block",
         width: "100%",
         height: "100%",
         background: "transparent",
-        "--return-duration": `${RETURN_ENTRANCE_DURATION}s`,
       }}
     >
       <canvas ref={canvasRef} className={styles.canvas} />

@@ -3,16 +3,16 @@
 :root {
   --font-family: var(--font-inter, "Inter", Arial, Helvetica, sans-serif);
 
-  --heading-size: 65px;
+  --heading-size: 60px;
   --heading-weight: 500;
   --heading-line-height: 1;
-  --heading-letter-spacing: normal;
+  --heading-letter-spacing: -0.02em;
   --nav-line-height: 1;
 
   --text-size: 1rem;
   --text-weight: 400;
   --text-line-height: 1.2;
-  --text-letter-spacing: normal;
+  --text-letter-spacing: -0.02em;
 
   --content-width: 90vw;
   --page-inset: calc((100vw - var(--content-width)) / 2);

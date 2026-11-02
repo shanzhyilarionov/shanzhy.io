@@ -3,21 +3,3 @@
   width: 100%;
   height: 100%;
 }
-
-.returning {
-  animation: riseIn var(--return-duration) ease-out both;
-  animation-delay: var(--home-return-delay);
-  animation-play-state: var(--home-animation-play-state);
-}
-
-@keyframes riseIn {
-  from {
-    transform: translateY(20vh);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}

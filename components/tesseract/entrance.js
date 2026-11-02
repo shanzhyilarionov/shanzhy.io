@@ -1,18 +1,27 @@
-import { smoothstep } from "./geometry.mjs";
-import { LOOK } from "./look.js";
+import { clamp } from "./geometry.mjs";
 import { createScene } from "./scene.js";
 
-export const ENTRANCE_DURATION = 3;
-export const CHROME_REVEAL_TIME = ENTRANCE_DURATION;
+export const ENTRANCE_DURATION = 0.8;
+export const CHROME_REVEAL_TIME = 0.5;
 
 export function entranceState(time) {
+  const progress = clamp(time / ENTRANCE_DURATION, 0, 1);
+  const acceleration = 0.45;
+  const deceleration = 0.45;
+  const peakSpeed = 1 / (1 - (acceleration + deceleration) / 2);
+
+  const eased =
+    progress < acceleration
+      ? peakSpeed * progress ** 2 / (2 * acceleration)
+      : progress <= 1 - deceleration
+        ? peakSpeed * (progress - acceleration / 2)
+        : 1 - peakSpeed * (1 - progress) ** 2 / (2 * deceleration);
+
   return {
-    line: smoothstep(0.2, 0.9, time),
-    plane: smoothstep(0.9, 1.6, time),
-    volume: smoothstep(1.6, 2.3, time),
-    hyper: smoothstep(2.3, ENTRANCE_DURATION, time),
-    complete: time >= ENTRANCE_DURATION,
-    motionTime: Math.max(0, time - ENTRANCE_DURATION),
+    scale: 0.2 + 0.8 * eased,
+    opacity: eased,
+    complete: progress === 1,
+    motionTime: Math.max(0, time),
   };
 }
 
@@ -20,65 +29,15 @@ export function createHomeScene(
   vertices, edges, faces, viewport, pointer, time, deltaTime, temporalState,
 ) {
   const entry = entranceState(time);
-  if (entry.complete) {
-    return createScene(
-      vertices, edges, faces, viewport, pointer,
-      entry.motionTime, deltaTime, temporalState,
-    );
-  }
-
-  const dimensions = [entry.line, entry.plane, entry.volume, entry.hyper];
-  const visibility = (spanningAxes, vertex) => {
-    let weight = 1;
-    for (let axis = 0; axis < 4; axis++) {
-      if (spanningAxes.includes(axis) || vertex[axis] > 0) {
-        weight *= dimensions[axis];
-      }
-    }
-    return weight;
-  };
   const scene = createScene(
-    vertices.map((vertex) => vertex.map((value, axis) => value * dimensions[axis])),
-    edges,
-    faces,
-    viewport,
-    { x: 0, y: 0 },
-    0,
-    deltaTime,
-    temporalState,
-    {
-      faceVisibility: faces.map((face) => visibility(
-        [face.firstAxis, face.secondAxis], vertices[face.corners[0]],
-      )),
-      edgeVisibility: edges.map(([first, second]) => visibility(
-        [vertices[first].findIndex((value, axis) => value !== vertices[second][axis])],
-        vertices[first],
-      )),
-    },
+    vertices, edges, faces, viewport,
+    entry.complete ? pointer : { x: 0, y: 0 },
+    entry.motionTime, deltaTime, temporalState,
   );
 
-  scene.faces = scene.faces.filter((face) => face.visibility > 0);
-  scene.edges = scene.edges.filter((edge) => edge.visibility > 0);
-
-  if (time < 0.2) scene.opacity = smoothstep(0, 0.2, time);
-  const point = 1 - smoothstep(0.27, 0.55, time);
-  if (point > 0) {
-    scene.edges.push({
-      bloom: false,
-      x1: scene.centerX - 0.005,
-      y1: scene.centerY,
-      x2: scene.centerX + 0.005,
-      y2: scene.centerY,
-      bendDirection: [0, 0],
-      coreWidth: LOOK.edges.baseWidth,
-      coreColor: [1, 0.99, 0.97],
-      coreIntensity: 6 * point,
-      spectralStrength: 0,
-      spread: 0,
-      z1: 0,
-      z2: 0,
-      tint: [1, 1, 1],
-    });
+  if (!entry.complete) {
+    scene.entranceScale = entry.scale;
+    scene.opacity = entry.opacity;
   }
 
   return scene;
