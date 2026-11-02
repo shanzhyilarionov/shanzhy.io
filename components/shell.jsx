@@ -5,21 +5,19 @@ import { usePathname, useRouter } from "next/navigation";
 import Chrome, { Brand, HomeTitle } from "./chrome";
 import { hasSharedHeader } from "./chrome-transition";
 import Navigation from "./navigation";
-import ScreenshotViewer from "./screenshot-viewer";
 import RollingText from "./rolling-text";
 import { HoverBoundary } from "./hover-boundary";
-import { PageExitProvider, SceneAnimationPauseProvider, ScreenshotsProvider } from "./shell-context";
+import { PageExitProvider, SceneAnimationPauseProvider } from "./shell-context";
 import { useHistoryExit } from "./use-history-exit";
 import { useEntryLoading } from "./entry-loading";
 import { warmRouteAssets } from "./preload-assets";
 import { startProjectReturn, startWorksProjectTransition } from "../app/(site)/works/project-transition";
 import { getWorksExitDelay } from "../app/(site)/works/exit-timing";
 import { findProjectByPath } from "../app/(site)/works/projects";
+import { motion } from "../styles/animations.mjs";
 import styles from "./shell.module.css";
 
-const PANEL_MS = 1000;
-const CONTENT_MS = 500;
-const OVERLAP_MS = 300;
+const { panel: PANEL_MS, content: CONTENT_MS, overlap: OVERLAP_MS } = motion;
 
 const closeMs = (slide) =>
   CONTENT_MS + (slide ? PANEL_MS - OVERLAP_MS : CONTENT_MS);
@@ -30,15 +28,13 @@ export default function Shell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isWorks = pathname === "/works";
-  const project = findProjectByPath(pathname);
-  const isProject = Boolean(project);
+  const isProject = Boolean(findProjectByPath(pathname));
   const isRevealPage = pathname === "/about" || pathname === "/contact";
   const hasPageExit = !isHome;
   const chromeEnterDelayMs = isWorks || isProject ? CONTENT_MS : 0;
   const menuEnterDelayMs = isWorks ? 0 : chromeEnterDelayMs;
 
   const [phase, setPhase] = useState("closed");
-  const [screenshotAnchor, setScreenshotAnchor] = useState(null);
   const [target, setTarget] = useState(null);
   const [worksExitDelayMs, setWorksExitDelayMs] = useState(0);
   const [covered, setCovered] = useState(false);
@@ -50,7 +46,6 @@ export default function Shell({ children }) {
   const [homeChromeReady, setHomeChromeReady] = useState(false);
   const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
   const [viewPath, setViewPath] = useState(pathname);
-  const [fromScreenshots, setFromScreenshots] = useState(false);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [chromeKey, setChromeKey] = useState(0);
   const [chromeContinuous, setChromeContinuous] = useState(false);
@@ -60,14 +55,13 @@ export default function Shell({ children }) {
   const homeAnimationPaused =
     covered || entryPending || (homeEntrance === "rise" && !homeChromeReady);
   const menuVisible = ["open", "closing", "leaving", "waiting"].includes(phase);
-  const screenshotsVisible = Boolean(screenshotAnchor) && menuVisible;
   const returningToWorks = isProject && !menuVisible && target === "/works";
   const worksToProject = isWorks && Boolean(findProjectByPath(target?.split(/[?#]/)[0]));
   const pageExitMs = CONTENT_MS + (isWorks ? worksExitDelayMs : 0);
-  const routeExitMs = screenshotsVisible ? CONTENT_MS :
-    returningToWorks || worksToProject ? 0 : isHome && !menuVisible ? PANEL_MS : pageExitMs;
+  const routeExitMs = returningToWorks || worksToProject ? 0 :
+    isHome && !menuVisible ? PANEL_MS : pageExitMs;
   const historyExit = useHistoryExit(pathname, (to) =>
-    startWorksProjectTransition(pathname, to) ? 0 : screenshotsVisible ? CONTENT_MS :
+    startWorksProjectTransition(pathname, to) ? 0 :
       isProject && !menuVisible && to === "/works" ? 0 :
       isWorks ? CONTENT_MS + getWorksExitDelay() : routeExitMs,
   );
@@ -80,7 +74,7 @@ export default function Shell({ children }) {
   const leavingForHome = pageExiting && destination === "/";
   const leavingForProject = pageExiting && Boolean(findProjectByPath(destination)) && !isWorks;
   const currentChromeContinuous = historyExit
-    ? !screenshotsVisible && hasSharedHeader(pathname, historyExit.to)
+    ? hasSharedHeader(pathname, historyExit.to)
     : chromeContinuous;
   const leavingHome =
     isHome && !menuVisible && (historyExiting || Boolean(target));
@@ -96,21 +90,19 @@ export default function Shell({ children }) {
   }, [projectReturnStarting, pathname]);
 
   if (viewPath !== pathname) {
-    const continuous = !screenshotsVisible && hasSharedHeader(viewPath, pathname);
-    setFromScreenshots(screenshotsVisible);
+    const continuous = hasSharedHeader(viewPath, pathname);
     setChromeContinuous(continuous);
     if (!continuous) {
       setChromeKey(chromeKey + 1);
-      setChromeEntering(screenshotsVisible || (!menuVisible &&
-        (isProject || viewPath === "/" || Boolean(findProjectByPath(viewPath)))));
+      setChromeEntering(!menuVisible &&
+        (isProject || viewPath === "/" || Boolean(findProjectByPath(viewPath))));
     }
     setViewPath(pathname);
     setMenuEntry({
       key: menuEntry.key + (menuVisible ? 1 : 0),
-      animate: menuVisible && !screenshotsVisible,
+      animate: menuVisible,
     });
     setPhase("closed");
-    setScreenshotAnchor(null);
     setTarget(null);
     setWorksExitDelayMs(0);
     setCovered(false);
@@ -167,7 +159,7 @@ export default function Shell({ children }) {
     startWorksProjectTransition(pathname, href);
     router.prefetch(href);
     warmRouteAssets(href);
-    setChromeContinuous(!screenshotsVisible && hasSharedHeader(pathname, href));
+    setChromeContinuous(hasSharedHeader(pathname, href));
     setWorksExitDelayMs(isWorks ? getWorksExitDelay() : 0);
     setTarget(href);
     setPhase(nextPhase);
@@ -196,20 +188,11 @@ export default function Shell({ children }) {
     if (historyExiting || homeRevealing) return;
 
     if (phase === "closed") {
-      setScreenshotAnchor(null);
       setEnterSlide(isHome);
       setPhase("open");
     } else if (phase === "open") {
       leaveNavigation();
     }
-  };
-
-  const openScreenshots = (anchor) => {
-    if (phase !== "closed" || historyExiting || !project?.screenshots?.length) return;
-    setScreenshotAnchor(anchor);
-    setChromeEntering(false);
-    setEnterSlide(false);
-    setPhase("open");
   };
 
   const followPageLink = (event) => {
@@ -233,7 +216,7 @@ export default function Shell({ children }) {
     if (
       url.origin !== window.location.origin ||
       url.pathname === pathname ||
-      (!screenshotsVisible && !isHome && url.pathname !== "/" &&
+      (!isHome && url.pathname !== "/" &&
         !(isProject && url.pathname === "/works") && !findProjectByPath(url.pathname))
     ) {
       return;
@@ -259,7 +242,7 @@ export default function Shell({ children }) {
   const chromeLabel =
     isHome
       ? "Click here to explore"
-      : !screenshotsVisible && (navigationPhase === "open" || navigationLeaving)
+      : navigationPhase === "open" || navigationLeaving
         ? "Close"
         : "Menu";
 
@@ -283,7 +266,7 @@ export default function Shell({ children }) {
       >
         <Chrome
           key={isHome ? "home" : chromeKey}
-          inert={screenshotsVisible || leavingHome || leavingForProject || (isHome && !homeChromeReady)}
+          inert={leavingHome || leavingForProject || (isHome && !homeChromeReady)}
           className={[
             isHome ? styles.chromeOnDark : styles.chromeAbovePanel,
             isHome
@@ -291,11 +274,8 @@ export default function Shell({ children }) {
                 ? homeEntrance === "rise" ? styles.homeChromeReturning : styles.homeChromeEntering
                 : styles.homeChromeWaiting
               : chromeEntering ? styles.chromeEntering : "",
-            !isHome && fromScreenshots ? styles.chromeFromScreenshots : "",
             leavingForHome ? styles.chromeLeavingHome : "",
             leavingForProject && !currentChromeContinuous ? styles.chromeLeavingForProject : "",
-            screenshotsVisible ? styles.chromeBehindScreenshots : "",
-            screenshotsVisible && phase === "closing" ? styles.chromeReturningFromScreenshots : "",
             isProject ? styles.chromeOnProject : "",
           ]
             .filter(Boolean)
@@ -333,7 +313,6 @@ export default function Shell({ children }) {
           className={[
             styles.content,
             leavingForProject ? styles.contentLeavingForProject : "",
-            !isHome && fromScreenshots ? styles.contentFromScreenshots : "",
             isHome ||
             isWorks ||
             isProject ||
@@ -351,29 +330,18 @@ export default function Shell({ children }) {
           }
         >
           <PageExitProvider exiting={pageExiting} settleMs={exitSettleMs}>
-            <ScreenshotsProvider onOpen={openScreenshots}>
-              {children}
-            </ScreenshotsProvider>
+            {children}
           </PageExitProvider>
         </div>
 
-        {screenshotsVisible ? (
-          <ScreenshotViewer
-            project={project}
-            phase={navigationPhase}
-            anchor={screenshotAnchor}
-            onClose={() => leaveNavigation()}
-          />
-        ) : (
-          <Navigation
-            phase={navigationPhase}
-            enterSlide={enterSlide}
-            exitSlide={exitSlide}
-            chrome={isHome}
-            onToggle={toggleNavigation}
-            onLeave={leaveNavigation}
-          />
-        )}
+        <Navigation
+          phase={navigationPhase}
+          enterSlide={enterSlide}
+          exitSlide={exitSlide}
+          chrome={isHome}
+          onToggle={toggleNavigation}
+          onLeave={leaveNavigation}
+        />
 
         {leavingHome && <div className={styles.homeCover} aria-hidden="true" />}
         {homeRevealing && (

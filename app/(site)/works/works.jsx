@@ -8,18 +8,24 @@ import { usePageExiting, usePageExitSettleMs } from "../../../components/shell-c
 import { preloadVisibleGenesisVideo, warmRouteAssets } from "../../../components/preload-assets";
 import { useEntryLoading } from "../../../components/entry-loading";
 import { projects, projectThumbnailProps } from "./projects";
-import ProjectTitleText from "./project-title";
 import { arriveWorks, getProjectReturn } from "./project-transition";
 import { bindWorksScrollHover } from "./scroll-hover";
+import { motion, worksReveal } from "../../../styles/animations.mjs";
 import styles from "./works.module.css";
-
-const EXIT_STEP_MS = 500;
 
 function ProjectTitle({ slug, title, lines, aspectRatio, active }) {
   return (
     <span className={styles.headingMask} style={{ "--image-ratio": aspectRatio }} aria-hidden="true">
       <span className={styles.headingLabel} data-project-title={slug} data-active={active}>
-        <ProjectTitleText title={title} lines={lines} />
+        {lines ? (
+          <span className={styles.title}>
+            {lines.map((line, index) => (
+              <span className={styles.titleLine} key={line}>
+                {line}{index < lines.length - 1 ? " " : ""}
+              </span>
+            ))}
+          </span>
+        ) : title}
       </span>
     </span>
   );
@@ -84,7 +90,7 @@ export default function Works() {
     const handleResize = () => {
       setResizing(true);
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => setResizing(false), 100);
+      resizeTimer = window.setTimeout(() => setResizing(false), motion.resizeSettle);
     };
 
     window.addEventListener("resize", handleResize);
@@ -97,6 +103,7 @@ export default function Works() {
   return (
     <main
       ref={pageRef}
+      data-exiting={transition?.phase === "exiting"}
       onPointerMove={(event) => {
         if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
           setHoveredProject(event.target.closest("[data-project-preview]")?.dataset.projectPreview ?? null);
@@ -110,7 +117,6 @@ export default function Works() {
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{ "--exit-duration": `${EXIT_STEP_MS}ms` }}
     >
       <section className={styles.content} aria-labelledby="works-heading">
         <h1 ref={headingRef} className={styles.heading} id="works-heading" aria-label="Works" data-works-heading>
@@ -144,7 +150,7 @@ export default function Works() {
                 data-scroll-active={!transition && scrollHoveredProject === project.slug}
                 onPointerLeave={() => setHoveredProject((current) => current === project.slug ? null : current)}
                 style={{
-                  "--reveal-duration": project.duration,
+                  "--reveal-duration": `${worksReveal[project.slug] ?? motion.content}ms`,
                   "--image-ratio": project.aspectRatio,
                 }}
                 key={project.slug}

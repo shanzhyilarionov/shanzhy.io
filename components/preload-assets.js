@@ -1,4 +1,5 @@
 import { getImageProps } from "next/image.js";
+import { motion, videoPlaybackRate } from "../styles/animations.mjs";
 import {
   findProjectByPath,
   projects,
@@ -10,9 +11,6 @@ import {
 const warmedImages = new Map();
 export const GENESIS_VIDEO = "/videos/genesis.mp4";
 let genesisVideo;
-
-export const GENESIS_BUFFER_SECONDS = 3;
-export const GENESIS_BUFFER_TIMEOUT_MS = 3500;
 
 const siteRoutes = ["/works", "/about", "/contact", "/", ...projects.map(({ slug }) => `/works/${slug}`)];
 
@@ -65,6 +63,8 @@ export function preloadGenesisVideo() {
     genesisVideo.defaultMuted = true;
     genesisVideo.loop = true;
     genesisVideo.playsInline = true;
+    genesisVideo.defaultPlaybackRate = videoPlaybackRate;
+    genesisVideo.playbackRate = videoPlaybackRate;
     genesisVideo.preload = "auto";
     genesisVideo.poster = "/images/genesis.jpg";
     genesisVideo.setAttribute("aria-label", "Genesis ecosystem simulation demo");
@@ -79,8 +79,8 @@ export function preloadGenesisVideo() {
 }
 
 export function waitForVideoBuffer(video, {
-  seconds = GENESIS_BUFFER_SECONDS,
-  timeout = GENESIS_BUFFER_TIMEOUT_MS,
+  seconds = motion.videoBuffer / 1000,
+  timeout = motion.videoBufferTimeout,
   signal,
 } = {}) {
   return new Promise((resolve) => {
@@ -103,7 +103,7 @@ export function waitForVideoBuffer(video, {
       const required = Math.min(seconds, remaining);
       for (let index = 0; index < video.buffered.length; index++) {
         if (
-          video.buffered.start(index) <= start + 0.05 &&
+          video.buffered.start(index) <= start + motion.videoBufferTolerance / 1000 &&
           video.buffered.end(index) - start >= required
         ) {
           finish("ready");
@@ -148,9 +148,9 @@ export function preloadVisibleGenesisVideo(target) {
       idle !== undefined || timer !== undefined
     ) return;
     if (window.requestIdleCallback) {
-      idle = window.requestIdleCallback(prepare, { timeout: 1500 });
+      idle = window.requestIdleCallback(prepare, { timeout: motion.preloadIdleTimeout });
     } else {
-      timer = window.setTimeout(prepare, 200);
+      timer = window.setTimeout(prepare, motion.preloadInterval);
     }
   };
   const observer = new window.IntersectionObserver((entries) => {
@@ -182,9 +182,9 @@ export function preloadSiteAssets(router, pathname) {
   const schedule = () => {
     if (disposed || inFlight || document.hidden || !queue.length || idle !== undefined || timer !== undefined) return;
     if (window.requestIdleCallback) {
-      idle = window.requestIdleCallback(advance, { timeout: 1500 });
+      idle = window.requestIdleCallback(advance, { timeout: motion.preloadIdleTimeout });
     } else {
-      timer = window.setTimeout(advance, 200);
+      timer = window.setTimeout(advance, motion.preloadInterval);
     }
   };
 

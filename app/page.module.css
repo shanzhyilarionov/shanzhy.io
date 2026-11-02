@@ -31,3 +31,9 @@
   touch-action: none;
   background: transparent;
 }
+
+.tesseractLayer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

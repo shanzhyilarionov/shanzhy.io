@@ -94,3 +94,28 @@ test("pointer following is gradual and consistent across frame rates", () => {
   assert.ok(Math.abs(slow.x - fast.x) < 1e-12);
   assert.ok(Math.abs(slow.y - fast.y) < 1e-12);
 });
+
+test("cached geometry keeps edge colors aligned when edge ordering changes", () => {
+  const pointer = { x: 0.3, y: -0.4 };
+  const expected = frame(0.7, pointer);
+  const reordered = createScene(
+    vertices, [...edges].reverse(), faces, { width: 1440, height: 900 },
+    pointer, 0.7, 1 / 60, { pointer: { ...pointer } },
+  );
+  const ordered = (scene) => [...scene.edges].sort((first, second) =>
+    first.x1 - second.x1 || first.y1 - second.y1 || first.x2 - second.x2,
+  );
+
+  assert.deepEqual(ordered(reordered), ordered(expected));
+  assert.deepEqual(frame(0.7, pointer), expected);
+});
+
+test("changing one frame's edge colors cannot affect later frames", () => {
+  const pointer = { x: 0, y: 0 };
+  const expected = frame(1, pointer);
+  const altered = frame(1, pointer);
+
+  altered.edges.forEach((edge) => edge.tint.fill(100));
+
+  assert.deepEqual(frame(1, pointer), expected);
+});

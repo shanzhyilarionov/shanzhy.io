@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import Shell from "../components/shell";
 import EntryLoading from "../components/entry-loading";
+import { motionVariables } from "../styles/animations.mjs";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,7 +20,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} h-full antialiased`} style={motionVariables}>
       <body className="min-h-full flex flex-col">
         <EntryLoading>
           <Shell>{children}</Shell>

@@ -33,7 +33,7 @@ export function createFallbackRenderer(canvas) {
       const front = Math.max(0, Math.min(1, (depth + scene.projectedRadius) / (2 * scene.projectedRadius)));
       const density = Math.min(1, face.density / LOOK.glass.tintedDensity);
       const opacity = (0.04 + density * 0.28) * (0.65 + front * 0.35);
-      context.fillStyle = `rgba(${faceColor(face.tint)},${opacity * (face.visibility ?? 1)})`;
+      context.fillStyle = `rgba(${faceColor(face.tint)},${opacity})`;
       context.fill();
     }
 
@@ -41,7 +41,7 @@ export function createFallbackRenderer(canvas) {
     for (const edge of scene.edges) {
       const depth = edge.depth ?? (edge.z1 + edge.z2) / 2;
       const front = Math.max(0, Math.min(1, (depth + scene.projectedRadius) / (2 * scene.projectedRadius)));
-      context.strokeStyle = `rgba(${color(edge.tint)},${(0.3 + front * 0.6) * (edge.visibility ?? 1)})`;
+      context.strokeStyle = `rgba(${color(edge.tint)},${0.3 + front * 0.6})`;
       context.lineWidth = Math.max(1, edge.coreWidth * 0.4);
       context.beginPath();
       context.moveTo(edge.x1, edge.y1);

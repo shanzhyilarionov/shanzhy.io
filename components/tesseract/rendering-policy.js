@@ -1,3 +1,5 @@
+import { frameTiming, motion } from "../../styles/animations.mjs";
+
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|swrast|software\s+(?:rasterizer|renderer)|microsoft basic render driver/i;
 
 export function createHardwareContext(canvas, options = {}) {
@@ -35,13 +37,13 @@ export function createPerformanceMonitor() {
       const delta = previous === null ? 0 : Math.max(0, now - previous);
       previous = now;
       warmup += delta;
-      if (warmup < 1000 || delta === 0) return false;
+      if (warmup < motion.renderWarmup || delta === 0) return false;
       duration += delta;
       frames++;
-      if (duration < 2000) return false;
-      slowWindows = frames * 1000 / duration < 20 ? slowWindows + 1 : 0;
+      if (duration < motion.renderSampleWindow) return false;
+      slowWindows = frames * 1000 / duration < frameTiming.minHealthyFps ? slowWindows + 1 : 0;
       duration = frames = 0;
-      return slowWindows >= 2;
+      return slowWindows >= frameTiming.slowWindowsBeforeFallback;
     },
   };
 }

@@ -1,0 +1,45 @@
+:root {
+  --font-family: var(--font-inter, "Inter", Arial, Helvetica, sans-serif);
+
+  --heading-size: 60px;
+  --heading-weight: 500;
+  --heading-line-height: 1;
+  --heading-letter-spacing: -0.02em;
+  --nav-line-height: 1;
+
+  --text-size: 1rem;
+  --text-weight: 400;
+  --text-line-height: 1.2;
+  --text-letter-spacing: -0.02em;
+
+  --content-width: 90vw;
+  --page-inset: calc((100vw - var(--content-width)) / 2);
+  --about-content-width: clamp(30rem, 40vw, 40rem);
+  --chrome-top-mobile: 1.5rem;
+  --page-spacer: 3rem;
+  --page-spacer-min: 0.5rem;
+
+  --heading-gap: 30px;
+  --paragraph-gap: 20px;
+  --contact-gap: 0.75rem;
+
+  --projects-width: clamp(20rem, 30vw, 35rem);
+  --tile-gap: 0.75rem;
+  --project-tile-height-ratio: 1.5;
+  --project-title-size: 14cqw;
+  --project-frame-aspect-ratio: 16 / 10;
+
+  --home-title-position: 12.5%;
+  --home-menu-position: 87.5%;
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 4px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --about-content-width: 100%;
+    --tile-gap: 2vw;
+    --page-spacer: 5rem;
+    --page-spacer-min: 4rem;
+  }
+}

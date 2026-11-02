@@ -1,6 +1,5 @@
 "use client";
 
-
 import { GLASS_F0, LOOK } from "./look.js";
 import { createHardwareContext } from "./rendering-policy.js";
 import {
@@ -101,7 +100,6 @@ export function createRenderer(canvas) {
 
   if (!gl) return null;
 
-
   const halfFloat = gl.getExtension("OES_texture_half_float");
   const halfFloatLinear = gl.getExtension("OES_texture_half_float_linear");
   const HALF_FLOAT_OES = halfFloat ? halfFloat.HALF_FLOAT_OES : null;
@@ -145,10 +143,19 @@ export function createRenderer(canvas) {
 
   const inverseExposureScale = 1 / exposureScale;
 
+  const passes = [];
+  const targets = [];
 
-  const facePass = describeProgram(
-    gl,
-    createProgram(gl, faceVertexShader, faceFragmentShader),
+  function createPass(vertexSource, fragmentSource, attributes, uniforms) {
+    const pass = describeProgram(
+      gl, createProgram(gl, vertexSource, fragmentSource), attributes, uniforms,
+    );
+    passes.push(pass);
+    return pass;
+  }
+
+  const facePass = createPass(
+    faceVertexShader, faceFragmentShader,
     ["a_pos3", "a_tangent", "a_bitangent", "a_uv", "a_tint", "a_params"],
     [
       "u_center",
@@ -171,7 +178,6 @@ export function createRenderer(canvas) {
       "u_depth_floor",
       "u_depth_curve",
       "u_aerial_floor",
-      "u_rim_width",
       "u_exposure_scale",
       "u_sheen",
       "u_fresnel_rim",
@@ -182,9 +188,8 @@ export function createRenderer(canvas) {
     ],
   );
 
-  const capsulePass = describeProgram(
-    gl,
-    createProgram(gl, capsuleVertexShader, capsuleFragmentShader),
+  const capsulePass = createPass(
+    capsuleVertexShader, capsuleFragmentShader,
     ["a_position", "a_local", "a_half_size", "a_color", "a_glint", "a_depth", "a_tint"],
     [
       "u_origin",
@@ -203,16 +208,14 @@ export function createRenderer(canvas) {
     ],
   );
 
-  const copyPass = describeProgram(
-    gl,
-    createProgram(gl, quadVertexShader, copyFragmentShader),
+  const copyPass = createPass(
+    quadVertexShader, copyFragmentShader,
     ["a_position", "a_uv"],
     ["u_texture"],
   );
 
-  const glassCompositePass = describeProgram(
-    gl,
-    createProgram(gl, quadVertexShader, glassCompositeFragmentShader),
+  const glassCompositePass = createPass(
+    quadVertexShader, glassCompositeFragmentShader,
     ["a_position", "a_uv"],
     [
       "u_backdrop",
@@ -224,23 +227,20 @@ export function createRenderer(canvas) {
     ],
   );
 
-  const brightPass = describeProgram(
-    gl,
-    createProgram(gl, quadVertexShader, brightPassFragmentShader),
+  const brightPass = createPass(
+    quadVertexShader, brightPassFragmentShader,
     ["a_position", "a_uv"],
     ["u_texture", "u_threshold", "u_knee"],
   );
 
-  const blurPass = describeProgram(
-    gl,
-    createProgram(gl, quadVertexShader, blurFragmentShader),
+  const blurPass = createPass(
+    quadVertexShader, blurFragmentShader,
     ["a_position", "a_uv"],
     ["u_texture", "u_step"],
   );
 
-  const compositePass = describeProgram(
-    gl,
-    createProgram(gl, quadVertexShader, compositeFragmentShader),
+  const compositePass = createPass(
+    quadVertexShader, compositeFragmentShader,
     ["a_position", "a_uv"],
     [
       "u_scene",
@@ -251,7 +251,6 @@ export function createRenderer(canvas) {
       "u_saturation",
     ],
   );
-
 
   const faceBuffer = gl.createBuffer();
   const capsuleBuffer = gl.createBuffer();
@@ -282,7 +281,7 @@ export function createRenderer(canvas) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    return {
+    const target = {
       texture,
       framebuffer: gl.createFramebuffer(),
       type,
@@ -290,6 +289,8 @@ export function createRenderer(canvas) {
       width: 0,
       height: 0,
     };
+    targets.push(target);
+    return target;
   }
 
   function resizeTarget(target, width, height) {
@@ -362,7 +363,6 @@ export function createRenderer(canvas) {
   let canvasHeight = 0;
   let pixelRatio = 1;
 
-
   function setBlend(sourceFactor, destinationFactor) {
     gl.enable(gl.BLEND);
     gl.blendEquation(gl.FUNC_ADD);
@@ -392,6 +392,11 @@ export function createRenderer(canvas) {
     gl.disable(gl.BLEND);
     gl.clearColor(value, value, value, value);
     gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  function clearTarget(target, value = 0) {
+    bindTarget(target);
+    clearBound(value);
   }
 
   const enabledAttributes = new Set();
@@ -436,7 +441,6 @@ export function createRenderer(canvas) {
     );
   }
 
-
   function writeFaces(faces) {
     ensureCapacity(faceBatch, faces.length * 6 * FACE_STRIDE);
     const data = faceBatch.data;
@@ -464,7 +468,7 @@ export function createRenderer(canvas) {
         data[cursor++] = face.thickness;
         data[cursor++] = face.density;
         data[cursor++] = face.scatterGain;
-        data[cursor++] = face.visibility ?? 1;
+        data[cursor++] = 1;
       }
     }
 
@@ -532,12 +536,6 @@ export function createRenderer(canvas) {
     const lines = [];
 
     for (const edge of edges) {
-      const visibility = edge.visibility ?? 1;
-      if (visibility <= 0) continue;
-      const fadeGlint = (glint) => visibility === 1 || !glint
-        ? glint
-        : glint.map(([alignment, weight]) => [alignment, weight * visibility]);
-
       for (const sample of dispersion) {
         const offsetX = edge.bendDirection[0] * sample.offset * edge.spread;
         const offsetY = edge.bendDirection[1] * sample.offset * edge.spread;
@@ -549,7 +547,7 @@ export function createRenderer(canvas) {
           y2: edge.y2 + offsetY,
           width: edge.coreWidth,
           color: sample.color,
-          intensity: edge.spectralStrength * visibility,
+          intensity: edge.spectralStrength,
           z1: edge.z1,
           z2: edge.z2,
           tint: [1, 1, 1],
@@ -563,20 +561,17 @@ export function createRenderer(canvas) {
         y2: edge.y2,
         width: edge.coreWidth * 0.5,
         color: edge.coreColor,
-        intensity: edge.coreIntensity * visibility,
-        glintStart: fadeGlint(edge.glintStart),
-        glintEnd: fadeGlint(edge.glintEnd),
+        intensity: edge.coreIntensity,
+        glintStart: edge.glintStart,
+        glintEnd: edge.glintEnd,
         z1: edge.z1,
         z2: edge.z2,
-        tint: visibility === 1
-          ? edge.tint
-          : edge.tint.map((value) => Math.max(0.0015, Math.min(value, 0.995)) ** visibility),
+        tint: edge.tint,
       });
     }
 
     return lines;
   }
-
 
   let capsuleVertexCount = 0;
 
@@ -692,7 +687,6 @@ export function createRenderer(canvas) {
     gl.uniform1f(uniforms.u_depth_floor, glass.depthScatterFloor);
     gl.uniform1f(uniforms.u_depth_curve, glass.depthScatterCurve);
     gl.uniform1f(uniforms.u_aerial_floor, glass.aerialSaturationFloor);
-    gl.uniform1f(uniforms.u_rim_width, glass.rimWidth);
     gl.uniform1f(uniforms.u_sheen, glass.sheen);
     gl.uniform1f(uniforms.u_fresnel_rim, glass.fresnelRim);
     gl.uniform1f(uniforms.u_sweep_exponent, glass.sweepExponent);
@@ -706,7 +700,6 @@ export function createRenderer(canvas) {
   }
 
   function drawFullscreen(pass) {
-    gl.useProgram(pass.program);
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     bindAttributes(
       pass,
@@ -729,12 +722,8 @@ export function createRenderer(canvas) {
       const source = horizontal ? target : scratch;
       const destination = horizontal ? scratch : target;
 
-      bindTarget(destination);
-      clearBound();
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, source.texture);
-      gl.useProgram(blurPass.program);
-      gl.uniform1i(blurPass.uniforms.u_texture, 0);
+      clearTarget(destination);
+      bindTextures(blurPass, [["u_texture", source.texture]]);
       gl.uniform2f(
         blurPass.uniforms.u_step,
         horizontal ? spacing / target.width : 0,
@@ -752,13 +741,11 @@ export function createRenderer(canvas) {
     resizeTarget(glassAccum, width, height);
     resizeTarget(glassReveal, width, height);
 
-    bindTarget(glassReveal);
-    clearBound(1);
+    clearTarget(glassReveal, 1);
     multiplicative();
     drawFaces(scene, 0);
 
-    bindTarget(glassAccum);
-    clearBound();
+    clearTarget(glassAccum);
     additive();
     drawFaces(scene, 1);
 
@@ -768,15 +755,11 @@ export function createRenderer(canvas) {
     resizeTarget(backdropSoft, width, height);
     resizeTarget(backdropDeep, width, height);
 
-    bindTarget(backdropSoft);
-    clearBound();
-    gl.disable(gl.BLEND);
+    clearTarget(backdropSoft);
     drawTexture(copyPass, "u_texture", sceneTarget.texture);
     blurInPlace(backdropSoft, glassScratch, glass.frost);
 
-    bindTarget(backdropDeep);
-    clearBound();
-    gl.disable(gl.BLEND);
+    clearTarget(backdropDeep);
     drawTexture(copyPass, "u_texture", backdropSoft.texture);
     blurInPlace(
       backdropDeep,
@@ -786,6 +769,7 @@ export function createRenderer(canvas) {
   }
 
   function bindTextures(pass, entries) {
+    gl.useProgram(pass.program);
     entries.forEach(([uniform, texture], unit) => {
       gl.activeTexture(gl.TEXTURE0 + unit);
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -795,10 +779,7 @@ export function createRenderer(canvas) {
   }
 
   function drawTexture(pass, uniform, texture) {
-    gl.useProgram(pass.program);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(pass.uniforms[uniform], 0);
+    bindTextures(pass, [[uniform, texture]]);
     drawFullscreen(pass);
   }
 
@@ -811,17 +792,12 @@ export function createRenderer(canvas) {
     resizeTarget(bloomTargetB, width, height);
 
     if (!enabled) {
-      bindTarget(bloomTargetA);
-      clearBound();
+      clearTarget(bloomTargetA);
       return;
     }
 
-    bindTarget(bloomTargetA);
-    clearBound();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, sceneTarget.texture);
-    gl.useProgram(brightPass.program);
-    gl.uniform1i(brightPass.uniforms.u_texture, 0);
+    clearTarget(bloomTargetA);
+    bindTextures(brightPass, [["u_texture", sceneTarget.texture]]);
     gl.uniform1f(brightPass.uniforms.u_threshold, bloom.threshold);
     gl.uniform1f(brightPass.uniforms.u_knee, bloom.knee);
     drawFullscreen(brightPass);
@@ -859,12 +835,6 @@ export function createRenderer(canvas) {
   function render(scene) {
     resize(scene);
 
-    const dispersion = scene.dispersion;
-    const crispEdges = scene.edges.filter((edge) => edge.bloom === false);
-    const glassEdges = crispEdges.length
-      ? scene.edges.filter((edge) => edge.bloom !== false)
-      : scene.edges;
-
     bindTarget(sceneTarget);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
@@ -873,6 +843,7 @@ export function createRenderer(canvas) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     uploadFaces(scene);
+    uploadCapsules(edgeLines(scene.edges, scene.dispersion));
 
     if (depthSupported) {
       gl.enable(gl.DEPTH_TEST);
@@ -883,7 +854,6 @@ export function createRenderer(canvas) {
       gl.depthMask(false);
 
       gl.depthFunc(gl.GREATER);
-      uploadCapsules(edgeLines(glassEdges, dispersion));
       drawRods(scene);
       gl.disable(gl.DEPTH_TEST);
     }
@@ -891,10 +861,7 @@ export function createRenderer(canvas) {
     gl.depthMask(false);
     renderGlass(scene);
 
-    bindTarget(sceneScratch);
-    clearBound();
-    gl.disable(gl.BLEND);
-    gl.useProgram(glassCompositePass.program);
+    clearTarget(sceneScratch);
     bindTextures(glassCompositePass, [
       ["u_backdrop", sceneTarget.texture],
       ["u_backdrop_soft", backdropSoft.texture],
@@ -921,28 +888,17 @@ export function createRenderer(canvas) {
       gl.depthFunc(gl.LESS);
     }
 
-    uploadCapsules(edgeLines(glassEdges, dispersion));
     drawRods(scene);
     gl.disable(gl.DEPTH_TEST);
 
     renderBloom(scene.width >= LOOK.quality.bloomMinWidth);
 
-    if (crispEdges.length) {
-      bindTarget(sceneTarget);
-      uploadCapsules(edgeLines(crispEdges, dispersion));
-      drawRods(scene);
-    }
-
-    bindTarget(null);
-    clearBound();
+    clearTarget(null);
     premultiplied();
-    gl.useProgram(compositePass.program);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, sceneTarget.texture);
-    gl.uniform1i(compositePass.uniforms.u_scene, 0);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, bloomTargetA.texture);
-    gl.uniform1i(compositePass.uniforms.u_bloom, 1);
+    bindTextures(compositePass, [
+      ["u_scene", sceneTarget.texture],
+      ["u_bloom", bloomTargetA.texture],
+    ]);
     gl.uniform1f(
       compositePass.uniforms.u_bloom_strength,
       scene.width >= LOOK.quality.bloomMinWidth ? LOOK.bloom.strength : 0,
@@ -964,33 +920,15 @@ export function createRenderer(canvas) {
 
     gl.deleteRenderbuffer(depthBuffer);
 
-    for (const target of [
-      sceneTarget,
-      sceneScratch,
-      backdropSoft,
-      backdropDeep,
-      glassAccum,
-      glassReveal,
-      glassScratch,
-      bloomTargetA,
-      bloomTargetB,
-    ]) {
+    for (const target of targets) {
       gl.deleteTexture(target.texture);
       gl.deleteFramebuffer(target.framebuffer);
     }
 
-    for (const pass of [
-      facePass,
-      capsulePass,
-      copyPass,
-      glassCompositePass,
-      brightPass,
-      blurPass,
-      compositePass,
-    ]) {
+    for (const pass of passes) {
       gl.deleteProgram(pass.program);
     }
   }
 
-  return { render, destroy, highDynamicRange: hdrType !== gl.UNSIGNED_BYTE };
+  return { render, destroy };
 }

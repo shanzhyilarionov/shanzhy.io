@@ -139,6 +139,23 @@ test("other source pages and unknown destinations do not start a Works thumbnail
   assert.equal(getProjectTransition(), null);
 });
 
+test("disposing an old entry again preserves the current transition and its hidden source", (t) => {
+  const { animations, page, chrome } = setup(t);
+  startWorksProjectTransition("/works", "/works/genesis");
+  const previous = getProjectTransition();
+  startWorksProjectTransition("/works", "/works/genesis");
+  const current = getProjectTransition();
+
+  previous.dispose();
+
+  assert.equal(previous.disposed, true);
+  assert.equal(getProjectTransition(), current);
+  assert.equal(page.style.visibility, "hidden");
+  assert.equal(chrome.style.visibility, "hidden");
+  assert.ok(animations.slice(0, 2).every((animation) => animation.cancel.mock.callCount() === 1));
+  assert.ok(animations.slice(2).every((animation) => animation.cancel.mock.callCount() === 0));
+});
+
 test("narrow Works entry keeps the original header visible while the page fades", (t) => {
   const { animations, body, chrome } = setup(t, "genesis", { narrow: true });
   startWorksProjectTransition("/works", "/works/genesis");

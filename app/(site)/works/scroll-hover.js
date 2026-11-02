@@ -1,10 +1,8 @@
 import { projects } from "./projects.js";
+import { motion } from "../../../styles/animations.mjs";
 
 const SWIPE_THRESHOLD = 36;
 const WHEEL_THRESHOLD = 8;
-const ANIMATION_MS = 500;
-const WHEEL_GESTURE_IDLE_MS = 160;
-const IDLE_MS = 3000;
 
 export function bindWorksScrollHover(page, onChange) {
   let activeIndex = null;
@@ -30,7 +28,7 @@ export function bindWorksScrollHover(page, onChange) {
 
   const recordActivity = () => {
     window.clearTimeout(idleTimer);
-    if (activeIndex !== null) idleTimer = window.setTimeout(reset, IDLE_MS);
+    if (activeIndex !== null) idleTimer = window.setTimeout(reset, motion.worksPreviewIdle);
   };
 
   const select = (direction) => {
@@ -40,7 +38,7 @@ export function bindWorksScrollHover(page, onChange) {
     if (nextIndex === activeIndex) return;
 
     activeIndex = nextIndex;
-    lockedUntil = performance.now() + ANIMATION_MS;
+    lockedUntil = performance.now() + motion.content;
     onChange(projects[activeIndex].slug);
     recordActivity();
   };
@@ -112,7 +110,7 @@ export function bindWorksScrollHover(page, onChange) {
     const magnitude = Math.abs(delta);
     const previousMagnitude = Math.abs(lastWheelDelta);
     if (
-      lastWheelAt === null || now - lastWheelAt > WHEEL_GESTURE_IDLE_MS ||
+      lastWheelAt === null || now - lastWheelAt > motion.wheelGestureIdle ||
       Math.sign(delta) !== Math.sign(lastWheelDelta) || event.deltaMode !== 0
     ) {
       wheelDistance = 0;

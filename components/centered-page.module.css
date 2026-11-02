@@ -12,18 +12,10 @@
 .page::before,
 .page::after {
   content: "";
-  flex: 1 1 3rem;
-  min-height: 0.5rem;
+  flex: 1 1 var(--page-spacer);
+  min-height: var(--page-spacer-min);
 }
 
 .page > * {
   flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-  .page::before,
-  .page::after {
-    flex-basis: 5rem;
-    min-height: 4rem;
-  }
 }

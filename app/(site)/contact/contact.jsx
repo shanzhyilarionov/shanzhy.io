@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { RevealItem } from "../../../components/reveal";
 import FitText from "../../../components/fit-text";
 import RollingText from "../../../components/rolling-text";
+import { motion } from "../../../styles/animations.mjs";
 import styles from "./contact.module.css";
 
 const email = "shangzh5@ualberta.ca";
@@ -58,7 +59,7 @@ export default function Contact() {
     copiedTimer.current = window.setTimeout(() => {
       setCopied(false);
       copiedTimer.current = null;
-    }, 2000);
+    }, motion.feedbackHold);
   };
 
   return (

@@ -1,13 +1,13 @@
 import { clamp } from "./geometry.mjs";
 import { createScene } from "./scene.js";
+import { homeEntrance, motion } from "../../styles/animations.mjs";
 
-export const ENTRANCE_DURATION = 0.8;
-export const CHROME_REVEAL_TIME = 0.5;
+export const ENTRANCE_DURATION = motion.homeEntrance / 1000;
+export const CHROME_REVEAL_TIME = motion.homeChromeReveal / 1000;
 
 export function entranceState(time) {
   const progress = clamp(time / ENTRANCE_DURATION, 0, 1);
-  const acceleration = 0.45;
-  const deceleration = 0.45;
+  const { acceleration, deceleration, initialScale } = homeEntrance;
   const peakSpeed = 1 / (1 - (acceleration + deceleration) / 2);
 
   const eased =
@@ -18,7 +18,7 @@ export function entranceState(time) {
         : 1 - peakSpeed * (1 - progress) ** 2 / (2 * deceleration);
 
   return {
-    scale: 0.2 + 0.8 * eased,
+    scale: initialScale + (1 - initialScale) * eased,
     opacity: eased,
     complete: progress === 1,
     motionTime: Math.max(0, time),

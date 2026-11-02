@@ -18,11 +18,51 @@ import {
   rotate3DY,
   rotate3DZ,
   rotateAll4D,
-  smoothstep,
   subtract3D,
 } from "./geometry.mjs";
 import { GLASS_F0, LOOK } from "./look.js";
 import { DISPERSION, faceTint } from "./palette.js";
+import { cubeMotion, frameTiming } from "../../styles/animations.mjs";
+
+const topologyCache = new WeakMap();
+
+function topologyFor(sourceEdges, sourceFaces) {
+  let entries = topologyCache.get(sourceFaces);
+  if (!entries) topologyCache.set(sourceFaces, entries = new WeakMap());
+  if (entries.has(sourceEdges)) return entries.get(sourceEdges);
+
+  const edgeKey = (first, second) =>
+    first < second ? `${first},${second}` : `${second},${first}`;
+  const edgeIndexByPair = new Map(
+    sourceEdges.map(([first, second], index) => [edgeKey(first, second), index]),
+  );
+  const edgeTints = sourceEdges.map(() => [0, 0, 0, 0]);
+  const faces = sourceFaces.map((face) => {
+    const tint = faceTint(face.cellLayer, face.orientationIndex);
+    for (let corner = 0; corner < 4; corner++) {
+      const index = edgeIndexByPair.get(
+        edgeKey(face.corners[corner], face.corners[(corner + 1) % 4]),
+      );
+      if (index === undefined) continue;
+      const slot = edgeTints[index];
+      slot[0] += tint[0];
+      slot[1] += tint[1];
+      slot[2] += tint[2];
+      slot[3] += 1;
+    }
+    return { normal: faceNormal4D(face), tint };
+  });
+  const topology = {
+    faces,
+    edgeTints: edgeTints.map(([red, green, blue, count]) => [
+      red / Math.max(count, 1),
+      green / Math.max(count, 1),
+      blue / Math.max(count, 1),
+    ]),
+  };
+  entries.set(sourceEdges, topology);
+  return topology;
+}
 
 function layoutScale(width, height) {
   const layout = LOOK.layout;
@@ -69,7 +109,7 @@ function lightSample(light, point) {
   ];
   const attenuation = light.intensity / distanceSquared;
 
-  return { direction, distance, attenuation };
+  return { direction, attenuation };
 }
 
 function tangentSin(tangent, direction) {
@@ -105,21 +145,24 @@ export function createScene(
   time,
   deltaTime,
   temporalState,
-  presentation = null,
 ) {
   const { width, height } = viewport;
   const centerX = width / 2;
   const centerY = height / 2;
   const scale = layoutScale(width, height);
   const camera = LOOK.camera.position;
-  const motion = LOOK.motion;
+  const topology = topologyFor(sourceEdges, sourceFaces);
+  const lights = LOOK.lights.map((light) => ({
+    light,
+    screen: project3Dto2D(light.position, Z_PROJECTION_DISTANCE, centerX, centerY, scale),
+  }));
 
   const pointerStrength =
     width <= LOOK.layout.mobileWidth
       ? LOOK.camera.pointerStrengthMobile
       : LOOK.camera.pointerStrengthDesktop;
   const pointerSmoothing =
-    1 - Math.exp(-Math.max(deltaTime, 1 / 240) * LOOK.camera.pointerResponse);
+    1 - Math.exp(-Math.max(deltaTime, 1 / frameTiming.maxFps) * (1000 / cubeMotion.pointerResponseMs));
   temporalState.pointer.x = mixScalar(
     temporalState.pointer.x,
     pointer.x,
@@ -132,25 +175,20 @@ export function createScene(
   );
 
   const rotations = [
-    [0, 3, time * motion.speedXW],
-    [1, 2, time * motion.speedYZ],
-    [0, 1, motion.biasXY],
-    [2, 3, motion.biasZW],
+    [0, 3, time * cubeMotion.rotationXWPerSecond],
+    [1, 2, time * cubeMotion.rotationYZPerSecond],
+    [0, 1, LOOK.orientation.xy],
+    [2, 3, LOOK.orientation.zw],
   ];
 
-  const toViewSpace = (point4D) => {
-    const rotated = rotateAll4D(point4D, rotations);
+  const projectedVertices = sourceVertices.map((vertex) => {
+    const rotated = rotateAll4D(vertex, rotations);
     let point3D = project4Dto3D(rotated, W_PROJECTION_DISTANCE);
     point3D = rotate3DX(point3D, LOOK.camera.tiltX);
     point3D = rotate3DY(point3D, LOOK.camera.tiltY);
     point3D = rotate3DZ(point3D, LOOK.camera.rollZ);
     point3D = rotate3DX(point3D, -temporalState.pointer.y * pointerStrength);
     point3D = rotate3DY(point3D, temporalState.pointer.x * pointerStrength);
-    return { rotated, point3D };
-  };
-
-  const projectedVertices = sourceVertices.map((vertex) => {
-    const { point3D } = toViewSpace(vertex);
     const point2D = project3Dto2D(
       point3D,
       Z_PROJECTION_DISTANCE,
@@ -161,16 +199,8 @@ export function createScene(
 
     return { ...point2D, point3D };
   });
-
-
-  const edgeKey = (first, second) =>
-    first < second ? `${first},${second}` : `${second},${first}`;
-  const edgeIndexByPair = new Map(
-    sourceEdges.map(([first, second], index) => [edgeKey(first, second), index]),
-  );
-  const edgeTints = sourceEdges.map(() => [0, 0, 0, 0]);
-
   const fourD = LOOK.fourD;
+  const fourDDirection = normalize4(fourD.direction);
   const faces = sourceFaces.map((face, faceIndex) => {
     const points3D = face.corners.map(
       (vertexIndex) => projectedVertices[vertexIndex].point3D,
@@ -185,8 +215,8 @@ export function createScene(
       bitangent = bitangent.map((value) => -value);
     }
 
-    const rotatedNormal4D = rotateAll4D(faceNormal4D(face), rotations);
-    const fourDAlignment = dot4D(rotatedNormal4D, normalize4(fourD.direction));
+    const rotatedNormal4D = rotateAll4D(topology.faces[faceIndex].normal, rotations);
+    const fourDAlignment = dot4D(rotatedNormal4D, fourDDirection);
     const fourDGain = mixScalar(
       1,
       fourD.ambient + (1 - fourD.ambient) * (fourDAlignment * 0.5 + 0.5),
@@ -195,24 +225,9 @@ export function createScene(
 
     const isTinted = face.cellLayer >= 0;
     const glass = LOOK.glass;
-    const tint = faceTint(face.cellLayer, face.orientationIndex);
-
-    for (let corner = 0; corner < 4; corner++) {
-      const index = edgeIndexByPair.get(
-        edgeKey(face.corners[corner], face.corners[(corner + 1) % 4]),
-      );
-
-      if (index === undefined) continue;
-
-      const slot = edgeTints[index];
-      slot[0] += tint[0];
-      slot[1] += tint[1];
-      slot[2] += tint[2];
-      slot[3] += 1;
-    }
+    const tint = topology.faces[faceIndex].tint;
 
     return {
-      ...(presentation && { visibility: presentation.faceVisibility[faceIndex] }),
       points3D,
       tangent,
       bitangent,
@@ -223,8 +238,6 @@ export function createScene(
         (isTinted ? glass.scatterTinted : glass.scatterStructural) * fourDGain,
     };
   });
-
-
 
   const edgeLook = LOOK.edges;
 
@@ -250,10 +263,9 @@ export function createScene(
     let specular = 0;
     let bendX = 0;
     let bendY = 0;
-    let dominant = 0;
     const radiance = [0, 0, 0];
 
-    for (const light of LOOK.lights) {
+    for (const { light, screen: light2D } of lights) {
       const sample = lightSample(light, center3D);
       const half = normalize3D([
         sample.direction[0] + viewDirection[0],
@@ -271,13 +283,6 @@ export function createScene(
       radiance[1] += light.color[1] * response;
       radiance[2] += light.color[2] * response;
 
-      const light2D = project3Dto2D(
-        light.position,
-        Z_PROJECTION_DISTANCE,
-        centerX,
-        centerY,
-        scale,
-      );
       const side =
         (light2D.x - (first.x + second.x) * 0.5) * normalX +
           (light2D.y - (first.y + second.y) * 0.5) * normalY >=
@@ -285,7 +290,6 @@ export function createScene(
           ? 1
           : -1;
 
-      if (sample.attenuation > dominant) dominant = sample.attenuation;
       bendX += normalX * side * sample.attenuation;
       bendY += normalY * side * sample.attenuation;
     }
@@ -317,7 +321,6 @@ export function createScene(
       (0.25 + clamp(specular * 0.5, 0, 1) * 0.75) * depthGain;
 
     return {
-      ...(presentation && { visibility: presentation.edgeVisibility[edgeIndex] }),
       x1: first.x,
       y1: first.y,
       x2: second.x,
@@ -335,11 +338,7 @@ export function createScene(
       depth,
       z1: first.point3D[2],
       z2: second.point3D[2],
-      tint: [
-        edgeTints[edgeIndex][0] / Math.max(edgeTints[edgeIndex][3], 1),
-        edgeTints[edgeIndex][1] / Math.max(edgeTints[edgeIndex][3], 1),
-        edgeTints[edgeIndex][2] / Math.max(edgeTints[edgeIndex][3], 1),
-      ],
+      tint: [...topology.edgeTints[edgeIndex]],
     };
   });
 

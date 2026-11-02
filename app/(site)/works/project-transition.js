@@ -1,5 +1,6 @@
 import { findProjectByPath } from "./projects.js";
 import { hasSharedHeader } from "../../../components/chrome-transition.js";
+import { easing, motion } from "../../../styles/animations.mjs";
 
 let activeTransition = null;
 let activeReturn = null;
@@ -40,10 +41,7 @@ function snapshot(element, preserveAnimations = false) {
 function place(element, bounds) {
   Object.assign(element.style, {
     position: "fixed",
-    top: `${bounds.top}px`,
-    left: `${bounds.left}px`,
-    width: `${bounds.width}px`,
-    height: `${bounds.height}px`,
+    ...geometry(bounds),
     margin: "0",
     transform: "none",
     pointerEvents: "none",
@@ -92,6 +90,14 @@ function animateReturnImage(image, from, to, frameBounds, timing) {
     { transform: "translate3d(0, 0, 0) scale(1)" },
     { transform: `translate3d(${to.left - from.left}px, ${to.top - from.top}px, 0) scale(${to.width / from.width})` },
   ], timing);
+}
+
+function releaseArrival(transition, target, visibility, animations) {
+  target.style.visibility = visibility;
+  animations.forEach((animation) => animation?.cancel());
+  if (!transition.disposed) {
+    transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
+  }
 }
 
 export function retainProjectVideo(video) {
@@ -154,8 +160,8 @@ export function startProjectTransition(page, frame, chrome) {
   }
 
   const fadeTiming = {
-    duration: 300,
-    easing: "ease-out",
+    duration: motion.projectDeparture,
+    easing: easing.enter,
     fill: "both",
   };
   const fade = departing.animate([{ opacity: 1 }, { opacity: 0 }], fadeTiming);
@@ -173,12 +179,15 @@ export function startProjectTransition(page, frame, chrome) {
     preview,
     bounds,
     cropped,
+    disposed: false,
     mediaReady: false,
     markMediaReady() {
       transition.mediaReady = true;
       transition.onMediaReady?.();
     },
     dispose() {
+      if (transition.disposed) return;
+      transition.disposed = true;
       fade.cancel();
       chromeFade?.cancel();
       departing.remove();
@@ -253,7 +262,7 @@ export function startProjectReturn(page, frame, slug) {
   document.body.append(departing, preview);
   departing.scrollTop = page.scrollTop;
   page.style.visibility = "hidden";
-  const exitTimer = window.setTimeout(() => departing.remove(), 500 - (performance.now() - startedAt));
+  const exitTimer = window.setTimeout(() => departing.remove(), motion.content - (performance.now() - startedAt));
   const transition = {
     slug,
     startedAt,
@@ -300,9 +309,9 @@ export function arriveWorks(transition, page, target) {
     ? targetImage.getBoundingClientRect()
     : coverBounds(destination, mediaAspectRatio);
   const timing = {
-    duration: 700,
-    delay: 300,
-    easing: getComputedStyle(document.documentElement).getPropertyValue("--ease-content").trim(),
+    duration: motion.projectMedia,
+    delay: motion.projectReturnLead,
+    easing: easing.content,
     fill: "both",
   };
   const visibility = target.style.visibility;
@@ -362,9 +371,9 @@ export function arriveWorks(transition, page, target) {
   const fades = Array.from(page.querySelectorAll("[data-works-heading], [data-project-preview]"))
     .filter((element) => !element.contains(target))
     .map((element) => element.animate([{ opacity: 0 }, { opacity: 1 }], {
-      duration: 500,
-      delay: 500,
-      easing: "ease-out",
+      duration: motion.content,
+      delay: motion.content,
+      easing: easing.enter,
       fill: "both",
     }));
   const animations = [movement, clip, imageMovement, thumbnailMovement, poster, ...fades];
@@ -377,14 +386,12 @@ export function arriveWorks(transition, page, target) {
   };
 
   return () => {
-    target.style.visibility = visibility;
-    animations.forEach((animation) => animation.cancel());
+    releaseArrival(transition, target, visibility, animations);
     thumbnail.remove();
     clippingFrame.remove();
     if (!transition.disposed) {
       preview.append(bitmap);
       placeImage(bitmap, imageFrom, bounds);
-      transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
     }
   };
 }
@@ -400,9 +407,9 @@ export function arriveProject(transition, target) {
   const visibility = target.style.visibility;
   target.style.visibility = "hidden";
   const timing = {
-    duration: 700,
-    delay: 200,
-    easing: getComputedStyle(document.documentElement).getPropertyValue("--ease-content").trim(),
+    duration: motion.projectMedia,
+    delay: motion.projectEntryLead,
+    easing: easing.content,
     fill: "both",
   };
   const movement = preview.animate([geometry(bounds), geometry(destination)], timing);
@@ -427,8 +434,8 @@ export function arriveProject(transition, target) {
   const revealMedia = () => {
     if (disposed || !arrived || !transition.mediaReady || handoff) return;
     handoff = preview.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: 120,
-      easing: "ease-out",
+      duration: motion.projectHandoff,
+      easing: easing.enter,
       fill: "both",
     });
     handoff.onfinish = () => transition.dispose();
@@ -443,11 +450,6 @@ export function arriveProject(transition, target) {
   return () => {
     disposed = true;
     transition.onMediaReady = null;
-    target.style.visibility = visibility;
-    movement.cancel();
-    color.cancel();
-    crop?.cancel();
-    handoff?.cancel();
-    transition.cleanupFrame = requestAnimationFrame(() => transition.dispose());
+    releaseArrival(transition, target, visibility, [movement, color, crop, handoff]);
   };
 }

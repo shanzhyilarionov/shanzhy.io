@@ -1,9 +1,7 @@
 export const LOOK = {
-  motion: {
-    speedXW: 0.43,
-    speedYZ: 0.19,
-    biasXY: 0.34,
-    biasZW: -0.27,
+  orientation: {
+    xy: 0.34,
+    zw: -0.27,
   },
 
   camera: {
@@ -13,7 +11,6 @@ export const LOOK = {
     rollZ: 0.1,
     pointerStrengthDesktop: 0.8,
     pointerStrengthMobile: 0.8,
-    pointerResponse: 10,
   },
 
   lights: [
@@ -45,8 +42,6 @@ export const LOOK = {
     depthScatterFloor: 0.34,
     depthScatterCurve: 1.5,
     aerialSaturationFloor: 0.9,
-    bevelWidth: 0.09,
-    bevel: 0.85,
     weightFloor: 0.04,
     weightCurve: 4.0,
     softDownscale: 2,
@@ -73,11 +68,6 @@ export const LOOK = {
     depthBias: 0.004,
     depthFloor: 0.24,
     depthCurve: 1.8,
-  },
-
-  vertices: {
-    radiusScale: 1.15,
-    intensity: 1.0,
   },
 
   bloom: {

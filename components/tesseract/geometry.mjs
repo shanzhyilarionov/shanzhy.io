@@ -169,7 +169,6 @@ export function frontness(depth) {
   return Math.max(0, Math.min(1, ratio));
 }
 
-
 export function subtract3D(first, second) {
   return [first[0] - second[0], first[1] - second[1], first[2] - second[2]];
 }
@@ -224,9 +223,4 @@ export function clamp(value, minimum, maximum) {
 
 export function mixScalar(first, second, amount) {
   return first + (second - first) * amount;
-}
-
-export function smoothstep(minimum, maximum, value) {
-  const progress = clamp((value - minimum) / (maximum - minimum), 0, 1);
-  return progress * progress * (3 - 2 * progress);
 }

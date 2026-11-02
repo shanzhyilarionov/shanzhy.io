@@ -11,10 +11,11 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { preloadGenesisVideo, preloadRouteImages, preloadSiteAssets, waitForVideoBuffer } from "./preload-assets";
+import { motion } from "../styles/animations.mjs";
 import styles from "./entry-loading.module.css";
 
 const EntryContext = createContext({ pending: false, ready: () => {} });
-const LEAVING_TIMEOUT_MS = 600;
+const LEAVING_TIMEOUT_MS = motion.content + motion.loadingTimeoutBuffer;
 
 export function useEntryLoading() {
   return useContext(EntryContext);
@@ -100,7 +101,7 @@ export default function EntryLoading({ children }) {
     const start = performance.now();
     let frame;
     const update = (now) => {
-      const fraction = Math.max(0, Math.min((now - start) / 180, 1));
+      const fraction = Math.max(0, Math.min((now - start) / motion.loadingProgress, 1));
       const value = Math.floor(from + (target - from) * fraction);
       displayedRef.current = value;
       setProgress(value);

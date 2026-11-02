@@ -16,19 +16,21 @@
 }
 
 .moving {
-  animation: enter var(--duration) ease-out
+  --duration: calc(var(--motion-interaction) + (var(--motion-content) - var(--motion-interaction)) * var(--reveal-progress));
+  --delay: calc(var(--motion-content) - var(--duration));
+  animation: enter var(--duration) var(--ease-enter)
     calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
 }
 
 .content[data-exiting="true"] .moving,
 .moving[data-exiting="true"] {
-  animation: exit var(--duration) ease-in both;
+  animation: exit var(--duration) var(--ease-exit) both;
 }
 
 @keyframes enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 1rem, 0);
+    transform: translate3d(0, var(--reveal-distance), 0);
   }
 
   to {
@@ -45,6 +47,6 @@
 
   to {
     opacity: 0;
-    transform: translate3d(0, -1rem, 0);
+    transform: translate3d(0, calc(-1 * var(--reveal-distance)), 0);
   }
 }

@@ -1,48 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  --font-family: var(--font-inter, "Inter", Arial, Helvetica, sans-serif);
-
-  --heading-size: 60px;
-  --heading-weight: 500;
-  --heading-line-height: 1;
-  --heading-letter-spacing: -0.02em;
-  --nav-line-height: 1;
-
-  --text-size: 1rem;
-  --text-weight: 400;
-  --text-line-height: 1.2;
-  --text-letter-spacing: -0.02em;
-
-  --content-width: 90vw;
-  --page-inset: calc((100vw - var(--content-width)) / 2);
-  --about-content-width: clamp(30rem, 40vw, 40rem);
-  --chrome-top-mobile: 1.5rem;
-
-  --heading-gap: 30px;
-  --paragraph-gap: 20px;
-  --action-gap: 2rem;
-  --contact-gap: 0.75rem;
-
-  --projects-width: clamp(20rem, 30vw, 35rem);
-  --tile-gap: 0.75rem;
-
-  --project-description-gap: 30px;
-
-  --motion-panel: 1s;
-  --motion-content: 0.5s;
-  --motion-overlap: 0.3s;
-
-  --ease-panel: cubic-bezier(0.76, 0, 0.24, 1);
-  --ease-content: cubic-bezier(0.62, 0, 0.2, 1);
-}
-
-@media (max-width: 768px) {
-  :root {
-    --about-content-width: 100%;
-    --tile-gap: 2vw;
-  }
-}
+@import "../styles/sizing.css";
 
 html,
 body {

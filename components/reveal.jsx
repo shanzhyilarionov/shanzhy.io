@@ -3,14 +3,11 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { usePageExiting } from "./shell-context";
 import FitText from "./fit-text";
-import styles from "./reveal.module.css";
+import styles from "../styles/text-fade.module.css";
 
 function timing(index, count) {
-  const duration = 200 + (300 * index) / Math.max(1, count - 1);
-
   return {
-    "--duration": `${duration}ms`,
-    "--delay": `${500 - duration}ms`,
+    "--reveal-progress": index / Math.max(1, count - 1),
   };
 }
 

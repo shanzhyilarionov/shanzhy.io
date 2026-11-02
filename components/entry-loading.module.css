@@ -35,7 +35,7 @@
 }
 
 .overlay[data-phase="leaving"] {
-  animation: fadeOut 500ms ease-out both;
+  animation: fadeOut var(--motion-content) var(--ease-enter) both;
 }
 
 @keyframes fadeOut {

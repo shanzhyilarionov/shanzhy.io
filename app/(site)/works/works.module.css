@@ -34,13 +34,25 @@
 .summaryLabel {
   grid-area: 1 / 1;
   justify-self: center;
-  width: calc(2 * var(--tile-size) + var(--tile-size) * 1.5 * var(--image-ratio) + 2 * var(--tile-gap));
+  width: calc(2 * var(--tile-size) + var(--tile-size) * var(--project-tile-height-ratio) * var(--image-ratio) + 2 * var(--tile-gap));
   max-width: 100%;
 }
 
 .headingMask {
   display: grid;
   align-self: end;
+}
+
+.title {
+  container-type: inline-size;
+  display: block;
+  width: 100%;
+}
+
+.titleLine {
+  display: block;
+  font-size: min(var(--heading-size), var(--project-title-size));
+  white-space: nowrap;
 }
 
 .summary {
@@ -66,17 +78,17 @@
   display: grid;
   place-items: center;
   opacity: 0;
-  transition: opacity 0.2s linear;
+  transition: opacity var(--motion-interaction) var(--ease-linear);
 }
 
 .headingLabel[data-active="true"],
 .summaryLabel[data-active="true"] {
   opacity: 1;
-  transition-delay: calc(var(--motion-content) - 0.2s);
+  transition-delay: calc(var(--motion-content) - var(--motion-interaction));
 }
 
 .projects {
-  --edge-shift: max(0px, calc((2 * var(--tile-size) + var(--tile-size) * 1.5 * var(--active-image-ratio, 1) + 2 * var(--tile-gap) - 100cqw) / 2));
+  --edge-shift: max(0px, calc((2 * var(--tile-size) + var(--tile-size) * var(--project-tile-height-ratio) * var(--active-image-ratio, 1) + 2 * var(--tile-gap) - 100cqw) / 2));
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -104,24 +116,26 @@
 }
 
 .reveal {
+  composes: mask from "../../../styles/media-slide.module.css";
+  --media-enter-duration: var(--reveal-duration);
   display: block;
   overflow: hidden;
-  animation: revealUp var(--reveal-duration) var(--ease-panel) both;
 }
 
 .reveal:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 4px;
+  outline: var(--focus-outline-width) solid currentColor;
+  outline-offset: var(--focus-outline-offset);
 }
 
 .revealContent {
-  animation: contentUp var(--reveal-duration) var(--ease-panel) both;
+  composes: content from "../../../styles/media-slide.module.css";
+  --media-enter-duration: var(--reveal-duration);
 }
 
 .imageFrame {
   position: relative;
   width: 100%;
-  height: calc(var(--tile-size) * 1.5);
+  height: calc(var(--tile-size) * var(--project-tile-height-ratio));
   overflow: hidden;
 }
 
@@ -144,7 +158,7 @@
 }
 
 .project[data-active="true"] {
-  flex-basis: calc(var(--tile-size) * 1.5 * var(--image-ratio));
+  flex-basis: calc(var(--tile-size) * var(--project-tile-height-ratio) * var(--image-ratio));
 }
 
 .project[data-active="true"] .image {
@@ -159,55 +173,7 @@
   transition: none;
 }
 
-.returning .reveal,
-.returning .revealContent {
+.returning:not(.exiting) .reveal,
+.returning:not(.exiting) .revealContent {
   animation: none;
-}
-
-.exiting .reveal {
-  animation: revealOut var(--exit-duration) var(--ease-panel) both;
-}
-
-.exiting .revealContent {
-  animation: contentOut var(--exit-duration) var(--ease-panel) both;
-}
-
-@keyframes revealUp {
-  from {
-    transform: translate3d(0, 100%, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes contentUp {
-  from {
-    transform: translate3d(0, -100%, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes revealOut {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, -100%, 0);
-  }
-}
-
-@keyframes contentOut {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 100%, 0);
-  }
 }

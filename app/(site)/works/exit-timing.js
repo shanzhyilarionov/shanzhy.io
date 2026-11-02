@@ -1,4 +1,4 @@
-const WORKS_HOVER_SETTLE_MS = 500;
+import { motion } from "../../../styles/animations.mjs";
 
 export function getWorksExitDelay(row = document.querySelector("[data-works-projects]")) {
   if (!row) return 0;
@@ -12,5 +12,5 @@ export function getWorksExitDelay(row = document.querySelector("[data-works-proj
     (animation.transitionProperty === "flex-basis" || animation.transitionProperty === "filter"),
   );
 
-  return hovered || scrollHovered || restoring ? WORKS_HOVER_SETTLE_MS : 0;
+  return hovered || scrollHovered || restoring ? motion.content : 0;
 }

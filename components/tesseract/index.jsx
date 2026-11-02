@@ -17,7 +17,12 @@ import { createRenderer } from "./renderer.js";
 import { createFallbackRenderer } from "./fallback-renderer.js";
 import { createPerformanceMonitor } from "./rendering-policy.js";
 import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
-import styles from "./tesseract.module.css";
+import { frameTiming } from "../../styles/animations.mjs";
+
+const DEFAULT_DELTA = 1 / frameTiming.defaultFps;
+const MIN_DELTA = 1 / frameTiming.maxFps;
+const MAX_DELTA = frameTiming.maxDeltaMs / 1000;
+const FALLBACK_INTERVAL = 1000 / frameTiming.fallbackFps - frameTiming.toleranceMs;
 
 export default function GlassTesseract() {
   const { ready } = useEntryLoading();
@@ -117,7 +122,7 @@ export default function GlassTesseract() {
 
     const handleViewportChange = () => {
       measure();
-      if (!running) renderFrame(elapsedTime, 1 / 60);
+      if (!running) renderFrame(elapsedTime, DEFAULT_DELTA);
     };
 
     const handlePointerMove = (event) => {
@@ -142,7 +147,7 @@ export default function GlassTesseract() {
       if (!running && !pointerFrameId) {
         pointerFrameId = requestAnimationFrame(() => {
           pointerFrameId = 0;
-          renderFrame(elapsedTime, 1 / 60);
+          renderFrame(elapsedTime, DEFAULT_DELTA);
         });
       }
     };
@@ -159,7 +164,7 @@ export default function GlassTesseract() {
       if (!running) return;
 
       if (!lightweight && performanceMonitor.sample(now)) activateFallback();
-      if (lightweight && lastRenderTime !== null && now - lastRenderTime < 1000 / 30 - 1) {
+      if (lightweight && lastRenderTime !== null && now - lastRenderTime < FALLBACK_INTERVAL) {
         frameId = requestAnimationFrame(animate);
         return;
       }
@@ -168,8 +173,8 @@ export default function GlassTesseract() {
       const visibleDelta = lastFrameTime == null ? 0 : Math.max(0, (now - lastFrameTime) / 1000);
       const deltaTime =
         lastFrameTime == null
-          ? 1 / 60
-          : clamp((now - lastFrameTime) / 1000, 1 / 240, 0.05);
+          ? DEFAULT_DELTA
+          : clamp((now - lastFrameTime) / 1000, MIN_DELTA, MAX_DELTA);
 
       lastFrameTime = now;
       if (entranceTime < ENTRANCE_DURATION) {
@@ -186,7 +191,7 @@ export default function GlassTesseract() {
         Boolean(renderer) && !pausedRef.current && !document.hidden;
 
       if (shouldRun === running) {
-        if (!running) renderFrame(elapsedTime, 1 / 60);
+        if (!running) renderFrame(elapsedTime, DEFAULT_DELTA);
         return;
       }
 
@@ -199,7 +204,7 @@ export default function GlassTesseract() {
         frameId = requestAnimationFrame(animate);
       } else {
         cancelAnimationFrame(frameId);
-        renderFrame(elapsedTime, 1 / 60);
+        renderFrame(elapsedTime, DEFAULT_DELTA);
       }
     };
 
@@ -209,7 +214,7 @@ export default function GlassTesseract() {
         : new ResizeObserver(handleViewportChange);
 
     measure();
-    renderFrame(elapsedTime, 1 / 60);
+    renderFrame(elapsedTime, DEFAULT_DELTA);
     ready("scene");
     animationControlRef.current = { sync: syncAnimation };
     syncAnimation();
@@ -249,8 +254,8 @@ export default function GlassTesseract() {
         background: "transparent",
       }}
     >
-      <canvas ref={canvasRef} className={styles.canvas} />
-      <canvas ref={fallbackCanvasRef} className={styles.canvas} style={{ display: "none" }} />
+      <canvas ref={canvasRef} />
+      <canvas ref={fallbackCanvasRef} style={{ display: "none" }} />
     </div>
   );
 }

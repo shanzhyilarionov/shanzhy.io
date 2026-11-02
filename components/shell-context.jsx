@@ -6,20 +6,6 @@ const PageExitContext = createContext({ exiting: false, settleMs: 0 });
 const SceneAnimationPausedContext = createContext(false);
 const SceneChromeReadyContext = createContext(() => {});
 const SceneEntranceContext = createContext("unfold");
-const ScreenshotsContext = createContext(null);
-
-export function ScreenshotsProvider({ onOpen, children }) {
-  return (
-    <ScreenshotsContext.Provider value={onOpen}>
-      {children}
-    </ScreenshotsContext.Provider>
-  );
-}
-
-export function useScreenshots() {
-  return useContext(ScreenshotsContext);
-}
-
 export function PageExitProvider({ exiting, settleMs = 0, children }) {
   return (
     <PageExitContext.Provider value={{ exiting, settleMs }}>

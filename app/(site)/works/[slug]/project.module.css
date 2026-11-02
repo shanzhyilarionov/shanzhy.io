@@ -31,16 +31,16 @@
 }
 
 .videoMask {
+  composes: mask from "../../../../styles/media-slide.module.css";
   width: 100%;
   overflow: hidden;
-  animation: videoMaskIn 0.7s var(--ease-panel) both;
 }
 
 .video {
+  composes: content from "../../../../styles/media-slide.module.css";
   width: 100%;
   aspect-ratio: var(--project-media-aspect-ratio);
   background: url("/images/genesis.jpg") center / cover no-repeat;
-  animation: videoContentIn 0.7s var(--ease-panel) both;
 }
 
 .videoElement {
@@ -52,9 +52,9 @@
 }
 
 .image {
+  composes: content from "../../../../styles/media-slide.module.css";
   width: 100%;
   aspect-ratio: var(--project-media-aspect-ratio);
-  animation: videoContentIn 0.7s var(--ease-panel) both;
 }
 
 .imageElement {
@@ -88,15 +88,6 @@
 
 .videoElement[data-ready="false"] {
   opacity: 0;
-}
-
-.videoFrame[data-preparing="true"] {
-  opacity: 0;
-}
-
-.videoFrame[data-preparing="true"] .videoMask,
-.videoFrame[data-preparing="true"] .video {
-  animation-play-state: paused;
 }
 
 .backAction {
@@ -193,7 +184,7 @@
 
 .stacked .cover .video,
 .stacked .cover .image {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: var(--project-frame-aspect-ratio);
 }
 
 .stacked .projectInfo {
@@ -219,64 +210,11 @@
 }
 
 .fromWorks .projectInfo {
-  --reveal-enter-delay: calc(var(--project-enter-delay) + 0.2s);
-}
-
-.fromWorks .videoFrame[data-preparing="true"] {
-  opacity: 1;
+  --reveal-enter-delay: calc(var(--project-enter-delay) + var(--motion-project-entry-lead));
 }
 
 .fromWorks:not(.exiting) .videoMask,
 .fromWorks:not(.exiting) .video,
 .fromWorks:not(.exiting) .image {
   animation: none;
-}
-
-.exiting .videoMask {
-  animation: videoMaskOut var(--motion-content) var(--ease-panel) both;
-}
-
-.exiting .video,
-.exiting .image {
-  animation: videoContentOut var(--motion-content) var(--ease-panel) both;
-}
-
-@keyframes videoMaskIn {
-  from {
-    transform: translate3d(0, 100%, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes videoContentIn {
-  from {
-    transform: translate3d(0, -100%, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes videoMaskOut {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, -100%, 0);
-  }
-}
-
-@keyframes videoContentOut {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 100%, 0);
-  }
 }

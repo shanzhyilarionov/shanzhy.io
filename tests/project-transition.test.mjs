@@ -147,3 +147,17 @@ test("effect replay cancels deferred disposal and leaving cancels an active hand
   assert.equal(animations[4].cancel.mock.callCount(), 1);
   assert.equal(target.style.visibility, "");
 });
+
+test("cleanup after disposal restores the target without scheduling another disposal", (t) => {
+  const { transition, target, animations, cleanup, presentMedia, frames } = setup(t, { cropped: true });
+  transition.disposed = true;
+
+  cleanup();
+  presentMedia();
+
+  assert.equal(target.style.visibility, "");
+  assert.equal(frames.size, 0);
+  assert.equal(transition.dispose.mock.callCount(), 0);
+  assert.equal(animations.length, 3);
+  assert.ok(animations.every((animation) => animation.cancel.mock.callCount() === 1));
+});

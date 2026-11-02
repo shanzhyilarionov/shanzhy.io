@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { preloadGenesisVideo, preloadRouteImages, waitForVideoBuffer } from "../../../../components/preload-assets";
 import { useEntryLoading } from "../../../../components/entry-loading";
 import { useProjectArrival } from "./project-detail";
+import { motion } from "../../../../styles/animations.mjs";
 import styles from "./project.module.css";
 
 export default function GenesisVideo({ project }) {
@@ -109,7 +110,7 @@ export default function GenesisVideo({ project }) {
       video.play().catch((error) => {
         if (!disposed && !video.error && error.name !== "AbortError") setPlayback("blocked");
       });
-    }, arrival ? Math.max(0, 900 - (performance.now() - arrival.startedAt)) : 0);
+    }, arrival ? Math.max(0, motion.projectMedia + motion.projectEntryLead - (performance.now() - arrival.startedAt)) : 0);
     return () => {
       disposed = true;
       window.clearTimeout(timer);

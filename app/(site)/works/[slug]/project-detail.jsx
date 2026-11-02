@@ -7,6 +7,7 @@ import RollingText from "../../../../components/rolling-text";
 import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
 import { PROJECT_DETAIL_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../projects";
+import { motion } from "../../../../styles/animations.mjs";
 import styles from "./project.module.css";
 
 const ProjectArrivalContext = createContext(null);
@@ -36,7 +37,7 @@ export function ProjectImage({ project }) {
             ref={imageRef}
             className={styles.imageElement}
             src={project.image}
-            alt={project.alt}
+            alt={`${project.title} project preview`}
             width={project.width}
             height={project.height}
             sizes={PROJECT_DETAIL_IMAGE_SIZES}
@@ -105,7 +106,7 @@ export default function ProjectDetail({ project, children }) {
     if (!arrival || !layoutReady || layoutChangedRef.current) return;
     const container = containerRef.current;
     const elapsed = performance.now() - arrival.startedAt;
-    container.style.setProperty("--project-enter-delay", `${700 - elapsed}ms`);
+    container.style.setProperty("--project-enter-delay", `${motion.projectMedia - elapsed}ms`);
     return arriveProject(
       arrival,
       container.querySelector("[data-project-media]"),
@@ -116,6 +117,7 @@ export default function ProjectDetail({ project, children }) {
     <ProjectArrivalContext.Provider value={arrival}>
       <div ref={containerRef} style={{ display: "contents" }}>
         <main
+          data-exiting={exiting}
           data-project-layout={stacked !== false ? "stacked" : "wide"}
           className={[
             styles.page,

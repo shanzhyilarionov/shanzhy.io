@@ -105,7 +105,7 @@
   line-height: var(--nav-line-height);
   white-space: normal;
   overflow-wrap: anywhere;
-  transition: color 0.2s ease-out;
+  transition: color var(--motion-interaction) var(--ease-enter);
 }
 
 .label {

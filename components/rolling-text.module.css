@@ -33,15 +33,15 @@
 }
 
 .rolling .track {
-  animation: rollUp 0.2s ease-out both;
+  animation: rollUp var(--motion-interaction) var(--ease-enter) both;
 }
 
 .leaving {
-  animation: labelFadeOut var(--motion-content) ease-out both;
+  animation: labelFadeOut var(--motion-content) var(--ease-enter) both;
 }
 
 .arriving {
-  animation: labelFadeIn var(--motion-content) ease-out var(--label-delay, 0ms)
+  animation: labelFadeIn var(--motion-content) var(--ease-enter) var(--label-delay, 0ms)
     both;
 }
 
