@@ -136,6 +136,39 @@ function schlick(cosTheta, f0) {
   return f0 + (1 - f0) * (1 - clamp(cosTheta, 0, 1)) ** 5;
 }
 
+function sceneRotations(time) {
+  return [
+    [0, 3, time * cubeMotion.rotationXWPerSecond],
+    [1, 2, time * cubeMotion.rotationYZPerSecond],
+    [0, 1, LOOK.orientation.xy],
+    [2, 3, LOOK.orientation.zw],
+  ];
+}
+
+export function projectSceneVertices(sourceVertices, viewport, pointer, time) {
+  const { width, height } = viewport;
+  const scale = layoutScale(width, height);
+  const rotations = sceneRotations(time);
+  const pointerStrength = width <= LOOK.layout.mobileWidth
+    ? LOOK.camera.pointerStrengthMobile
+    : LOOK.camera.pointerStrengthDesktop;
+
+  return sourceVertices.map((vertex) => {
+    const rotated = rotateAll4D(vertex, rotations);
+    let point3D = project4Dto3D(rotated, W_PROJECTION_DISTANCE);
+    point3D = rotate3DX(point3D, LOOK.camera.tiltX);
+    point3D = rotate3DY(point3D, LOOK.camera.tiltY);
+    point3D = rotate3DZ(point3D, LOOK.camera.rollZ);
+    point3D = rotate3DX(point3D, -pointer.y * pointerStrength);
+    point3D = rotate3DY(point3D, pointer.x * pointerStrength);
+    const point2D = project3Dto2D(
+      point3D, Z_PROJECTION_DISTANCE, width / 2, height / 2, scale,
+    );
+
+    return { ...point2D, point3D };
+  });
+}
+
 export function createScene(
   sourceVertices,
   sourceEdges,
@@ -157,10 +190,6 @@ export function createScene(
     screen: project3Dto2D(light.position, Z_PROJECTION_DISTANCE, centerX, centerY, scale),
   }));
 
-  const pointerStrength =
-    width <= LOOK.layout.mobileWidth
-      ? LOOK.camera.pointerStrengthMobile
-      : LOOK.camera.pointerStrengthDesktop;
   const pointerSmoothing =
     1 - Math.exp(-Math.max(deltaTime, 1 / frameTiming.maxFps) * (1000 / cubeMotion.pointerResponseMs));
   temporalState.pointer.x = mixScalar(
@@ -174,31 +203,10 @@ export function createScene(
     pointerSmoothing,
   );
 
-  const rotations = [
-    [0, 3, time * cubeMotion.rotationXWPerSecond],
-    [1, 2, time * cubeMotion.rotationYZPerSecond],
-    [0, 1, LOOK.orientation.xy],
-    [2, 3, LOOK.orientation.zw],
-  ];
-
-  const projectedVertices = sourceVertices.map((vertex) => {
-    const rotated = rotateAll4D(vertex, rotations);
-    let point3D = project4Dto3D(rotated, W_PROJECTION_DISTANCE);
-    point3D = rotate3DX(point3D, LOOK.camera.tiltX);
-    point3D = rotate3DY(point3D, LOOK.camera.tiltY);
-    point3D = rotate3DZ(point3D, LOOK.camera.rollZ);
-    point3D = rotate3DX(point3D, -temporalState.pointer.y * pointerStrength);
-    point3D = rotate3DY(point3D, temporalState.pointer.x * pointerStrength);
-    const point2D = project3Dto2D(
-      point3D,
-      Z_PROJECTION_DISTANCE,
-      centerX,
-      centerY,
-      scale,
-    );
-
-    return { ...point2D, point3D };
-  });
+  const rotations = sceneRotations(time);
+  const projectedVertices = projectSceneVertices(
+    sourceVertices, viewport, temporalState.pointer, time,
+  );
   const fourD = LOOK.fourD;
   const fourDDirection = normalize4(fourD.direction);
   const faces = sourceFaces.map((face, faceIndex) => {
@@ -325,8 +333,6 @@ export function createScene(
       y1: first.y,
       x2: second.x,
       y2: second.y,
-      normalX,
-      normalY,
       bendDirection,
       coreWidth,
       coreColor: radiance,

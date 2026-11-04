@@ -146,7 +146,7 @@ export function retainProjectVideo(video) {
   };
 }
 
-export function startProjectTransition(page, frame, chrome) {
+function startProjectTransition(page, frame, chrome) {
   activeReturn?.dispose();
   activeTransition?.dispose();
   const startedAt = performance.now();

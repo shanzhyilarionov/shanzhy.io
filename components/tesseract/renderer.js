@@ -15,16 +15,10 @@ import {
   quadVertexShader,
 } from "./shaders.js";
 
-const FACE_STRIDE = 18;
+const FACE_STRIDE = 15;
 const CAPSULE_STRIDE = 18;
 const QUAD_ORDER = [0, 1, 2, 0, 2, 3];
 const CAPSULE_ORDER = [0, 1, 2, 2, 1, 3];
-const FACE_UV = [
-  [0, 0],
-  [1, 0],
-  [1, 1],
-  [0, 1],
-];
 
 function compileShader(gl, type, source) {
   const shader = gl.createShader(type);
@@ -156,7 +150,7 @@ export function createRenderer(canvas) {
 
   const facePass = createPass(
     faceVertexShader, faceFragmentShader,
-    ["a_pos3", "a_tangent", "a_bitangent", "a_uv", "a_tint", "a_params"],
+    ["a_pos3", "a_tangent", "a_bitangent", "a_tint", "a_params"],
     [
       "u_center",
       "u_resolution",
@@ -192,7 +186,6 @@ export function createRenderer(canvas) {
     capsuleVertexShader, capsuleFragmentShader,
     ["a_position", "a_local", "a_half_size", "a_color", "a_glint", "a_depth", "a_tint"],
     [
-      "u_origin",
       "u_resolution",
       "u_pixel_ratio",
       "u_exposure_scale",
@@ -449,7 +442,6 @@ export function createRenderer(canvas) {
     for (const face of faces) {
       for (const corner of QUAD_ORDER) {
         const position = face.points3D[corner];
-        const uv = FACE_UV[corner];
 
         data[cursor++] = position[0];
         data[cursor++] = position[1];
@@ -460,15 +452,12 @@ export function createRenderer(canvas) {
         data[cursor++] = face.bitangent[0];
         data[cursor++] = face.bitangent[1];
         data[cursor++] = face.bitangent[2];
-        data[cursor++] = uv[0];
-        data[cursor++] = uv[1];
         data[cursor++] = face.tint[0];
         data[cursor++] = face.tint[1];
         data[cursor++] = face.tint[2];
         data[cursor++] = face.thickness;
         data[cursor++] = face.density;
         data[cursor++] = face.scatterGain;
-        data[cursor++] = 1;
       }
     }
 
@@ -599,7 +588,6 @@ export function createRenderer(canvas) {
       ],
       CAPSULE_STRIDE,
     );
-    gl.uniform2f(capsulePass.uniforms.u_origin, 0, 0);
     gl.uniform2f(capsulePass.uniforms.u_resolution, scene.width, scene.height);
     gl.uniform1f(capsulePass.uniforms.u_pixel_ratio, pixelRatio);
     gl.uniform1f(capsulePass.uniforms.u_exposure_scale, exposureScale);
@@ -643,9 +631,8 @@ export function createRenderer(canvas) {
         ["a_pos3", 3],
         ["a_tangent", 3],
         ["a_bitangent", 3],
-        ["a_uv", 2],
         ["a_tint", 3],
-        ["a_params", 4],
+        ["a_params", 3],
       ],
       FACE_STRIDE,
     );

@@ -15,7 +15,6 @@ import { motion } from "../styles/animations.mjs";
 import styles from "./entry-loading.module.css";
 
 const EntryContext = createContext({ pending: false, ready: () => {} });
-const LEAVING_TIMEOUT_MS = motion.content + motion.loadingTimeoutBuffer;
 
 export function useEntryLoading() {
   return useContext(EntryContext);
@@ -28,7 +27,10 @@ export default function EntryLoading({ children }) {
   const [completed, setCompleted] = useState([]);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState("loading");
+  const homeEntry = entryPath === "/";
+  const leavingDuration = homeEntry ? motion.loadingCollapse : motion.content;
   const stageRef = useRef(null);
+  const progressRef = useRef(null);
   const displayedRef = useRef(0);
   const tasks = useMemo(() => [
     "page", "fonts", "images",
@@ -114,16 +116,20 @@ export default function EntryLoading({ children }) {
   useEffect(() => {
     if (progress !== 100) return;
     const frame = requestAnimationFrame(() => {
-      setPhase("leaving");
+      setPhase(homeEntry ? "holding" : "leaving");
     });
     return () => cancelAnimationFrame(frame);
-  }, [progress]);
+  }, [progress, homeEntry]);
 
   useEffect(() => {
+    if (phase === "holding") {
+      const timer = window.setTimeout(() => setPhase("leaving"), motion.loadingCompleteHold);
+      return () => window.clearTimeout(timer);
+    }
     if (phase !== "leaving") return;
-    const timer = window.setTimeout(() => setPhase("done"), LEAVING_TIMEOUT_MS);
+    const timer = window.setTimeout(() => setPhase("done"), leavingDuration + motion.loadingTimeoutBuffer);
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [phase, leavingDuration]);
 
   return (
     <EntryContext.Provider value={context}>
@@ -140,15 +146,19 @@ export default function EntryLoading({ children }) {
         <div
           className={styles.overlay}
           data-entry-overlay
-          data-theme={entryPath === "/" ? "dark" : "light"}
+          data-home-entry={homeEntry}
           data-phase={phase}
           onAnimationEnd={(event) => {
-            if (event.target === event.currentTarget && phase === "leaving") {
+            if (
+              phase === "leaving" &&
+              event.target === (homeEntry ? progressRef.current : event.currentTarget)
+            ) {
               setPhase("done");
             }
           }}
         >
           <span
+            ref={progressRef}
             className={styles.progress}
             role="progressbar"
             aria-label="Preparing website"
@@ -158,6 +168,7 @@ export default function EntryLoading({ children }) {
           >
             {progress}%
           </span>
+          {homeEntry && <span className={styles.point} aria-hidden="true" />}
         </div>
       )}
     </EntryContext.Provider>

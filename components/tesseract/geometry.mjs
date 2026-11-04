@@ -158,7 +158,6 @@ export function project3Dto2D(point, distance, centerX, centerY, scale) {
   return {
     x: centerX + point[0] * perspective * scale,
     y: centerY + point[1] * perspective * scale,
-    z: point[2],
     perspective,
   };
 }

@@ -48,7 +48,12 @@
 }
 
 .homeChromeEntering {
-  animation: fadeIn var(--motion-content) var(--ease-enter) both;
+  opacity: var(--home-reveal-progress, 0);
+  mix-blend-mode: var(--home-reveal-blend, normal);
+}
+
+.homeChromeEntering > div {
+  translate: 0 calc((1 - var(--home-reveal-progress, 0)) * var(--reveal-distance));
 }
 
 .homeChromeReturning {

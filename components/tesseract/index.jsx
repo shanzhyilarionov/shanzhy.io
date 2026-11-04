@@ -16,8 +16,15 @@ import {
 import { createRenderer } from "./renderer.js";
 import { createFallbackRenderer } from "./fallback-renderer.js";
 import { createPerformanceMonitor } from "./rendering-policy.js";
-import { createHomeScene, ENTRANCE_DURATION, CHROME_REVEAL_TIME } from "./entrance.js";
+import {
+  createHomeScene,
+  ENTRANCE_DURATION,
+  CHROME_REVEAL_TIME,
+  RETURN_ENTRANCE_DURATION,
+  WIREFRAME_WIDTH,
+} from "./entrance.js";
 import { frameTiming } from "../../styles/animations.mjs";
+import styles from "./tesseract.module.css";
 
 const DEFAULT_DELTA = 1 / frameTiming.defaultFps;
 const MIN_DELTA = 1 / frameTiming.maxFps;
@@ -30,11 +37,16 @@ export default function GlassTesseract() {
   const onChromeReady = useSceneChromeReady();
   const entrance = useSceneEntrance();
   const returning = entrance === "rise";
+  const entranceDuration = returning ? RETURN_ENTRANCE_DURATION : ENTRANCE_DURATION;
   const pausedRef = useRef(paused);
   const animationControlRef = useRef(null);
   const canvasRef = useRef(null);
   const fallbackCanvasRef = useRef(null);
   const containerRef = useRef(null);
+  const backdropRef = useRef(null);
+  const wireframeRef = useRef(null);
+  const pathRef = useRef(null);
+  const dotRef = useRef(null);
 
   const vertices = useMemo(() => buildVertices4D(), []);
   const edges = useMemo(() => buildEdges4D(vertices), [vertices]);
@@ -65,7 +77,8 @@ export default function GlassTesseract() {
     let running = false;
     let elapsedTime = 0;
     let entranceTime = 0;
-    let chromeReported = false;
+    let chromeProgress = null;
+    let chromeOnLight = null;
     let lastFrameTime = null;
     let lastRenderTime = null;
 
@@ -93,11 +106,15 @@ export default function GlassTesseract() {
     let bounds = container.getBoundingClientRect();
 
     function renderFrame(time, deltaTime) {
-      if (!chromeReported && (returning || entranceTime >= CHROME_REVEAL_TIME || !renderer)) {
-        chromeReported = true;
-        onChromeReady?.();
+      if (!renderer) {
+        backdropRef.current.style.opacity = "0";
+        wireframeRef.current.style.opacity = "0";
+        if (chromeProgress !== 1) {
+          chromeProgress = 1;
+          onChromeReady?.(1);
+        }
+        return;
       }
-      if (!renderer) return;
 
       const scene = createHomeScene(
         vertices,
@@ -108,9 +125,32 @@ export default function GlassTesseract() {
         entranceTime + time,
         deltaTime,
         temporalState,
+        returning,
       );
       activeCanvas.style.opacity = String(scene.opacity ?? 1);
       activeCanvas.style.transform = `scale(${scene.entranceScale ?? 1})`;
+      backdropRef.current.style.opacity = String(scene.backgroundOpacity ?? 0);
+      wireframeRef.current.style.opacity = String(scene.wireframe?.opacity ?? 0);
+      wireframeRef.current.setAttribute("viewBox", `0 0 ${viewport.width} ${viewport.height}`);
+      if (scene.wireframe) {
+        pathRef.current.setAttribute("d", scene.wireframe.edges.map((edge) =>
+          `M${edge.x1},${edge.y1}L${edge.x2},${edge.y2}`,
+        ).join(""));
+        dotRef.current.setAttribute("cx", String(scene.centerX));
+        dotRef.current.setAttribute("cy", String(scene.centerY));
+        dotRef.current.setAttribute("r", String(scene.wireframe.dotRadius));
+        dotRef.current.style.opacity = String(scene.wireframe.dotOpacity);
+      }
+      const revealProgress = returning ? 1 : (scene.chromeOpacity ?? 1);
+      const onLight = (scene.backgroundOpacity ?? 0) > 0;
+      if (
+        (returning || entranceTime >= CHROME_REVEAL_TIME) &&
+        (chromeProgress !== revealProgress || chromeOnLight !== onLight)
+      ) {
+        chromeProgress = revealProgress;
+        chromeOnLight = onLight;
+        onChromeReady?.(revealProgress, onLight);
+      }
       renderer.render(scene);
     }
 
@@ -126,7 +166,7 @@ export default function GlassTesseract() {
     };
 
     const handlePointerMove = (event) => {
-      if (pausedRef.current || document.hidden || entranceTime < ENTRANCE_DURATION) return;
+      if (pausedRef.current || document.hidden || entranceTime < entranceDuration) return;
       if (
         event.pointerType === "mouse" &&
         event.movementX === 0 && event.movementY === 0
@@ -177,8 +217,8 @@ export default function GlassTesseract() {
           : clamp((now - lastFrameTime) / 1000, MIN_DELTA, MAX_DELTA);
 
       lastFrameTime = now;
-      if (entranceTime < ENTRANCE_DURATION) {
-        entranceTime = Math.min(ENTRANCE_DURATION, entranceTime + visibleDelta);
+      if (entranceTime < entranceDuration) {
+        entranceTime = Math.min(entranceDuration, entranceTime + visibleDelta);
       } else {
         elapsedTime += deltaTime;
       }
@@ -241,21 +281,21 @@ export default function GlassTesseract() {
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       renderer?.destroy();
     };
-  }, [edges, faces, vertices, ready, onChromeReady, returning]);
+  }, [edges, faces, vertices, ready, onChromeReady, returning, entranceDuration]);
 
   return (
     <div
       ref={containerRef}
       aria-hidden="true"
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100%",
-        background: "transparent",
-      }}
+      className={styles.scene}
     >
+      <div ref={backdropRef} className={styles.backdrop} style={{ opacity: returning ? 0 : 1 }} />
       <canvas ref={canvasRef} />
       <canvas ref={fallbackCanvasRef} style={{ display: "none" }} />
+      <svg ref={wireframeRef} className={styles.wireframe} style={{ opacity: returning ? 0 : 1 }}>
+        <path ref={pathRef} fill="none" stroke="#000000" strokeWidth={WIREFRAME_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+        <circle ref={dotRef} r="0" fill="#000000" />
+      </svg>
     </div>
   );
 }

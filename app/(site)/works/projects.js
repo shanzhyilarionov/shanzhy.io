@@ -1,4 +1,4 @@
-export const PROJECT_IMAGE_SIZES = "22rem";
+const PROJECT_IMAGE_SIZES = "22rem";
 export const PROJECT_IMAGE_QUALITY = 90;
 export const PROJECT_DETAIL_IMAGE_SIZES = "100vw";
 

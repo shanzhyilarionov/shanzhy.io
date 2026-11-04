@@ -17,9 +17,8 @@ export const faceVertexShader = `
 attribute vec3 a_pos3;
 attribute vec3 a_tangent;
 attribute vec3 a_bitangent;
-attribute vec2 a_uv;
 attribute vec3 a_tint;
-attribute vec4 a_params;
+attribute vec3 a_params;
 
 uniform vec2 u_center;
 uniform vec2 u_resolution;
@@ -30,9 +29,8 @@ uniform float u_projected_radius;
 varying vec3 v_world;
 varying vec3 v_tangent;
 varying vec3 v_bitangent;
-varying vec2 v_uv;
 varying vec3 v_tint;
-varying vec4 v_params;
+varying vec3 v_params;
 
 void main() {
   float w = max((u_z_distance - a_pos3.z) / u_z_distance, 0.05);
@@ -48,7 +46,6 @@ void main() {
   v_world = a_pos3;
   v_tangent = a_tangent;
   v_bitangent = a_bitangent;
-  v_uv = a_uv;
   v_tint = a_tint;
   v_params = a_params;
 }
@@ -58,9 +55,8 @@ export const faceFragmentShader = `${PRECISION}${LUMINANCE}
 varying vec3 v_world;
 varying vec3 v_tangent;
 varying vec3 v_bitangent;
-varying vec2 v_uv;
 varying vec3 v_tint;
-varying vec4 v_params;
+varying vec3 v_params;
 
 uniform vec3 u_camera;
 uniform vec3 u_light_position[2];
@@ -75,8 +71,6 @@ uniform float u_projected_radius;
 uniform float u_depth_floor;
 uniform float u_depth_curve;
 uniform float u_aerial_floor;
-uniform float u_bevel_width;
-uniform float u_bevel;
 uniform float u_exposure_scale;
 uniform float u_sheen;
 uniform float u_fresnel_rim;
@@ -89,22 +83,13 @@ void main() {
   vec3 tangent = normalize(v_tangent);
   vec3 bitangent = normalize(v_bitangent);
 
-  float toU = min(v_uv.x, 1.0 - v_uv.x);
-  float toV = min(v_uv.y, 1.0 - v_uv.y);
-  float edgeDistance = min(toU, toV);
-  float bevel = 1.0 - smoothstep(0.0, u_bevel_width, edgeDistance);
-
-  vec3 outward = toU < toV
-    ? tangent * sign(v_uv.x - 0.5)
-    : bitangent * sign(v_uv.y - 0.5);
-
   vec3 flat_normal = normalize(cross(tangent, bitangent));
-  vec3 normal = normalize(mix(flat_normal, outward, bevel * u_bevel));
+  vec3 normal = normalize(flat_normal);
 
   vec3 view = normalize(u_camera - v_world);
   float cosNV = max(abs(dot(normal, view)), 0.06);
 
-  float path = v_params.x / cosNV * v_params.w;
+  float path = v_params.x / cosNV;
   vec3 extinction = -log(clamp(v_tint, 0.0015, 0.995)) * v_params.y;
   vec3 transmittance = exp(-extinction * path);
 
@@ -165,7 +150,7 @@ void main() {
     vec3(1.0, 0.99, 0.98) * fresnel * u_fresnel_rim * length(through) * 0.18;
   vec3 highlight = sheen + grazing;
   highlight = mix(vec3(luminance(highlight)), highlight, saturation) * depthGain;
-  highlight *= u_exposure_scale * v_params.w;
+  highlight *= u_exposure_scale;
 
   gl_FragColor = vec4(highlight, luminance(highlight));
 }
@@ -181,7 +166,6 @@ attribute vec4 a_glint;
 attribute float a_depth;
 attribute vec3 a_tint;
 
-uniform vec2 u_origin;
 uniform vec2 u_resolution;
 uniform float u_projected_radius;
 uniform float u_depth_bias;
@@ -193,7 +177,7 @@ varying vec4 v_glint;
 varying vec3 v_tint;
 
 void main() {
-  vec2 position = (a_position - u_origin) / u_resolution;
+  vec2 position = a_position / u_resolution;
 
   float ndcZ = clamp(-a_depth / u_projected_radius, -1.0, 1.0) - u_depth_bias;
 

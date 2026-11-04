@@ -22,7 +22,7 @@
   --paragraph-gap: 20px;
   --contact-gap: 0.75rem;
 
-  --projects-width: clamp(20rem, 30vw, 35rem);
+  --projects-width: clamp(20rem, 30vw, 25rem);
   --tile-gap: 0.75rem;
   --project-tile-height-ratio: 1.5;
   --project-title-size: 14cqw;

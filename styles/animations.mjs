@@ -2,6 +2,8 @@ const panel = 1000;
 const content = 500;
 const interaction = 200;
 
+export const wireframeWidth = 1.5;
+
 export const motion = Object.freeze({
   panel,
   content,
@@ -13,6 +15,8 @@ export const motion = Object.freeze({
   projectDeparture: 300,
   projectHandoff: 120,
   loadingProgress: 180,
+  loadingCompleteHold: 200,
+  loadingCollapse: 500,
   loadingTimeoutBuffer: 100,
   resizeSettle: 100,
   feedbackHold: 2000,
@@ -25,8 +29,13 @@ export const motion = Object.freeze({
   preloadInterval: 200,
   renderWarmup: 1000,
   renderSampleWindow: 2000,
-  homeEntrance: 800,
-  homeChromeReveal: content,
+  homeEntrance: 3000,
+  homeDimension: 500,
+  homeColorReveal: 2200,
+  homeSceneReveal: 500,
+  homeRotationRamp: 800,
+  homeChromeReveal: 2500,
+  homeReturnEntrance: 800,
 });
 
 export const easing = Object.freeze({
@@ -44,7 +53,7 @@ export const worksReveal = Object.freeze({
   "commissioning-workspace": panel,
 });
 
-export const homeEntrance = Object.freeze({
+export const homeReturnEntrance = Object.freeze({
   acceleration: 0.45,
   deceleration: 0.45,
   initialScale: 0.2,
@@ -71,11 +80,14 @@ export const videoPlaybackRate = 1;
 const cssName = (name) => name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 
 export const motionVariables = Object.freeze({
-  ...Object.fromEntries(Object.entries(motion).map(([name, value]) => [
-    `--motion-${cssName(name)}`, `${value}ms`,
+  ...Object.fromEntries([
+    "panel", "content", "interaction", "overlap", "projectMedia", "projectEntryLead", "loadingCollapse",
+  ].map((name) => [
+    `--motion-${cssName(name)}`, `${motion[name]}ms`,
   ])),
   ...Object.fromEntries(Object.entries(easing).map(([name, value]) => [
     `--ease-${cssName(name)}`, value,
   ])),
   "--reveal-distance": "1rem",
+  "--home-wireframe-width": `${wireframeWidth}px`,
 });

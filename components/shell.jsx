@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Chrome, { Brand, HomeTitle } from "./chrome";
 import { hasSharedHeader } from "./chrome-transition";
@@ -44,7 +44,12 @@ export default function Shell({ children }) {
   const [homeEntranceWaiting, setHomeEntranceWaiting] = useState(false);
   const [homeEntrance, setHomeEntrance] = useState("unfold");
   const [homeChromeReady, setHomeChromeReady] = useState(false);
-  const revealHomeChrome = useCallback(() => setHomeChromeReady(true), []);
+  const shellRef = useRef(null);
+  const revealHomeChrome = useCallback((progress = 1, onLight = false) => {
+    shellRef.current?.style.setProperty("--home-reveal-progress", String(progress));
+    shellRef.current?.style.setProperty("--home-reveal-blend", onLight ? "difference" : "normal");
+    setHomeChromeReady(true);
+  }, []);
   const [viewPath, setViewPath] = useState(pathname);
   const [chromeEntering, setChromeEntering] = useState(true);
   const [chromeKey, setChromeKey] = useState(0);
@@ -253,6 +258,7 @@ export default function Shell({ children }) {
       entrance={homeEntrance}
     >
       <HoverBoundary
+        ref={shellRef}
         viewKey={`${pathname}:${phase}`}
         blocked={projectReturning}
         className={styles.shell}

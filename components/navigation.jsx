@@ -14,12 +14,11 @@ const links = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function NavigationPanel({
+function NavigationPanel({
   phase,
   enterSlide,
   exitSlide,
   children,
-  ...props
 }) {
   const open = phase !== "closed";
   const hoverEnabled = useHoverEnabled();
@@ -38,7 +37,7 @@ export function NavigationPanel({
     .join(" ");
 
   return (
-    <section className={className} aria-hidden={!open} {...props}>
+    <section className={className} aria-hidden={!open}>
       <div className={styles.stage}>{children}</div>
     </section>
   );

@@ -19,11 +19,6 @@
   cursor: wait;
 }
 
-.overlay[data-theme="dark"] {
-  background: #000000;
-  color: #FFFFFF;
-}
-
 .progress {
   min-width: 4ch;
   font-family: var(--font-family);
@@ -34,8 +29,44 @@
   text-align: center;
 }
 
-.overlay[data-phase="leaving"] {
+.overlay[data-phase="leaving"][data-home-entry="false"] {
   animation: fadeOut var(--motion-content) var(--ease-enter) both;
+}
+
+.overlay[data-phase="leaving"][data-home-entry="true"] .progress {
+  animation: shrinkToPoint var(--motion-loading-collapse) var(--ease-content) both;
+}
+
+.point {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--home-wireframe-width);
+  height: var(--home-wireframe-width);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+
+.overlay[data-phase="leaving"] .point {
+  animation: showPoint var(--motion-loading-collapse) var(--ease-content) both;
+}
+
+@keyframes shrinkToPoint {
+  to {
+    transform: scale(0);
+  }
+}
+
+@keyframes showPoint {
+  0%, 65% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
