@@ -2,16 +2,16 @@ import Link from "next/link";
 import RollingText from "./rolling-text";
 import styles from "./chrome.module.css";
 
-export function Brand({ onNavigate, back = false }) {
+export function Brand({ onNavigate }) {
   return (
     <>
       <span className={styles.brandText}>© Shanzhy</span>
       <RollingText
         as={Link}
-        href={back ? "/works" : "/"}
+        href="/"
         className={styles.brandButton}
         onNavigate={onNavigate}
-        label={back ? "Back" : "Shanzhy"}
+        label="Shanzhy"
       />
     </>
   );

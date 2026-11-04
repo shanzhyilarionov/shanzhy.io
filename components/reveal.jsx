@@ -8,6 +8,9 @@ import styles from "../styles/text-fade.module.css";
 function timing(index, count) {
   return {
     "--reveal-progress": index / Math.max(1, count - 1),
+    "--reveal-duration": count > 1
+      ? "calc(var(--motion-content) - var(--motion-interaction))"
+      : "var(--motion-content)",
   };
 }
 
@@ -107,6 +110,7 @@ export default function Reveal({
               className={`${styles.line} ${styles.moving}`}
               aria-hidden="true"
               style={timing(lineIndex++, lineCount)}
+              data-reveal-last={lineIndex === lineCount}
               key={index}
             >
               <span className={styles.hidden}>{text.slice(0, line.start)}</span>
@@ -126,7 +130,11 @@ export default function Reveal({
       data-entered={entered}
       data-exiting={exiting}
       onAnimationEnd={(event) => {
-        if (!exiting && event.target.classList.contains(styles.moving)) setEntered(true);
+        if (exiting || event.target.dataset.revealLast !== "true") return;
+        const completed = event.target.getAnimations().some((animation) =>
+          animation.animationName === event.animationName && animation.playState === "finished",
+        );
+        if (completed) setEntered(true);
       }}
     >
       {leadingActions.length > 0 && (
@@ -135,6 +143,7 @@ export default function Reveal({
             <div
               className={styles.moving}
               style={timing(index, lineCount)}
+              data-reveal-last={index === lineCount - 1}
               key={action.key ?? index}
             >
               {action}
@@ -149,6 +158,7 @@ export default function Reveal({
             <div
               className={styles.moving}
               style={timing(leadingActions.length + textLineCount + index, lineCount)}
+              data-reveal-last={index === actions.length - 1}
               key={action.key ?? index}
             >
               {action}

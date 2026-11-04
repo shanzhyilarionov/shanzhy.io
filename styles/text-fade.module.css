@@ -19,58 +19,37 @@
 }
 
 .moving {
-  --duration: calc(var(--motion-interaction) + (var(--motion-content) - var(--motion-interaction)) * var(--reveal-progress));
-  --delay: calc(var(--motion-content) - var(--duration));
-  animation:
-    moveEnter var(--motion-content) var(--ease-enter)
-      var(--reveal-enter-delay, 0s) both,
-    enter var(--duration) var(--ease-enter)
-      calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
+  --duration: var(--reveal-duration);
+  --delay: calc((var(--motion-content) - var(--duration)) * var(--reveal-progress));
+  animation: enter var(--duration) var(--ease-enter)
+    calc(var(--reveal-enter-delay, 0s) + var(--delay)) both;
 }
 
 .content[data-exiting="true"] .moving,
 .moving[data-exiting="true"] {
-  animation:
-    moveExit var(--motion-content) var(--ease-exit) both,
-    exit var(--duration) var(--ease-exit) both;
+  animation: exit var(--duration) var(--ease-exit) var(--delay) both;
 }
 
 @keyframes enter {
   from {
     opacity: 0;
+    transform: translate3d(0, var(--reveal-distance), 0);
   }
 
   to {
     opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes exit {
   from {
     opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 
   to {
     opacity: 0;
-  }
-}
-
-@keyframes moveEnter {
-  from {
-    transform: translate3d(0, var(--reveal-distance), 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes moveExit {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
     transform: translate3d(0, calc(-1 * var(--reveal-distance)), 0);
   }
 }

@@ -244,12 +244,15 @@ export default function Shell({ children }) {
     : "closed";
   const navigationLeaving =
     navigationPhase === "leaving" || navigationPhase === "waiting";
+  const chromeBack = isProject && !menuVisible;
   const chromeLabel =
     isHome
       ? "Click here to explore"
-      : navigationPhase === "open" || navigationLeaving
-        ? "Close"
-        : "Menu";
+      : chromeBack
+        ? "Back"
+        : navigationPhase === "open" || navigationLeaving
+          ? "Close"
+          : "Menu";
 
   return (
     <SceneAnimationPauseProvider
@@ -286,7 +289,7 @@ export default function Shell({ children }) {
           ]
             .filter(Boolean)
             .join(" ")}
-          left={isHome ? <HomeTitle key={pathname} /> : <Brand back={isProject} />}
+          left={isHome ? <HomeTitle key={pathname} /> : <Brand />}
           right={
             <span
               key={isHome ? "home" : menuEntry.key}
@@ -301,15 +304,19 @@ export default function Shell({ children }) {
               }
             >
               <RollingText
-                animateLabelChange={!leavingForProject && !navigationLeaving && !(currentChromeContinuous && phase === "closed")}
-                type="button"
+                animateLabelChange={!leavingForProject && !navigationLeaving}
+                as={chromeBack ? "a" : "button"}
+                href={chromeBack ? "/works" : undefined}
+                type={chromeBack ? undefined : "button"}
                 label={chromeLabel}
                 aria-label={
-                  chromeLabel === "Close"
-                    ? "Close navigation"
-                    : "Open navigation"
+                  chromeBack
+                    ? "Back to works"
+                    : chromeLabel === "Close"
+                      ? "Close navigation"
+                      : "Open navigation"
                 }
-                onClick={toggleNavigation}
+                onClick={chromeBack ? undefined : toggleNavigation}
               />
             </span>
           }
