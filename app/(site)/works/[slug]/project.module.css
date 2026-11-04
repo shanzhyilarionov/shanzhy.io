@@ -206,6 +206,12 @@
   left: var(--page-inset);
   z-index: 50;
   align-items: center;
+  animation: actionEnter var(--motion-content) var(--ease-enter)
+    var(--reveal-enter-delay) both;
+}
+
+.stacked.exiting .action {
+  animation: actionExit var(--motion-content) var(--ease-exit) both;
 }
 
 .fromWorks .projectInfo {
@@ -216,4 +222,24 @@
 .fromWorks:not(.exiting) .video,
 .fromWorks:not(.exiting) .image {
   animation: none;
+}
+
+@keyframes actionEnter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes actionExit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }

@@ -63,6 +63,16 @@ export default function ProjectDetail({ project, children }) {
   const exiting = usePageExiting();
   const mediaAspectRatio = project.width ? project.width / project.height : project.aspectRatio;
   const layoutReady = stacked !== null;
+  const githubAction = (
+    <RollingText
+      key="github"
+      as="a"
+      href={`https://github.com/shanzhyilarionov/${project.repository}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      label="View project on GitHub"
+    />
+  );
 
   useLayoutEffect(() => {
     const content = contentRef.current;
@@ -91,7 +101,7 @@ export default function ProjectDetail({ project, children }) {
       disposed = true;
       observer.disconnect();
     };
-  }, [project.slug]);
+  }, [project.slug, stacked]);
 
   useLayoutEffect(() => {
     const previous = previousLayoutRef.current;
@@ -147,17 +157,11 @@ export default function ProjectDetail({ project, children }) {
                 blocksClassName={styles.description}
                 blocks={[{ text: project.description, className: styles.descriptionParagraph }]}
                 actionsClassName={styles.action}
-                actions={[
-                  <RollingText
-                    key="github"
-                    as="a"
-                    href={`https://github.com/shanzhyilarionov/${project.repository}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    label="View project on GitHub"
-                  />,
-                ]}
+                actions={stacked === false ? [githubAction] : []}
               />
+              {stacked !== false && (
+                <div className={styles.action}>{githubAction}</div>
+              )}
             </div>
 
             {children}

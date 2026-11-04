@@ -3,6 +3,13 @@ import styles from "./about.module.css";
 
 export const metadata = {
   title: "About",
+  description: null,
+  alternates: {
+    canonical: "/about",
+  },
+  robots: {
+    nosnippet: true,
+  },
 };
 
 const heading = "Function refined\nthrough design.";

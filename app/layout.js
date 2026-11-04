@@ -11,11 +11,15 @@ const inter = Inter({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://shanzhy.io"),
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "Shanzhy",
     template: "%s | Shanzhy",
   },
-  description: "Independent developer based in Edmonton, Canada.",
+  description: "Shanzhy Ilarionov is an independent developer based in Edmonton, Canada, focused on software engineering and user experience design.",
 };
 
 export default function RootLayout({ children }) {

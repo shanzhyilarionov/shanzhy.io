@@ -13,7 +13,12 @@ export async function generateMetadata({ params }) {
 
   if (!project) notFound();
 
-  return { title: project.title };
+  return {
+    title: project.title,
+    alternates: {
+      canonical: `/works/${project.slug}`,
+    },
+  };
 }
 
 export default async function ProjectPage({ params }) {
