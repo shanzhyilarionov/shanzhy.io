@@ -120,7 +120,7 @@
   flex: 1;
   flex-direction: column;
   justify-content: flex-end;
-  gap: var(--paragraph-gap);
+  gap: var(--heading-gap);
 }
 
 .description {
@@ -193,7 +193,6 @@
 
 .stacked .projectBody {
   justify-content: space-between;
-  gap: var(--page-inset);
 }
 
 .stacked .description {

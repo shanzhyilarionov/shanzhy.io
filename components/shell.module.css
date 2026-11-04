@@ -151,11 +151,13 @@
   from {
     opacity: 0;
     visibility: hidden;
+    translate: 0 var(--reveal-distance);
   }
 
   to {
     opacity: 1;
     visibility: visible;
+    translate: 0 0;
   }
 }
 
