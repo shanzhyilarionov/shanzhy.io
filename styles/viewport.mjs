@@ -1,0 +1,2 @@
+export const NARROW_VIEWPORT_ASPECT_RATIO = 1;
+export const NARROW_VIEWPORT_QUERY = `(max-aspect-ratio: ${NARROW_VIEWPORT_ASPECT_RATIO}/1)`;

@@ -8,6 +8,7 @@ import { usePageExiting } from "../../../../components/shell-context";
 import { arriveProject, getProjectTransition } from "../project-transition";
 import { PROJECT_DETAIL_IMAGE_SIZES, PROJECT_IMAGE_QUALITY } from "../projects";
 import { motion } from "../../../../styles/animations.mjs";
+import { NARROW_VIEWPORT_QUERY } from "../../../../styles/viewport.mjs";
 import styles from "./project.module.css";
 
 const ProjectArrivalContext = createContext(null);
@@ -79,6 +80,7 @@ export default function ProjectDetail({ project, children }) {
     const layoutMeasure = layoutMeasureRef.current;
     const actions = content.querySelector(`.${styles.action}`);
     const buttons = Array.from(actions.querySelectorAll("a"));
+    const narrowViewport = window.matchMedia(NARROW_VIEWPORT_QUERY);
     let disposed = false;
 
     const measure = () => {
@@ -87,19 +89,21 @@ export default function ProjectDetail({ project, children }) {
       const buttonWidth = Math.max(...buttons.map((button) => button.getBoundingClientRect().width));
       const headingGap = parseFloat(getComputedStyle(layoutMeasure).paddingRight);
 
-      setStacked(mediaOffset - buttonWidth < headingGap);
+      setStacked(narrowViewport.matches || mediaOffset - buttonWidth < headingGap);
     };
 
     const observer = new ResizeObserver(measure);
     observer.observe(content);
     observer.observe(layoutMeasure);
     buttons.forEach((button) => observer.observe(button));
+    narrowViewport.addEventListener("change", measure);
     measure();
     document.fonts.ready.then(measure);
 
     return () => {
       disposed = true;
       observer.disconnect();
+      narrowViewport.removeEventListener("change", measure);
     };
   }, [project.slug, stacked]);
 

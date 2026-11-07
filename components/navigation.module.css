@@ -118,7 +118,7 @@
   opacity: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-aspect-ratio: 1/1) {
   .chrome {
     align-items: flex-start;
     padding-top: var(--chrome-top-mobile);

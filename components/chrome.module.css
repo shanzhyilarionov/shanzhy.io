@@ -45,7 +45,7 @@
   cursor: pointer;
 }
 
-@media (max-width: 768px) {
+@media (max-aspect-ratio: 1/1) {
   .brandText {
     display: none;
   }

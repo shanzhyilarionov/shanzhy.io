@@ -44,6 +44,27 @@ function distances(scene) {
   );
 }
 
+test("landscape scenes avoid narrow-screen scaling even at low pixel widths", () => {
+  for (const width of [640, 1280]) {
+    const scene = createScene(
+      vertices, edges, faces, { width, height: 360 },
+      { x: 0, y: 0 }, 0, 1 / 60, { pointer: { x: 0, y: 0 } },
+    );
+
+    assert.equal(scene.scale, 360 * 0.105);
+  }
+});
+
+test("high-resolution portrait scenes receive the compact scaling adjustment", () => {
+  const scene = createScene(
+    vertices, edges, faces, { width: 1024, height: 2048 },
+    { x: 0, y: 0 }, 0, 1 / 60, { pointer: { x: 0, y: 0 } },
+  );
+
+  assert.ok(scene.scale < 1024 * 0.105);
+  assert.ok(scene.scale > 0);
+});
+
 test("pointer movement changes the view without deforming the animated object", () => {
   for (const width of [390, 1440]) {
     for (const time of [0, 1, 10]) {

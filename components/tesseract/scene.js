@@ -23,6 +23,7 @@ import {
 import { GLASS_F0, LOOK } from "./look.js";
 import { DISPERSION, faceTint } from "./palette.js";
 import { cubeMotion, frameTiming } from "../../styles/animations.mjs";
+import { NARROW_VIEWPORT_ASPECT_RATIO } from "../../styles/viewport.mjs";
 
 const topologyCache = new WeakMap();
 
@@ -66,14 +67,15 @@ function topologyFor(sourceEdges, sourceFaces) {
 
 function layoutScale(width, height) {
   const layout = LOOK.layout;
+  const aspectRatio = width / height;
   const compactProgress = clamp(
-    (layout.compactStart - width) / layout.compactRange,
+    (layout.compactStartAspectRatio - aspectRatio) / layout.compactAspectRatioRange,
     0,
     1,
   );
   const compactScale = 1 - compactProgress * layout.compactAmount;
   const narrowTransition = clamp(
-    (layout.narrowStart - width) / layout.narrowRange,
+    (layout.narrowStartAspectRatio - aspectRatio) / layout.narrowAspectRatioRange,
     0,
     1,
   );
@@ -149,7 +151,7 @@ export function projectSceneVertices(sourceVertices, viewport, pointer, time) {
   const { width, height } = viewport;
   const scale = layoutScale(width, height);
   const rotations = sceneRotations(time);
-  const pointerStrength = width <= LOOK.layout.mobileWidth
+  const pointerStrength = width / height <= NARROW_VIEWPORT_ASPECT_RATIO
     ? LOOK.camera.pointerStrengthMobile
     : LOOK.camera.pointerStrengthDesktop;
 

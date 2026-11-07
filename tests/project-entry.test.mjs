@@ -229,16 +229,24 @@ test("narrow Works entry keeps the original header visible while the page fades"
 
 test("narrow project navigation shares the header while wide project entry replaces it", (t) => {
   const original = Object.getOwnPropertyDescriptor(globalThis, "window");
-  let narrow = false;
+  let width = 1440;
+  let height = 900;
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { matchMedia: () => ({ matches: narrow }) },
+    value: {
+      matchMedia: (query) => {
+        assert.equal(query, "(max-aspect-ratio: 1/1)");
+        return { matches: width <= height };
+      },
+    },
   });
   t.after(() => {
     if (original) Object.defineProperty(globalThis, "window", original);
     else delete globalThis.window;
   });
-  for (narrow of [false, true]) {
+  for (const viewport of [[640, 360], [1024, 1366], [900, 900], [1440, 900]]) {
+    [width, height] = viewport;
+    const narrow = width <= height;
     for (const source of ["/", "/works", "/about", "/contact", "/works/genesis"]) {
       for (const { slug } of projects) {
         assert.equal(hasSharedHeader(source, `/works/${slug}?preview=1#demo`), narrow && source !== "/");

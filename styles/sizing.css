@@ -34,7 +34,7 @@
   --focus-outline-offset: 4px;
 }
 
-@media (max-width: 768px) {
+@media (max-aspect-ratio: 1/1) {
   :root {
     --tile-gap: 2vw;
     --page-spacer: 5rem;

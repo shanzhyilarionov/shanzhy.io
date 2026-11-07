@@ -98,13 +98,12 @@ export const LOOK = {
   layout: {
     baseScale: 0.105,
     plateauScale: 87,
-    compactStart: 900,
-    compactRange: 300,
+    compactStartAspectRatio: 1,
+    compactAspectRatioRange: 1 / 3,
     compactAmount: 0.17,
-    narrowStart: 700,
-    narrowRange: 200,
+    narrowStartAspectRatio: 7 / 9,
+    narrowAspectRatioRange: 2 / 9,
     narrowFloor: 50,
-    mobileWidth: 768,
   },
 };
 
